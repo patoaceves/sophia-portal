@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3 — 2026-05-06
+
+### Changed
+- **Botón de Microsoft removido del login**. Microsoft requiere un tenant de Azure AD para registrar OAuth apps, y crear ese tenant tomó más fricción de la esperada. El botón se quita del UI por ahora pero la función `loginWithMicrosoft()` sigue en `auth.js` lista para reactivar — solo hay que volver a agregar el botón en `index.html` y el provider Azure quedará listo cuando tengamos un tenant.
+
 ## v0.2 — 2026-05-06
 
 ### Fixed

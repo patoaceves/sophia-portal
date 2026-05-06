@@ -53,15 +53,6 @@
             <span>Continuar con Google</span>
           </button>
 
-          <button class="oauth-btn" id="microsoftBtn" type="button">
-            <svg viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#f25022" d="M0 0h11v11H0z"/>
-              <path fill="#7fba00" d="M12 0h11v11H12z"/>
-              <path fill="#00a4ef" d="M0 12h11v11H0z"/>
-              <path fill="#ffb900" d="M12 12h11v11H12z"/>
-            </svg>
-            <span>Continuar con Microsoft</span>
-          </button>
         </div>
 
         <div class="divider">o con tu correo</div>
@@ -89,7 +80,7 @@
   </main>
 
   <script type="module">
-    import { redirectIfAuthed, loginWithGoogle, loginWithMicrosoft, loginWithMagicLink } from "/assets/js/auth.js";
+    import { redirectIfAuthed, loginWithGoogle, loginWithMagicLink } from "/assets/js/auth.js";
 
     redirectIfAuthed();
 
@@ -102,15 +93,6 @@
     document.getElementById("googleBtn").addEventListener("click", async (e) => {
       e.currentTarget.disabled = true;
       const { error } = await loginWithGoogle();
-      if (error) {
-        showFlash(error.message, "error");
-        e.currentTarget.disabled = false;
-      }
-    });
-
-    document.getElementById("microsoftBtn").addEventListener("click", async (e) => {
-      e.currentTarget.disabled = true;
-      const { error } = await loginWithMicrosoft();
       if (error) {
         showFlash(error.message, "error");
         e.currentTarget.disabled = false;
