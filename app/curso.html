@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curso · SOPHIA</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/shell.css">
+</head>
+<body>
+  <div style="display: grid; place-items: center; min-height: 100vh;">
+    <div class="spinner"></div>
+  </div>
+  <script type="module">
+    import { requireAuth } from "/assets/js/auth.js";
+    import { renderShell, escapeHtml } from "/assets/js/ui-shell.js";
+
+    (async () => {
+      const persona = await requireAuth();
+      if (!persona) return;
+
+      const params = new URLSearchParams(location.search);
+      const slug = params.get("slug");
+
+      renderShell({
+        persona,
+        title: "Curso",
+        contentHtml: `
+          <header class="page-header">
+            <a href="/app/cursos" style="color: var(--color-text-muted); font-size: 0.875rem;">← Volver a mis cursos</a>
+            <h2 class="page-title" style="margin-top: var(--s-3);">Course player</h2>
+            <p class="page-subtitle">
+              ${slug
+                ? `Slug solicitado: <code>${escapeHtml(slug)}</code>. El reproductor del curso (sidebar de capítulos + lecciones, render por tipo, marca de progreso) se construirá en el siguiente paso.`
+                : "No se proporcionó slug. Vuelve a mis cursos."
+              }
+            </p>
+          </header>
+          <div class="empty-state">
+            <div class="empty-state__title">En construcción</div>
+            <p class="empty-state__desc">Esta página recibirá el dashboard del curso con tabs (Resumen / Módulos / Tareas / Tests / Autoevaluaciones / Recursos / Calificaciones / Mi progreso).</p>
+          </div>
+        `,
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi perfil · SOPHIA</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/shell.css">
+</head>
+<body>
+  <div style="display: grid; place-items: center; min-height: 100vh;">
+    <div class="spinner"></div>
+  </div>
+  <script type="module">
+    import { requireAuth } from "/assets/js/auth.js";
+    import { renderShell, escapeHtml } from "/assets/js/ui-shell.js";
+
+    (async () => {
+      const persona = await requireAuth();
+      if (!persona) return;
+
+      renderShell({
+        persona,
+        title: "Mi perfil",
+        contentHtml: `
+          <header class="page-header">
+            <span class="page-eyebrow">Cuenta</span>
+            <h2 class="page-title">Tu información</h2>
+          </header>
+          <div style="background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: var(--r-lg); padding: var(--s-8); max-width: 600px;">
+            <dl style="display: grid; grid-template-columns: max-content 1fr; gap: var(--s-3) var(--s-6);">
+              <dt style="font-weight: 500; color: var(--color-text-muted);">Nombre</dt>
+              <dd>${escapeHtml(persona.nombre || "—")}</dd>
+              <dt style="font-weight: 500; color: var(--color-text-muted);">Apellidos</dt>
+              <dd>${escapeHtml(persona.apellidos || "—")}</dd>
+              <dt style="font-weight: 500; color: var(--color-text-muted);">Rol</dt>
+              <dd style="text-transform: capitalize;">${escapeHtml(persona.rol || "alumno")}</dd>
+              <dt style="font-weight: 500; color: var(--color-text-muted);">ID Persona</dt>
+              <dd style="font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-text-subtle);">${escapeHtml(persona.personaId)}</dd>
+            </dl>
+            <p style="margin-top: var(--s-6); color: var(--color-text-subtle); font-size: 0.875rem;">
+              La edición de perfil estará disponible próximamente.
+            </p>
+          </div>
+        `,
+      });
+    })();
+  </script>
+</body>
+</html>
