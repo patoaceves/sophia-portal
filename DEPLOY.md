@@ -107,7 +107,7 @@ Espera a que el SSL se aprovisione (1-5 min).
 
 ## 7. Hacerte admin
 
-Para acceder al panel admin (cuando lo construyamos), edita tu fila en Airtable CRM → Personas → cambia el campo `Rol` de `alumno` a `admin`. Cierra sesión y vuelve a entrar para que el cache se refresque.
+Para acceder al panel admin (cuando lo construyamos), edita tu fila en Airtable CRM → Personas → cambia el campo `Rol` de `participante` a `admin`. Cierra sesión y vuelve a entrar para que el cache se refresque.
 
 ## Troubleshooting
 

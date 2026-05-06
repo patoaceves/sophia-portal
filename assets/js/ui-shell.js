@@ -82,7 +82,7 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
           <div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>
           <div class="sidebar__user-info">
             <div class="sidebar__user-name">${escapeHtml(fullName)}</div>
-            <div class="sidebar__user-role">${escapeHtml(persona.rol || "alumno")}</div>
+            <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>
           </div>
         </button>
       </div>

@@ -1,5 +1,5 @@
 // Standard CORS headers for SOPHIA Portal Edge Functions
-// Allows the production domain plus localhost for dev.
+// Allows the production domain, Vercel preview deploys, and localhost.
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
@@ -11,7 +11,10 @@ const ALLOWED_ORIGINS = [
 
 export function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  // Allow any sophia-portal-*.vercel.app preview deploy
+  const isVercelPreview = /^https:\/\/sophia-portal[\w-]*\.vercel\.app$/.test(origin);
+  const allowedOrigin =
+    ALLOWED_ORIGINS.includes(origin) || isVercelPreview ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -46,6 +49,7 @@ export function errorResponse(
   req: Request,
   message: string,
   status = 400,
+  details?: unknown,
 ): Response {
-  return jsonResponse(req, { error: message }, status);
+  return jsonResponse(req, { error: message, details }, status);
 }

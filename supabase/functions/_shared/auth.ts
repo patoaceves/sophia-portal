@@ -16,7 +16,7 @@ export interface AuthedUser {
   authUserId: string;
   email: string;
   personaId: string;
-  rol: "alumno" | "admin" | "instructor";
+  rol: "participante" | "admin" | "instructor";
   nombre: string;
   apellidos: string;
 }
@@ -85,7 +85,7 @@ export async function requireAuth(req: Request): Promise<AuthedUser> {
   }
 
   const p = personas[0];
-  const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "alumno";
+  const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
 
   return {
     authUserId,

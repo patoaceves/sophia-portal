@@ -95,6 +95,6 @@ En Google Cloud Console y Microsoft Entra ID, configurar:
 ## Roles
 
 Definidos en `Personas.Rol` (Airtable, base CRM):
-- `alumno` (default)
+- `participante` (default — alumnos del portal)
 - `admin` — acceso a `/app/admin/*` y operaciones de escritura globales
 - `instructor` — futuro, no implementado aún
