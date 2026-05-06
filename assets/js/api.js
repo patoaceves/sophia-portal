@@ -1,68 +1,52 @@
-// SOPHIA Portal — API wrapper for Edge Function calls
-// Automatically attaches JWT, parses JSON, throws on errors.
+// SOPHIA Portal · API wrapper para Edge Functions
+import { supabase } from './supabase-client.js';
 
-import { supabase, SUPABASE_URL } from "./supabase-client.js";
+const cfg = window.PORTAL_CONFIG || {};
+const BASE = cfg.EDGE_FUNCTIONS_URL || '';
 
 /**
- * Calls a Supabase Edge Function.
- *
- * @param {string} fnName
- * @param {object} opts
- * @param {"GET"|"POST"|"PATCH"|"DELETE"} [opts.method]
- * @param {object} [opts.body]
- * @param {Record<string,string>} [opts.query]
- * @param {Record<string,string>} [opts.headers]
- * @returns {Promise<{data: any, status: number}>}
+ * apiCall(name, body?) — llama una Edge Function pasando el JWT del usuario.
+ * Devuelve la data o lanza error con detail.
  */
-export async function callEdge(fnName, opts = {}) {
-  const method = opts.method ?? "GET";
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
-  if (!token) {
-    throw new ApiError("Not authenticated", 401);
-  }
+export async function apiCall(name, body = null, opts = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Sin sesión activa');
 
-  const url = new URL(`/functions/v1/${fnName}`, SUPABASE_URL);
-  if (opts.query) {
-    for (const [k, v] of Object.entries(opts.query)) {
-      if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+  const url = `${BASE}/${name}`;
+  const init = {
+    method: opts.method || (body ? 'POST' : 'GET'),
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+      'apikey': cfg.SUPABASE_ANON_KEY || ''
     }
-  }
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    ...opts.headers,
   };
-  let body;
-  if (opts.body !== undefined && method !== "GET") {
-    headers["Content-Type"] = "application/json";
-    body = JSON.stringify(opts.body);
-  }
+  if (body) init.body = JSON.stringify(body);
 
-  const res = await fetch(url, { method, headers, body });
-  let data = null;
-  const text = await res.text();
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
+  let res;
+  try {
+    res = await fetch(url, init);
+  } catch (e) {
+    throw new Error(`Error de red llamando ${name}: ${e.message}`);
   }
+  let json;
+  try { json = await res.json(); }
+  catch { json = { error: `Respuesta no-JSON (${res.status})` }; }
 
   if (!res.ok) {
-    const msg = data?.error ?? `Request failed (${res.status})`;
-    throw new ApiError(msg, res.status, data);
+    const msg = json?.error || `${name} falló (${res.status})`;
+    throw new Error(msg);
   }
-
-  return { data, status: res.status };
+  return json;
 }
 
-export class ApiError extends Error {
-  constructor(message, status = 500, payload = null) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.payload = payload;
-  }
-}
+// Atajos por endpoint
+export const api = {
+  bootstrap:        () => apiCall('auth-bootstrap'),
+  misCursos:        () => apiCall('get-mis-cursos'),
+  curso:            (slug) => apiCall(`get-curso?slug=${encodeURIComponent(slug)}`),
+  leccion:          (id) => apiCall(`get-leccion?id=${encodeURIComponent(id)}`),
+  marcarLeccion:    (leccionId, inscripcionId) => apiCall('marcar-leccion', { leccionId, inscripcionId }),
+  submitTest:       (inscripcionId, respuestas) => apiCall('submit-test-felicidad', { inscripcionId, respuestas }),
+  resultadosTest:   (inscripcionId) => apiCall(`get-resultados-test?inscripcion=${encodeURIComponent(inscripcionId)}`)
+};

@@ -1,8 +1,8 @@
-// SOPHIA Portal — get-mis-cursos (inlined for dashboard deploy)
-// Returns the list of courses the authenticated user is enrolled in,
-// with computed progress %.
+// SOPHIA Portal — get-curso (inlined for dashboard deploy)
+// Returns full course detail (by slug) including chapters, lessons,
+// the user's enrollment, and per-lesson completion state.
 //
-// GET /get-mis-cursos
+// GET /get-curso?slug=happiness-workshop
 // Headers: Authorization: Bearer <supabase_jwt>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -19,6 +19,7 @@ const BASES = {
 const TABLES = {
   CURSOS: "tblJpUGeBsLNkk9UO",
   CAPITULOS: "tblFHDXmg47igVihD",
+  LECCIONES: "tblBjfch6rc5ey7nn",
   INSCRIPCIONES: "tblIT40GILMUHhLKK",
   PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
   PERSONAS: "tbl5XKtg0mRfLeFYH",
@@ -29,6 +30,7 @@ const FIELDS = {
     TITULO: "fldrskH4P70JPikaS",
     SLUG: "fldnbvTXzNFOGxOYs",
     DESCRIPCION_CORTA: "fldUyd2c5OJjRjPz0",
+    DESCRIPCION_LARGA: "fldxvb0leR5o2MaH1",
     COVER_IMAGE: "fld6kHgjdRxGfswko",
     INSTRUCTOR: "fldja8z8xNZCz7gd6",
     COLOR_PRIMARIO: "fldF45BjJoMU90jUP",
@@ -39,20 +41,30 @@ const FIELDS = {
     CAPITULOS: "fldAkJ8rPjrZr2llL",
   },
   CAPITULOS: {
+    TITULO: "fldyuVY3I4StxA5Fe",
     CURSO: "fldYXfwCaNILYPhkV",
+    ORDEN: "fldRzPBGYxP7lkiaZ",
+    DESCRIPCION: "fldw8UGWMUY5FHv0s",
     LECCIONES: "fld6zL7apr0D82dgJ",
+  },
+  LECCIONES: {
+    TITULO: "fldMtiOdTsLzqa7Zc",
+    ORDEN: "fldCbdktDhca3mwJs",
+    TIPO: "fldALQfCvsjblaV2f",
+    ETIQUETA: "fld9ooqaUifHmUaG5",
   },
   INSCRIPCIONES: {
     PERSONA: "fldsgcanUDaXzX20x",
     CURSO: "fldTjcS2GiOe3Q9N0",
     ESTATUS: "flduEWS1l327elsD6",
     FECHA_INSCRIPCION: "fldrfWGCdo6KZZhQz",
-    PROGRESO_LECCIONES: "fldhghcOlF7dSZzFn",
     PROGRESO_PCT: "fldLoqPH7FVUgBm4T",
   },
   PROGRESO_LECCIONES: {
     INSCRIPCION: "fld5osGXDLBrvgW63",
+    LECCION: "fldftZaLhQcHyKrBo",
     COMPLETADO: "fldtGaRMNd69jcK3D",
+    COMPLETADO_EN: "fldEImFE2Osckh2wZ",
   },
   PERSONAS_CRM: {
     AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
@@ -294,138 +306,158 @@ Deno.serve(async (req) => {
   try {
     const user = await requireAuth(req);
 
-    // 1. Get all Inscripciones for this Persona
+    const url = new URL(req.url);
+    const slug = url.searchParams.get("slug");
+    if (!slug) return errorResponse(req, "Missing slug parameter", 400);
+
+    // 1. Fetch curso by slug
+    const cursos = await listRecords(BASES.PORTAL, TABLES.CURSOS, {
+      filterByFormula: eqFormula(FIELDS.CURSOS.SLUG, slug),
+      maxRecords: 1,
+    });
+    if (cursos.length === 0) {
+      throw new HttpError(404, `Curso not found: ${slug}`);
+    }
+    const curso = cursos[0];
+
+    // 2. Validate that user is enrolled
     const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula: `FIND('${user.personaId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))`,
-      fields: [
-        FIELDS.INSCRIPCIONES.CURSO,
-        FIELDS.INSCRIPCIONES.ESTATUS,
-        FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION,
-        FIELDS.INSCRIPCIONES.PROGRESO_LECCIONES,
-        FIELDS.INSCRIPCIONES.PROGRESO_PCT,
-      ],
+      filterByFormula:
+        `AND(` +
+          `FIND('${user.personaId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}})),` +
+          `FIND('${curso.id}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.CURSO}}))` +
+        `)`,
+      maxRecords: 1,
     });
-
     if (inscripciones.length === 0) {
-      return jsonResponse(req, { cursos: [] });
+      throw new HttpError(403, "Not enrolled in this course");
     }
+    const inscripcion = inscripciones[0];
 
-    // Collect unique Curso IDs
-    const cursoIds = new Set<string>();
-    for (const ins of inscripciones) {
-      const cursos = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-      cursos.forEach((id) => cursoIds.add(id));
+    // 3. Capítulos for this course
+    const capituloIds = (curso.fields[FIELDS.CURSOS.CAPITULOS] as string[]) ?? [];
+    const capitulos = capituloIds.length
+      ? await listRecords(BASES.PORTAL, TABLES.CAPITULOS, {
+          filterByFormula: `OR(${capituloIds.map((id) => `RECORD_ID()='${id}'`).join(",")})`,
+        })
+      : [];
+    capitulos.sort((a, b) => {
+      const oa = (a.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0;
+      const ob = (b.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0;
+      return oa - ob;
+    });
+
+    // 4. Lecciones for all chapters (one batched query)
+    const allLeccionIds: string[] = [];
+    for (const c of capitulos) {
+      const ids = (c.fields[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
+      ids.forEach((id) => allLeccionIds.push(id));
     }
+    const lecciones = allLeccionIds.length
+      ? await listRecords(BASES.PORTAL, TABLES.LECCIONES, {
+          filterByFormula: `OR(${allLeccionIds.map((id) => `RECORD_ID()='${id}'`).join(",")})`,
+          fields: [
+            FIELDS.LECCIONES.TITULO,
+            FIELDS.LECCIONES.ORDEN,
+            FIELDS.LECCIONES.TIPO,
+            FIELDS.LECCIONES.ETIQUETA,
+          ],
+        })
+      : [];
+    const leccionById = new Map(lecciones.map((l) => [l.id, l]));
 
-    // 2. Fetch Cursos
-    const allCursos = await listRecords(BASES.PORTAL, TABLES.CURSOS, {
+    // 5. Progreso for this inscripción
+    const progresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
+      filterByFormula:
+        `FIND('${inscripcion.id}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}}))`,
       fields: [
-        FIELDS.CURSOS.TITULO,
-        FIELDS.CURSOS.SLUG,
-        FIELDS.CURSOS.DESCRIPCION_CORTA,
-        FIELDS.CURSOS.COVER_IMAGE,
-        FIELDS.CURSOS.INSTRUCTOR,
-        FIELDS.CURSOS.COLOR_PRIMARIO,
-        FIELDS.CURSOS.MODALIDAD,
-        FIELDS.CURSOS.FECHA_INICIO,
-        FIELDS.CURSOS.FECHA_FIN,
-        FIELDS.CURSOS.ESTATUS,
-        FIELDS.CURSOS.CAPITULOS,
+        FIELDS.PROGRESO_LECCIONES.LECCION,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN,
       ],
     });
-    const cursosById = new Map<string, AirtableRecord>();
-    for (const c of allCursos) {
-      if (cursoIds.has(c.id)) cursosById.set(c.id, c);
-    }
-
-    // 3. Count total Lecciones per Curso (via Capítulos)
-    const allCapitulos = await listRecords(BASES.PORTAL, TABLES.CAPITULOS, {
-      fields: [FIELDS.CAPITULOS.CURSO, FIELDS.CAPITULOS.LECCIONES],
-    });
-    const leccionesCountPorCurso = new Map<string, number>();
-    for (const cap of allCapitulos) {
-      const cursoLinks = (cap.fields[FIELDS.CAPITULOS.CURSO] as string[]) ?? [];
-      const lecciones = (cap.fields[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
-      for (const cursoId of cursoLinks) {
-        if (!cursoIds.has(cursoId)) continue;
-        leccionesCountPorCurso.set(
-          cursoId,
-          (leccionesCountPorCurso.get(cursoId) ?? 0) + lecciones.length,
-        );
-      }
-    }
-
-    // 4. Count completed lessons per Inscripción
-    const inscripcionIds = inscripciones.map((i) => i.id);
-    const progresoFilter = inscripcionIds
-      .map((id) => `FIND('${id}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}}))`)
-      .join(", ");
-    const progresoFormula = inscripcionIds.length === 1
-      ? progresoFilter
-      : `OR(${progresoFilter})`;
-
-    const progresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula: `AND(${progresoFormula}, {${FIELDS.PROGRESO_LECCIONES.COMPLETADO}})`,
-      fields: [FIELDS.PROGRESO_LECCIONES.INSCRIPCION],
-    });
-
-    const completadasPorInscripcion = new Map<string, number>();
+    const progresoByLeccion = new Map<
+      string,
+      { completada: boolean; completadaEn: string | null }
+    >();
     for (const p of progresos) {
-      const insLinks = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      for (const insId of insLinks) {
-        completadasPorInscripcion.set(insId, (completadasPorInscripcion.get(insId) ?? 0) + 1);
-      }
+      const links = (p.fields[FIELDS.PROGRESO_LECCIONES.LECCION] as string[]) ?? [];
+      const id = links[0];
+      if (!id) continue;
+      progresoByLeccion.set(id, {
+        completada: Boolean(p.fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO]),
+        completadaEn:
+          (p.fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN] as string) ?? null,
+      });
     }
 
-    // 5. Assemble response
-    const cursos = inscripciones
-      .map((ins) => {
-        const cursoLinks = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-        const cursoId = cursoLinks[0];
-        if (!cursoId) return null;
-        const c = cursosById.get(cursoId);
-        if (!c) return null;
+    // 6. Build response
+    const capitulosOut = capitulos.map((c) => {
+      const leccLinks = (c.fields[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
+      const leccionesOut = leccLinks
+        .map((id) => leccionById.get(id))
+        .filter((l): l is AirtableRecord => Boolean(l))
+        .map((l) => {
+          const prog = progresoByLeccion.get(l.id);
+          return {
+            id: l.id,
+            titulo: (l.fields[FIELDS.LECCIONES.TITULO] as string) ?? "",
+            orden: (l.fields[FIELDS.LECCIONES.ORDEN] as number) ?? 0,
+            tipo: (l.fields[FIELDS.LECCIONES.TIPO] as string) ?? "texto",
+            etiqueta: (l.fields[FIELDS.LECCIONES.ETIQUETA] as string) ?? "",
+            completada: prog?.completada ?? false,
+            completadaEn: prog?.completadaEn ?? null,
+          };
+        })
+        .sort((a, b) => a.orden - b.orden);
 
-        const totalLecciones = leccionesCountPorCurso.get(cursoId) ?? 0;
-        const completadas = completadasPorInscripcion.get(ins.id) ?? 0;
-        const progresoPct = totalLecciones > 0
-          ? Math.round((completadas / totalLecciones) * 100)
-          : 0;
+      return {
+        id: c.id,
+        titulo: (c.fields[FIELDS.CAPITULOS.TITULO] as string) ?? "",
+        orden: (c.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0,
+        descripcion: (c.fields[FIELDS.CAPITULOS.DESCRIPCION] as string) ?? "",
+        lecciones: leccionesOut,
+      };
+    });
 
-        const coverAttachments = c.fields[FIELDS.CURSOS.COVER_IMAGE] as
-          | { url: string }[]
-          | undefined;
-        const coverUrl = coverAttachments?.[0]?.url ?? null;
+    const cf = curso.fields;
+    const coverAttachments = cf[FIELDS.CURSOS.COVER_IMAGE] as
+      | { url: string }[]
+      | undefined;
+    const coverUrl = coverAttachments?.[0]?.url ?? null;
 
-        return {
-          id: cursoId,
-          inscripcionId: ins.id,
-          slug: c.fields[FIELDS.CURSOS.SLUG] ?? "",
-          titulo: c.fields[FIELDS.CURSOS.TITULO] ?? "",
-          descripcionCorta: c.fields[FIELDS.CURSOS.DESCRIPCION_CORTA] ?? "",
-          coverUrl,
-          instructor: c.fields[FIELDS.CURSOS.INSTRUCTOR] ?? "",
-          colorPrimario: c.fields[FIELDS.CURSOS.COLOR_PRIMARIO] ?? "",
-          modalidad: c.fields[FIELDS.CURSOS.MODALIDAD] ?? "",
-          fechaInicio: c.fields[FIELDS.CURSOS.FECHA_INICIO] ?? null,
-          fechaFin: c.fields[FIELDS.CURSOS.FECHA_FIN] ?? null,
-          estatus: c.fields[FIELDS.CURSOS.ESTATUS] ?? "",
-          inscripcionEstatus: ins.fields[FIELDS.INSCRIPCIONES.ESTATUS] ?? "",
-          fechaInscripcion: ins.fields[FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION] ?? null,
-          progresoPct,
-          totalLecciones,
-          leccionesCompletadas: completadas,
-        };
-      })
-      .filter((x) => x !== null);
-
-    return jsonResponse(req, { cursos });
+    return jsonResponse(req, {
+      curso: {
+        id: curso.id,
+        slug: (cf[FIELDS.CURSOS.SLUG] as string) ?? slug,
+        titulo: (cf[FIELDS.CURSOS.TITULO] as string) ?? "",
+        descripcionCorta: (cf[FIELDS.CURSOS.DESCRIPCION_CORTA] as string) ?? "",
+        descripcionLarga: (cf[FIELDS.CURSOS.DESCRIPCION_LARGA] as string) ?? "",
+        coverUrl,
+        instructor: (cf[FIELDS.CURSOS.INSTRUCTOR] as string) ?? "",
+        colorPrimario: (cf[FIELDS.CURSOS.COLOR_PRIMARIO] as string) ?? "",
+        modalidad: (cf[FIELDS.CURSOS.MODALIDAD] as string) ?? "",
+        fechaInicio: cf[FIELDS.CURSOS.FECHA_INICIO] ?? null,
+        fechaFin: cf[FIELDS.CURSOS.FECHA_FIN] ?? null,
+        estatus: (cf[FIELDS.CURSOS.ESTATUS] as string) ?? "",
+      },
+      inscripcion: {
+        id: inscripcion.id,
+        estatus:
+          (inscripcion.fields[FIELDS.INSCRIPCIONES.ESTATUS] as string) ?? "",
+        fechaInscripcion:
+          inscripcion.fields[FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION] ?? null,
+        progresoPct:
+          (inscripcion.fields[FIELDS.INSCRIPCIONES.PROGRESO_PCT] as number) ?? 0,
+      },
+      capitulos: capitulosOut,
+    });
   } catch (e) {
     if (e instanceof HttpError) {
       return errorResponse(req, e.message, e.status);
     }
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-mis-cursos error:", msg);
+    console.error("get-curso error:", msg);
     return errorResponse(req, msg, 500);
   }
 });

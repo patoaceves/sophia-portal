@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tus resultados · Test de Felicidad · SOPHIA</title>
+<link rel="stylesheet" href="/assets/css/main.css">
+<style>
+  body { background: var(--sophia-cream); }
+  .results-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--s-7) var(--s-5) var(--s-9);
+  }
+  .results-header {
+    text-align: center;
+    margin-bottom: var(--s-7);
+  }
+  .results-header img { height: 32px; margin: 0 auto var(--s-3); }
+
+  /* Wheel */
+  .wheel-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-7);
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--sophia-line);
+    border-radius: var(--r-xl);
+    padding: var(--s-7);
+    margin-bottom: var(--s-7);
+  }
+  .wheel-svg {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+    display: block;
+  }
+  .wheel-side h2 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    margin-bottom: var(--s-3);
+  }
+  .wheel-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+    margin-top: var(--s-5);
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: 13px;
+  }
+  .legend-row .swatch {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-row .name { flex: 1; color: var(--sophia-graphite); }
+  .legend-row .score { font-weight: 700; color: var(--sophia-ink); font-variant-numeric: tabular-nums; }
+
+  /* Análisis grouped */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--s-5);
+  }
+  .analysis-col {
+    background: #fff;
+    border: 1px solid var(--sophia-line);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+  }
+  .analysis-col h3 {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    margin-bottom: var(--s-4);
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--sophia-line);
+  }
+  .analysis-col.fortaleza h3 { color: #2e7d32; }
+  .analysis-col.crecimiento h3 { color: #c88d2d; }
+  .analysis-col.vulnerable h3 { color: #b00020; }
+  .pilar-item {
+    margin-bottom: var(--s-4);
+  }
+  .pilar-item .top {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-bottom: var(--s-2);
+  }
+  .pilar-item .top .swatch {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+  .pilar-item .top .name {
+    font-weight: 600;
+    flex: 1;
+    font-size: 14px;
+  }
+  .pilar-item .top .score {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+  .pilar-item .text {
+    font-size: 13px;
+    color: var(--sophia-graphite);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 800px) {
+    .wheel-container { grid-template-columns: 1fr; }
+    .analysis-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="results-shell">
+  <header class="results-header">
+    <img src="https://static.wixstatic.com/media/6bf1ef_d0efb91350e04315be1fe1a9982e69c8~mv2.png" alt="SOPHIA">
+    <div class="eyebrow">Autoevaluación · Happiness Workshop</div>
+    <h1 style="font-size: 2.4rem;">Tus resultados</h1>
+    <p id="subtitle" style="color: var(--sophia-graphite);">Cargando…</p>
+  </header>
+
+  <div id="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Calculando tu rueda…</p>
+  </div>
+
+  <div id="results-body" class="hidden">
+    <!-- Wheel -->
+    <div class="wheel-container">
+      <div>
+        <svg class="wheel-svg" id="wheel" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-label="Rueda de los 8 pilares"></svg>
+      </div>
+      <div class="wheel-side">
+        <div class="eyebrow">Tu rueda</div>
+        <h2>Modelo de felicidad</h2>
+        <p style="color: var(--sophia-graphite); font-size: 15px;">
+          Cada segmento representa un pilar. La intensidad muestra qué tan presente lo experimentas
+          hoy en tu vida (escala 2-10).
+        </p>
+        <div class="wheel-legend" id="legend"></div>
+      </div>
+    </div>
+
+    <!-- Análisis -->
+    <div class="analysis-grid">
+      <div class="analysis-col fortaleza">
+        <h3>Fortalezas <span style="color: var(--sophia-mist); font-weight: 400;">(8-10)</span></h3>
+        <div id="col-fortaleza"></div>
+      </div>
+      <div class="analysis-col crecimiento">
+        <h3>En crecimiento <span style="color: var(--sophia-mist); font-weight: 400;">(5-7)</span></h3>
+        <div id="col-crecimiento"></div>
+      </div>
+      <div class="analysis-col vulnerable">
+        <h3>Vulnerables <span style="color: var(--sophia-mist); font-weight: 400;">(2-4)</span></h3>
+        <div id="col-vulnerable"></div>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: var(--sophia-mist); font-size: 13px; margin-top: var(--s-7);">
+      Estos resultados no son diagnóstico. Úsalos como línea base y vuelve a medir tras 4 semanas para ver tendencia.
+    </p>
+
+    <div style="text-align: center; margin-top: var(--s-7);">
+      <a href="/app/cursos" class="btn btn-ghost">← Volver a mis cursos</a>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script type="module">
+  import { requireAuth } from '/assets/js/auth.js';
+  import { api } from '/assets/js/api.js';
+
+  await requireAuth();
+
+  const respuestaId = new URLSearchParams(window.location.search).get('id') || '';
+
+  // ─── Pilar metadata ───────────────────────────────────────────────
+  const PILARES = [
+    { key: 'autoconocimiento',     name: 'Autoconocimiento',     color: '#7f94fe' },
+    { key: 'fe_filosofia',         name: 'Fe y Filosofía',       color: '#e39dff' },
+    { key: 'estetica_existencial', name: 'Estética Existencial', color: '#fd7c65' },
+    { key: 'vinculos_vitales',     name: 'Vínculos Vitales',     color: '#ffae9e' },
+    { key: 'bienestar_emocional',  name: 'Bienestar Emocional',  color: '#ffcb3c' },
+    { key: 'bienestar_fisico',     name: 'Bienestar Físico',     color: '#ff9e3c' },
+    { key: 'presencia_consciente', name: 'Presencia Consciente', color: '#9ac48e' },
+    { key: 'trabajo_proposito',    name: 'Trabajo con Propósito',color: '#82beff' }
+  ];
+
+  try {
+    const { scores, analisis, completedAt } = await api.resultadosTest(respuestaId);
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('results-body').classList.remove('hidden');
+    document.getElementById('subtitle').textContent =
+      `Test completado el ${new Date(completedAt).toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'})}`;
+
+    drawWheel(scores);
+    renderLegend(scores);
+    renderAnalysis(scores, analisis);
+  } catch (e) {
+    document.getElementById('loading').innerHTML = `
+      <p style="color: var(--sophia-red);">No pudimos cargar tus resultados: ${e.message}</p>
+      <a href="/app/cursos" class="btn btn-ghost" style="margin-top: var(--s-4);">← Volver a mis cursos</a>
+    `;
+  }
+
+  // ─── Wheel: 8 ring segments, fill amount ∝ score (2-10) ──────────
+  function drawWheel(scores) {
+    const svg = document.getElementById('wheel');
+    const cx = 200, cy = 200;
+    const innerR = 60, outerR = 180;
+    const ringWidth = outerR - innerR;
+    const ns = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+
+    PILARES.forEach((p, i) => {
+      const a0 = i * 45 - 90 - 22.5;     // start angle
+      const a1 = (i + 1) * 45 - 90 - 22.5; // end angle
+      const score = Math.max(2, Math.min(10, scores[p.key] || 2));
+      const fillR = innerR + ((score - 2) / 8) * ringWidth;
+
+      // Background sector (light)
+      const bg = document.createElementNS(ns, 'path');
+      bg.setAttribute('d', sectorPath(cx, cy, innerR, outerR, a0, a1));
+      bg.setAttribute('fill', p.color);
+      bg.setAttribute('fill-opacity', '0.15');
+      svg.appendChild(bg);
+
+      // Filled sector
+      const fill = document.createElementNS(ns, 'path');
+      fill.setAttribute('d', sectorPath(cx, cy, innerR, fillR, a0, a1));
+      fill.setAttribute('fill', p.color);
+      svg.appendChild(fill);
+
+      // Label (truncate first word)
+      const midA = (a0 + a1) / 2;
+      const labelR = outerR + 22;
+      const [tx, ty] = polar(cx, cy, labelR, midA);
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', tx);
+      text.setAttribute('y', ty);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'middle');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-family', 'Karla, sans-serif');
+      text.setAttribute('font-weight', '600');
+      text.setAttribute('fill', '#1a1716');
+      text.textContent = p.name.split(' ')[0];
+      svg.appendChild(text);
+
+      // Score text inside the ring
+      const scoreR = innerR + (fillR - innerR) / 2;
+      const [sx, sy] = polar(cx, cy, Math.max(scoreR, innerR + 18), midA);
+      const stext = document.createElementNS(ns, 'text');
+      stext.setAttribute('x', sx);
+      stext.setAttribute('y', sy);
+      stext.setAttribute('text-anchor', 'middle');
+      stext.setAttribute('dominant-baseline', 'middle');
+      stext.setAttribute('font-size', '14');
+      stext.setAttribute('font-family', 'Cormorant Garamond, serif');
+      stext.setAttribute('font-weight', '700');
+      stext.setAttribute('fill', '#1a1716');
+      stext.textContent = score;
+      svg.appendChild(stext);
+    });
+
+    // Center logo/dot
+    const dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', innerR - 4);
+    dot.setAttribute('fill', '#fffcfa');
+    dot.setAttribute('stroke', '#e5dfd8');
+    dot.setAttribute('stroke-width', '1');
+    svg.appendChild(dot);
+  }
+
+  function polar(cx, cy, r, deg) {
+    const a = (deg) * Math.PI / 180;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+  function sectorPath(cx, cy, rIn, rOut, a0, a1) {
+    const [x0, y0] = polar(cx, cy, rOut, a0);
+    const [x1, y1] = polar(cx, cy, rOut, a1);
+    const [x2, y2] = polar(cx, cy, rIn, a1);
+    const [x3, y3] = polar(cx, cy, rIn, a0);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    return [
+      `M ${x0} ${y0}`,
+      `A ${rOut} ${rOut} 0 ${large} 1 ${x1} ${y1}`,
+      `L ${x2} ${y2}`,
+      `A ${rIn} ${rIn} 0 ${large} 0 ${x3} ${y3}`,
+      'Z'
+    ].join(' ');
+  }
+
+  function renderLegend(scores) {
+    const $l = document.getElementById('legend');
+    $l.innerHTML = PILARES.map(p => `
+      <div class="legend-row">
+        <span class="swatch" style="background:${p.color};"></span>
+        <span class="name">${p.name}</span>
+        <span class="score">${scores[p.key] || '—'}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderAnalysis(scores, analisis) {
+    const sorted = PILARES.slice().sort((a,b) => (scores[b.key]||0) - (scores[a.key]||0));
+
+    const groups = { fortaleza: [], crecimiento: [], vulnerable: [] };
+    sorted.forEach(p => {
+      const s = scores[p.key] || 0;
+      const bucket = s >= 8 ? 'fortaleza' : s >= 5 ? 'crecimiento' : 'vulnerable';
+      groups[bucket].push(p);
+    });
+
+    Object.entries(groups).forEach(([bucket, list]) => {
+      const $col = document.getElementById(`col-${bucket}`);
+      if (list.length === 0) {
+        $col.innerHTML = '<p style="color: var(--sophia-mist); font-size: 13px; font-style: italic;">Ninguno en esta categoría — ¡buena noticia!</p>';
+        return;
+      }
+      $col.innerHTML = list.map(p => `
+        <div class="pilar-item">
+          <div class="top">
+            <span class="swatch" style="background:${p.color};"></span>
+            <span class="name">${p.name}</span>
+            <span class="score">${scores[p.key]}</span>
+          </div>
+          <div class="text">${analisis?.[p.key] || ''}</div>
+        </div>
+      `).join('');
+    });
+  }
+</script>
+</body>
+</html>

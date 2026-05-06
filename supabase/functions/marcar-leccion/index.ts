@@ -1,8 +1,9 @@
-// SOPHIA Portal — get-mis-cursos (inlined for dashboard deploy)
-// Returns the list of courses the authenticated user is enrolled in,
-// with computed progress %.
+// SOPHIA Portal — marcar-leccion (inlined for dashboard deploy)
+// Marks a lesson as completed for the authenticated user. Idempotent:
+// preserves the original completion timestamp on repeat calls.
 //
-// GET /get-mis-cursos
+// POST /marcar-leccion
+// Body: { leccionId: string, inscripcionId: string, videoPctCompletado?: number }
 // Headers: Authorization: Bearer <supabase_jwt>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -17,42 +18,21 @@ const BASES = {
 } as const;
 
 const TABLES = {
-  CURSOS: "tblJpUGeBsLNkk9UO",
-  CAPITULOS: "tblFHDXmg47igVihD",
   INSCRIPCIONES: "tblIT40GILMUHhLKK",
   PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
   PERSONAS: "tbl5XKtg0mRfLeFYH",
 } as const;
 
 const FIELDS = {
-  CURSOS: {
-    TITULO: "fldrskH4P70JPikaS",
-    SLUG: "fldnbvTXzNFOGxOYs",
-    DESCRIPCION_CORTA: "fldUyd2c5OJjRjPz0",
-    COVER_IMAGE: "fld6kHgjdRxGfswko",
-    INSTRUCTOR: "fldja8z8xNZCz7gd6",
-    COLOR_PRIMARIO: "fldF45BjJoMU90jUP",
-    MODALIDAD: "fldwRC5bsmiwqsUlP",
-    FECHA_INICIO: "fldENsivuaLfgVUXW",
-    FECHA_FIN: "fldXjIbSIno6D2XD1",
-    ESTATUS: "fld6yNo5RZiHHWO8X",
-    CAPITULOS: "fldAkJ8rPjrZr2llL",
-  },
-  CAPITULOS: {
-    CURSO: "fldYXfwCaNILYPhkV",
-    LECCIONES: "fld6zL7apr0D82dgJ",
-  },
   INSCRIPCIONES: {
     PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-    ESTATUS: "flduEWS1l327elsD6",
-    FECHA_INSCRIPCION: "fldrfWGCdo6KZZhQz",
-    PROGRESO_LECCIONES: "fldhghcOlF7dSZzFn",
-    PROGRESO_PCT: "fldLoqPH7FVUgBm4T",
   },
   PROGRESO_LECCIONES: {
     INSCRIPCION: "fld5osGXDLBrvgW63",
+    LECCION: "fldftZaLhQcHyKrBo",
     COMPLETADO: "fldtGaRMNd69jcK3D",
+    COMPLETADO_EN: "fldEImFE2Osckh2wZ",
+    VIDEO_PCT_COMPLETADO: "fldAF7BPLaPsFXi5j",
   },
   PERSONAS_CRM: {
     AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
@@ -118,6 +98,26 @@ async function listRecords(
   } while (offset);
 
   return all;
+}
+
+async function createRecord(
+  baseId: string,
+  tableId: string,
+  fields: Record<string, unknown>,
+): Promise<AirtableRecord> {
+  const pat = getAirtablePAT();
+  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${pat}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
+  });
+  if (!res.ok) {
+    throw new Error(`Airtable create failed: ${res.status} ${await res.text()}`);
+  }
+  return await res.json();
 }
 
 async function updateRecord(
@@ -287,145 +287,100 @@ Deno.serve(async (req) => {
   const optionsRes = handleOptions(req);
   if (optionsRes) return optionsRes;
 
-  if (req.method !== "GET") {
+  if (req.method !== "POST") {
     return errorResponse(req, "Method not allowed", 405);
   }
 
   try {
     const user = await requireAuth(req);
 
-    // 1. Get all Inscripciones for this Persona
-    const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula: `FIND('${user.personaId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))`,
-      fields: [
-        FIELDS.INSCRIPCIONES.CURSO,
-        FIELDS.INSCRIPCIONES.ESTATUS,
-        FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION,
-        FIELDS.INSCRIPCIONES.PROGRESO_LECCIONES,
-        FIELDS.INSCRIPCIONES.PROGRESO_PCT,
-      ],
-    });
-
-    if (inscripciones.length === 0) {
-      return jsonResponse(req, { cursos: [] });
+    let body: {
+      leccionId?: string;
+      inscripcionId?: string;
+      videoPctCompletado?: number;
+    };
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse(req, "Invalid JSON body", 400);
     }
 
-    // Collect unique Curso IDs
-    const cursoIds = new Set<string>();
-    for (const ins of inscripciones) {
-      const cursos = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-      cursos.forEach((id) => cursoIds.add(id));
+    const { leccionId, inscripcionId, videoPctCompletado } = body;
+    if (!leccionId || !inscripcionId) {
+      return errorResponse(req, "leccionId and inscripcionId are required", 400);
     }
 
-    // 2. Fetch Cursos
-    const allCursos = await listRecords(BASES.PORTAL, TABLES.CURSOS, {
-      fields: [
-        FIELDS.CURSOS.TITULO,
-        FIELDS.CURSOS.SLUG,
-        FIELDS.CURSOS.DESCRIPCION_CORTA,
-        FIELDS.CURSOS.COVER_IMAGE,
-        FIELDS.CURSOS.INSTRUCTOR,
-        FIELDS.CURSOS.COLOR_PRIMARIO,
-        FIELDS.CURSOS.MODALIDAD,
-        FIELDS.CURSOS.FECHA_INICIO,
-        FIELDS.CURSOS.FECHA_FIN,
-        FIELDS.CURSOS.ESTATUS,
-        FIELDS.CURSOS.CAPITULOS,
-      ],
+    // 1. Validate that the Inscripción belongs to this user
+    const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
+      filterByFormula:
+        `AND(` +
+          `RECORD_ID()='${inscripcionId}',` +
+          `FIND('${user.personaId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))` +
+        `)`,
+      maxRecords: 1,
     });
-    const cursosById = new Map<string, AirtableRecord>();
-    for (const c of allCursos) {
-      if (cursoIds.has(c.id)) cursosById.set(c.id, c);
+    if (insc.length === 0) {
+      throw new HttpError(403, "Inscripción does not belong to this user");
     }
 
-    // 3. Count total Lecciones per Curso (via Capítulos)
-    const allCapitulos = await listRecords(BASES.PORTAL, TABLES.CAPITULOS, {
-      fields: [FIELDS.CAPITULOS.CURSO, FIELDS.CAPITULOS.LECCIONES],
+    // 2. Find existing progreso record (if any)
+    const existing = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
+      filterByFormula:
+        `AND(` +
+          `FIND('${inscripcionId}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}})),` +
+          `FIND('${leccionId}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.LECCION}}))` +
+        `)`,
+      maxRecords: 1,
     });
-    const leccionesCountPorCurso = new Map<string, number>();
-    for (const cap of allCapitulos) {
-      const cursoLinks = (cap.fields[FIELDS.CAPITULOS.CURSO] as string[]) ?? [];
-      const lecciones = (cap.fields[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
-      for (const cursoId of cursoLinks) {
-        if (!cursoIds.has(cursoId)) continue;
-        leccionesCountPorCurso.set(
-          cursoId,
-          (leccionesCountPorCurso.get(cursoId) ?? 0) + lecciones.length,
-        );
+
+    const nowISO = new Date().toISOString();
+    const baseFields: Record<string, unknown> = {
+      [FIELDS.PROGRESO_LECCIONES.COMPLETADO]: true,
+      [FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN]: nowISO,
+    };
+    if (typeof videoPctCompletado === "number") {
+      baseFields[FIELDS.PROGRESO_LECCIONES.VIDEO_PCT_COMPLETADO] = videoPctCompletado;
+    }
+
+    if (existing.length > 0) {
+      const rec = existing[0];
+      // Idempotent: preserve original completion timestamp
+      if (rec.fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO]) {
+        return jsonResponse(req, {
+          ok: true,
+          progresoId: rec.id,
+          completada: true,
+          completadaEn:
+            (rec.fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN] as string) ?? null,
+          alreadyDone: true,
+        });
       }
+      await updateRecord(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, rec.id, baseFields);
+      return jsonResponse(req, {
+        ok: true,
+        progresoId: rec.id,
+        completada: true,
+        completadaEn: nowISO,
+      });
     }
 
-    // 4. Count completed lessons per Inscripción
-    const inscripcionIds = inscripciones.map((i) => i.id);
-    const progresoFilter = inscripcionIds
-      .map((id) => `FIND('${id}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}}))`)
-      .join(", ");
-    const progresoFormula = inscripcionIds.length === 1
-      ? progresoFilter
-      : `OR(${progresoFilter})`;
-
-    const progresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula: `AND(${progresoFormula}, {${FIELDS.PROGRESO_LECCIONES.COMPLETADO}})`,
-      fields: [FIELDS.PROGRESO_LECCIONES.INSCRIPCION],
+    const created = await createRecord(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
+      [FIELDS.PROGRESO_LECCIONES.INSCRIPCION]: [inscripcionId],
+      [FIELDS.PROGRESO_LECCIONES.LECCION]: [leccionId],
+      ...baseFields,
     });
-
-    const completadasPorInscripcion = new Map<string, number>();
-    for (const p of progresos) {
-      const insLinks = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      for (const insId of insLinks) {
-        completadasPorInscripcion.set(insId, (completadasPorInscripcion.get(insId) ?? 0) + 1);
-      }
-    }
-
-    // 5. Assemble response
-    const cursos = inscripciones
-      .map((ins) => {
-        const cursoLinks = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-        const cursoId = cursoLinks[0];
-        if (!cursoId) return null;
-        const c = cursosById.get(cursoId);
-        if (!c) return null;
-
-        const totalLecciones = leccionesCountPorCurso.get(cursoId) ?? 0;
-        const completadas = completadasPorInscripcion.get(ins.id) ?? 0;
-        const progresoPct = totalLecciones > 0
-          ? Math.round((completadas / totalLecciones) * 100)
-          : 0;
-
-        const coverAttachments = c.fields[FIELDS.CURSOS.COVER_IMAGE] as
-          | { url: string }[]
-          | undefined;
-        const coverUrl = coverAttachments?.[0]?.url ?? null;
-
-        return {
-          id: cursoId,
-          inscripcionId: ins.id,
-          slug: c.fields[FIELDS.CURSOS.SLUG] ?? "",
-          titulo: c.fields[FIELDS.CURSOS.TITULO] ?? "",
-          descripcionCorta: c.fields[FIELDS.CURSOS.DESCRIPCION_CORTA] ?? "",
-          coverUrl,
-          instructor: c.fields[FIELDS.CURSOS.INSTRUCTOR] ?? "",
-          colorPrimario: c.fields[FIELDS.CURSOS.COLOR_PRIMARIO] ?? "",
-          modalidad: c.fields[FIELDS.CURSOS.MODALIDAD] ?? "",
-          fechaInicio: c.fields[FIELDS.CURSOS.FECHA_INICIO] ?? null,
-          fechaFin: c.fields[FIELDS.CURSOS.FECHA_FIN] ?? null,
-          estatus: c.fields[FIELDS.CURSOS.ESTATUS] ?? "",
-          inscripcionEstatus: ins.fields[FIELDS.INSCRIPCIONES.ESTATUS] ?? "",
-          fechaInscripcion: ins.fields[FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION] ?? null,
-          progresoPct,
-          totalLecciones,
-          leccionesCompletadas: completadas,
-        };
-      })
-      .filter((x) => x !== null);
-
-    return jsonResponse(req, { cursos });
+    return jsonResponse(req, {
+      ok: true,
+      progresoId: created.id,
+      completada: true,
+      completadaEn: nowISO,
+    });
   } catch (e) {
     if (e instanceof HttpError) {
       return errorResponse(req, e.message, e.status);
     }
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-mis-cursos error:", msg);
+    console.error("marcar-leccion error:", msg);
     return errorResponse(req, msg, 500);
   }
 });

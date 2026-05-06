@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test de Felicidad · SOPHIA</title>
+<link rel="stylesheet" href="/assets/css/main.css">
+<style>
+  body {
+    background: var(--sophia-cream);
+    min-height: 100vh;
+  }
+  .test-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--s-7) var(--s-5) var(--s-9);
+  }
+  .test-header {
+    text-align: center;
+    margin-bottom: var(--s-7);
+  }
+  .test-header img { height: 32px; margin: 0 auto var(--s-5); }
+  .progress-track {
+    height: 3px;
+    background: var(--sophia-line);
+    border-radius: 2px;
+    margin: var(--s-5) 0 var(--s-3);
+    overflow: hidden;
+  }
+  .progress-track .fill {
+    height: 100%;
+    background: var(--sophia-red);
+    transition: width var(--t-soft);
+    width: 0%;
+  }
+  .progress-text {
+    text-align: center;
+    font-size: 13px;
+    color: var(--sophia-mist);
+    letter-spacing: .08em;
+  }
+  .question-card {
+    background: #fff;
+    border: 1px solid var(--sophia-line);
+    border-radius: var(--r-xl);
+    padding: var(--s-7);
+    box-shadow: var(--shadow-sm);
+    transition: opacity var(--t-soft), transform var(--t-soft);
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .question-card.in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .pilar-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    background: var(--pilar-color, var(--sophia-paper));
+    color: #fff;
+    margin-bottom: var(--s-4);
+  }
+  .pilar-tag .icon { width: 16px; height: 16px; }
+  .question-text {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    line-height: 1.3;
+    color: var(--sophia-ink);
+    margin-bottom: var(--s-7);
+  }
+  .likert {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--s-2);
+  }
+  .likert-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-4) var(--s-2);
+    background: var(--sophia-paper);
+    border: 1.5px solid var(--sophia-line);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: all var(--t-quick);
+  }
+  .likert-option:hover { background: #fff; border-color: var(--sophia-mist); }
+  .likert-option .num {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--sophia-graphite);
+  }
+  .likert-option .lbl {
+    font-size: 11px;
+    color: var(--sophia-mist);
+    text-align: center;
+    line-height: 1.2;
+    min-height: 26px;
+  }
+  .likert-option.is-selected {
+    background: var(--sophia-red);
+    border-color: var(--sophia-red);
+  }
+  .likert-option.is-selected .num,
+  .likert-option.is-selected .lbl {
+    color: #fff;
+  }
+
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--s-7);
+  }
+  .validation { color: var(--sophia-red); font-size: 13px; min-height: 1em; }
+
+  /* Sending overlay */
+  .sending-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,252,250,.96);
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+  }
+  .sending-card {
+    text-align: center;
+    max-width: 320px;
+    padding: var(--s-6);
+  }
+  .sending-card h2 { font-family: var(--font-display); font-size: 1.6rem; }
+</style>
+</head>
+<body>
+
+<div class="test-shell">
+  <header class="test-header">
+    <img src="https://static.wixstatic.com/media/6bf1ef_d0efb91350e04315be1fe1a9982e69c8~mv2.png" alt="SOPHIA">
+    <div class="eyebrow">Autoevaluación · Happiness Workshop</div>
+    <h1 style="font-size: 2rem; margin-top: var(--s-3);">Test de Felicidad</h1>
+  </header>
+
+  <!-- Estado: intro -->
+  <div id="step-intro" class="card">
+    <p style="font-family: var(--font-display); font-style: italic; font-size: 1.3rem; color: var(--sophia-graphite); line-height: 1.5;">
+      Este test te dará una fotografía de cómo se relacionan en tu vida los <strong>8 pilares</strong>
+      del modelo de felicidad de SOPHIA. Son 16 preguntas, te toma unos 5 minutos.
+    </p>
+    <p style="color: var(--sophia-graphite);">
+      Para cada pregunta, elige el número del 1 al 5 que mejor te describa hoy:
+    </p>
+    <ul style="color: var(--sophia-graphite); list-style: none; padding: 0;">
+      <li><strong>1</strong> · Totalmente en desacuerdo</li>
+      <li><strong>2</strong> · En desacuerdo</li>
+      <li><strong>3</strong> · Neutro</li>
+      <li><strong>4</strong> · De acuerdo</li>
+      <li><strong>5</strong> · Totalmente de acuerdo</li>
+    </ul>
+    <p style="color: var(--sophia-mist); font-size: 13px; margin-top: var(--s-5);">
+      Tus respuestas son confidenciales y solo tú verás los resultados dentro del portal.
+    </p>
+    <button class="btn btn-primary btn-lg" id="btn-start">Comenzar</button>
+  </div>
+
+  <!-- Estado: preguntas -->
+  <div id="step-quiz" class="hidden">
+    <div class="progress-track"><div class="fill" id="progress-fill"></div></div>
+    <div class="progress-text" id="progress-text">Pregunta 1 de 16</div>
+
+    <div class="question-card" id="q-card" style="margin-top: var(--s-5);">
+      <span class="pilar-tag" id="pilar-tag"></span>
+      <h2 class="question-text" id="q-text">…</h2>
+      <div class="likert" id="likert"></div>
+      <div class="validation" id="validation" style="margin-top: var(--s-4);"></div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" id="btn-prev">← Anterior</button>
+      <button class="btn btn-primary" id="btn-next">Siguiente →</button>
+      <button class="btn btn-primary hidden" id="btn-submit">Ver mis resultados</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script type="module">
+  import { requireAuth } from '/assets/js/auth.js';
+  import { api } from '/assets/js/api.js';
+
+  await requireAuth();
+
+  const params = new URLSearchParams(window.location.search);
+  let inscripcionId = params.get('inscripcion') || '';
+  const leccionId = params.get('leccion') || '';
+
+  // Si el usuario llegó por el sidebar (sin ?inscripcion=), buscamos
+  // automáticamente su inscripción al Happiness Workshop.
+  if (!inscripcionId) {
+    try {
+      const { cursos } = await api.misCursos();
+      const hw = (cursos || []).find(c => c.slug === 'happiness-workshop') || cursos?.[0];
+      if (hw?.inscripcionId) inscripcionId = hw.inscripcionId;
+    } catch (_) { /* sigue sin inscripcionId; el submit dará error claro */ }
+  }
+
+  // ─── 16 preguntas: 8 pilares × 2 dimensiones ──────────────────────
+  // El key es el code que se guarda; el orden importa para el progreso visual.
+  const PILARES = {
+    autoconocimiento:      { name: 'Autoconocimiento',       color: '#7f94fe', icon: '/assets/icons/autoconocimiento.svg' },
+    bienestar_emocional:   { name: 'Bienestar Emocional',    color: '#ffcb3c', icon: '/assets/icons/bienestar-emocional.svg' },
+    bienestar_fisico:      { name: 'Bienestar Físico',       color: '#ff9e3c', icon: '/assets/icons/bienestar-fisico.svg' },
+    presencia_consciente:  { name: 'Presencia Consciente',   color: '#9ac48e', icon: '/assets/icons/presencia-consciente.svg' },
+    vinculos_vitales:      { name: 'Vínculos Vitales',       color: '#ffae9e', icon: '/assets/icons/vinculos-vitales.svg' },
+    trabajo_proposito:     { name: 'Trabajo con Propósito',  color: '#82beff', icon: '/assets/icons/trabajo-proposito.svg' },
+    estetica_existencial:  { name: 'Estética Existencial',   color: '#fd7c65', icon: '/assets/icons/estetica-existencial.svg' },
+    fe_filosofia:          { name: 'Fe y Filosofía de Vida', color: '#e39dff', icon: '/assets/icons/fe-filosofia.svg' }
+  };
+
+  // Cada pregunta: { code, pilar, text }
+  const QUESTIONS = [
+    { code: 'AC1', pilar: 'autoconocimiento',      text: 'Dedico tiempo a reflexionar sobre quién soy y qué me motiva.' },
+    { code: 'AC2', pilar: 'autoconocimiento',      text: 'Reconocer mis fortalezas me genera satisfacción y energía.' },
+    { code: 'BE1', pilar: 'bienestar_emocional',   text: 'Experimento emociones positivas como gratitud, calma o alegría con frecuencia.' },
+    { code: 'BE2', pilar: 'bienestar_emocional',   text: 'Disfruto los pequeños placeres de la vida diaria.' },
+    { code: 'BF1', pilar: 'bienestar_fisico',      text: 'Disfruto cuidar mi cuerpo: moverme, comer bien, dormir lo suficiente.' },
+    { code: 'BF2', pilar: 'bienestar_fisico',      text: 'Tengo hábitos físicos que considero adecuados para mi etapa de vida.' },
+    { code: 'PC1', pilar: 'presencia_consciente',  text: 'Logro mantenerme presente en lo que hago sin distracciones constantes.' },
+    { code: 'PC2', pilar: 'presencia_consciente',  text: 'Estoy conforme con cómo habito el momento presente.' },
+    { code: 'VV1', pilar: 'vinculos_vitales',      text: 'Mis relaciones cercanas (familia, amistades, pareja) me satisfacen.' },
+    { code: 'VV2', pilar: 'vinculos_vitales',      text: 'He logrado construir vínculos profundos donde me siento amado/a.' },
+    { code: 'TP1', pilar: 'trabajo_proposito',     text: 'En mi trabajo o quehacer principal alcanzo logros que me hacen crecer.' },
+    { code: 'TP2', pilar: 'trabajo_proposito',     text: 'Lo que hago tiene sentido para mí más allá del resultado material.' },
+    { code: 'EE1', pilar: 'estetica_existencial',  text: 'Cultivo la creatividad, la belleza o la expresión en mi vida.' },
+    { code: 'EE2', pilar: 'estetica_existencial',  text: 'Construyo mi vida como algo valioso y significativo en sí mismo.' },
+    { code: 'FF1', pilar: 'fe_filosofia',          text: 'Tengo una fe, filosofía o propósito que trasciende mi propio interés.' },
+    { code: 'FF2', pilar: 'fe_filosofia',          text: 'Mantengo el compromiso con aquello que considero más grande que yo.' }
+  ];
+
+  const LABELS = {
+    1: 'Totalmente<br>en desacuerdo',
+    2: 'En desacuerdo',
+    3: 'Neutro',
+    4: 'De acuerdo',
+    5: 'Totalmente<br>de acuerdo'
+  };
+
+  // ─── State ─────────────────────────────────────────────────────────
+  const answers = new Map();
+  let idx = 0;
+
+  const $ = id => document.getElementById(id);
+  const show = el => el.classList.remove('hidden');
+  const hide = el => el.classList.add('hidden');
+
+  // ─── Init ──────────────────────────────────────────────────────────
+  $('btn-start').addEventListener('click', () => {
+    hide($('step-intro'));
+    show($('step-quiz'));
+    renderQuestion();
+  });
+
+  $('btn-prev').addEventListener('click', () => {
+    if (idx > 0) { idx--; renderQuestion(); }
+  });
+  $('btn-next').addEventListener('click', () => {
+    const cur = QUESTIONS[idx];
+    if (!answers.has(cur.code)) {
+      $('validation').textContent = 'Elige una opción para continuar.';
+      return;
+    }
+    if (idx < QUESTIONS.length - 1) { idx++; renderQuestion(); }
+  });
+  $('btn-submit').addEventListener('click', submit);
+
+  function renderQuestion() {
+    const q = QUESTIONS[idx];
+    const p = PILARES[q.pilar];
+    const card = $('q-card');
+
+    // Animate out → in
+    card.classList.remove('in');
+    setTimeout(() => {
+      // Pilar tag with color
+      $('pilar-tag').style.setProperty('--pilar-color', p.color);
+      $('pilar-tag').style.background = p.color;
+      $('pilar-tag').innerHTML = `<img class="icon" src="${p.icon}" alt="" style="filter:brightness(0) invert(1);"> ${p.name}`;
+
+      $('q-text').textContent = q.text;
+
+      // Likert options
+      const selected = answers.get(q.code);
+      $('likert').innerHTML = [1,2,3,4,5].map(v => `
+        <div class="likert-option ${selected === v ? 'is-selected' : ''}" data-value="${v}">
+          <span class="num">${v}</span>
+          <span class="lbl">${LABELS[v]}</span>
+        </div>
+      `).join('');
+      $('likert').querySelectorAll('.likert-option').forEach(el => {
+        el.addEventListener('click', () => {
+          const v = parseInt(el.dataset.value, 10);
+          answers.set(q.code, v);
+          $('likert').querySelectorAll('.likert-option').forEach(o => o.classList.remove('is-selected'));
+          el.classList.add('is-selected');
+          $('validation').textContent = '';
+          // auto-advance after short delay (except on last)
+          if (idx < QUESTIONS.length - 1) {
+            setTimeout(() => { idx++; renderQuestion(); }, 250);
+          }
+        });
+      });
+
+      $('validation').textContent = '';
+
+      // Progress
+      const pct = Math.round(((idx) / QUESTIONS.length) * 100);
+      $('progress-fill').style.width = pct + '%';
+      $('progress-text').textContent = `Pregunta ${idx + 1} de ${QUESTIONS.length}`;
+
+      // Buttons
+      $('btn-prev').style.visibility = idx === 0 ? 'hidden' : 'visible';
+      const isLast = idx === QUESTIONS.length - 1;
+      $('btn-next').classList.toggle('hidden', isLast);
+      $('btn-submit').classList.toggle('hidden', !isLast);
+
+      // Animate in
+      requestAnimationFrame(() => card.classList.add('in'));
+    }, 80);
+  }
+
+  async function submit() {
+    // Validate all answered
+    const missing = QUESTIONS.filter(q => !answers.has(q.code));
+    if (missing.length > 0) {
+      $('validation').textContent = `Te falta(n) ${missing.length} pregunta(s).`;
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sending-overlay';
+    overlay.innerHTML = `<div class="sending-card">
+      <h2>Calculando tus<br>resultados</h2>
+      <div class="spinner" style="margin: var(--s-5) auto;"></div>
+      <p style="color: var(--sophia-graphite);">Esto solo toma un segundo.</p>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    try {
+      const respuestas = {};
+      QUESTIONS.forEach(q => respuestas[q.code] = answers.get(q.code));
+
+      const { respuestaId } = await api.submitTest(inscripcionId, respuestas);
+
+      // Marcar lección completada si vino de una
+      if (leccionId) {
+        try { await api.marcarLeccion(leccionId, inscripcionId); } catch {}
+      }
+
+      window.location.replace(`/app/test-felicidad/resultados?id=${respuestaId}`);
+    } catch (e) {
+      overlay.remove();
+      $('validation').textContent = `Error guardando: ${e.message}`;
+    }
+  }
+</script>
+</body>
+</html>

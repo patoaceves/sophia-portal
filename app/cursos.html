@@ -1,16 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mis cursos · SOPHIA</title>
-  <link rel="stylesheet" href="/assets/css/base.css">
-  <link rel="stylesheet" href="/assets/css/shell.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis cursos · SOPHIA</title>
+<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body>
-  <div style="display: grid; place-items: center; min-height: 100vh;">
-    <div class="spinner"></div>
-  </div>
-  <script type="module" src="/assets/js/cursos.js"></script>
+
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+
+  <main class="app-main">
+    <div class="eyebrow">Portal Académico</div>
+    <h1>Mis cursos</h1>
+    <p style="color: var(--sophia-graphite); font-size: 17px; margin-bottom: var(--s-7);">
+      Continúa donde te quedaste o explora tu siguiente lección.
+    </p>
+
+    <div id="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando tus cursos…</p>
+    </div>
+
+    <div id="empty" class="card hidden" style="text-align:center;">
+      <h3>Aún no tienes cursos asignados</h3>
+      <p style="color: var(--sophia-graphite);">
+        Cuando seas inscrito a un curso, lo verás aquí. Si crees que esto es un error,
+        escríbenos a <a href="mailto:contacto@sophiamx.org">contacto@sophiamx.org</a>.
+      </p>
+    </div>
+
+    <div id="course-grid" class="course-grid hidden"></div>
+  </main>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script type="module">
+  import { requireAuth } from '/assets/js/auth.js';
+  import { mountShell } from '/assets/js/ui-shell.js';
+  import { api } from '/assets/js/api.js';
+
+  await requireAuth();
+  await mountShell();
+
+  const $loading = document.getElementById('loading');
+  const $empty = document.getElementById('empty');
+  const $grid = document.getElementById('course-grid');
+
+  try {
+    const { cursos } = await api.misCursos();
+    $loading.classList.add('hidden');
+
+    if (!cursos || cursos.length === 0) {
+      $empty.classList.remove('hidden');
+    } else {
+      $grid.classList.remove('hidden');
+      $grid.innerHTML = cursos.map(c => `
+        <a href="/app/curso/${c.slug}" class="course-card">
+          <div class="cover" style="background-image:url('${c.coverImage || '/assets/img/intro-hw.png'}'); background-size: cover;"></div>
+          <div class="body">
+            <div class="title">${c.titulo}</div>
+            <div class="meta">${c.descripcionCorta || ''}</div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill" style="width: ${c.progreso || 0}%;"></div>
+            </div>
+            <div style="margin-top: var(--s-2); font-size: 12px; color: var(--sophia-mist);">
+              ${c.progreso || 0}% completado
+            </div>
+          </div>
+        </a>
+      `).join('');
+    }
+  } catch (e) {
+    $loading.classList.add('hidden');
+    $grid.innerHTML = `<div class="card" style="grid-column:1/-1;">
+      <h3>Hubo un error</h3>
+      <p style="color:var(--sophia-graphite);">${e.message}</p>
+    </div>`;
+    $grid.classList.remove('hidden');
+  }
+</script>
 </body>
 </html>

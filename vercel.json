@@ -1,24 +1,25 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
   "builds": [
-    {
-      "src": "**/*",
-      "use": "@vercel/static"
-    }
+    { "src": "**", "use": "@vercel/static" }
   ],
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "routes": [
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/login", "dest": "/index.html" },
+    { "src": "/auth/callback", "dest": "/auth/callback.html" },
+    { "src": "/app", "dest": "/app/cursos.html" },
+    { "src": "/app/cursos", "dest": "/app/cursos.html" },
+    { "src": "/app/perfil", "dest": "/app/perfil.html" },
+    { "src": "/app/curso/([a-z0-9-]+)", "dest": "/app/curso.html?slug=$1" },
+    { "src": "/app/test-felicidad", "dest": "/app/test-felicidad/index.html" },
+    { "src": "/app/test-felicidad/resultados", "dest": "/app/test-felicidad/resultados.html" }
+  ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/(.*)\\.(jpg|jpeg|png|svg|webp|woff2)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/app", "destination": "/app/index.html" }
   ]
 }

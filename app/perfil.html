@@ -1,50 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi perfil · SOPHIA</title>
-  <link rel="stylesheet" href="/assets/css/base.css">
-  <link rel="stylesheet" href="/assets/css/shell.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi perfil · SOPHIA</title>
+<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body>
-  <div style="display: grid; place-items: center; min-height: 100vh;">
-    <div class="spinner"></div>
-  </div>
-  <script type="module">
-    import { requireAuth } from "/assets/js/auth.js";
-    import { renderShell, escapeHtml } from "/assets/js/ui-shell.js";
 
-    (async () => {
-      const persona = await requireAuth();
-      if (!persona) return;
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
 
-      renderShell({
-        persona,
-        title: "Mi perfil",
-        contentHtml: `
-          <header class="page-header">
-            <span class="page-eyebrow">Cuenta</span>
-            <h2 class="page-title">Tu información</h2>
-          </header>
-          <div style="background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: var(--r-lg); padding: var(--s-8); max-width: 600px;">
-            <dl style="display: grid; grid-template-columns: max-content 1fr; gap: var(--s-3) var(--s-6);">
-              <dt style="font-weight: 500; color: var(--color-text-muted);">Nombre</dt>
-              <dd>${escapeHtml(persona.nombre || "—")}</dd>
-              <dt style="font-weight: 500; color: var(--color-text-muted);">Apellidos</dt>
-              <dd>${escapeHtml(persona.apellidos || "—")}</dd>
-              <dt style="font-weight: 500; color: var(--color-text-muted);">Rol</dt>
-              <dd style="text-transform: capitalize;">${escapeHtml(persona.rol || "participante")}</dd>
-              <dt style="font-weight: 500; color: var(--color-text-muted);">ID Persona</dt>
-              <dd style="font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-text-subtle);">${escapeHtml(persona.personaId)}</dd>
-            </dl>
-            <p style="margin-top: var(--s-6); color: var(--color-text-subtle); font-size: 0.875rem;">
-              La edición de perfil estará disponible próximamente.
-            </p>
-          </div>
-        `,
-      });
-    })();
-  </script>
+  <main class="app-main">
+    <div class="eyebrow">Mi cuenta</div>
+    <h1>Mi perfil</h1>
+
+    <div class="card" style="max-width:600px; margin-top: var(--s-6);">
+      <div style="display:flex; align-items:center; gap: var(--s-4); margin-bottom: var(--s-5);">
+        <div id="big-avatar" style="width:64px; height:64px; border-radius:50%; background:var(--sophia-red); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:600; font-family:var(--font-display);">?</div>
+        <div>
+          <div id="profile-name" style="font-family:var(--font-display); font-size:1.5rem;">—</div>
+          <div id="profile-email" style="color: var(--sophia-mist);">—</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Provider de autenticación</label>
+        <input type="text" class="form-input" id="provider" disabled>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Última conexión</label>
+        <input type="text" class="form-input" id="last-signin" disabled>
+      </div>
+
+      <button class="btn btn-ghost" data-signout style="margin-top: var(--s-4);">Cerrar sesión</button>
+    </div>
+  </main>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script type="module">
+  import { requireAuth, signOut } from '/assets/js/auth.js';
+  import { mountShell } from '/assets/js/ui-shell.js';
+
+  const session = await requireAuth();
+  await mountShell();
+
+  const u = session.user;
+  const name = u.user_metadata?.full_name || u.user_metadata?.name || u.email.split('@')[0];
+  document.getElementById('big-avatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-email').textContent = u.email;
+  document.getElementById('provider').value = u.app_metadata?.provider || 'email';
+  document.getElementById('last-signin').value = new Date(u.last_sign_in_at).toLocaleString('es-MX');
+
+  document.querySelector('[data-signout]')?.addEventListener('click', signOut);
+</script>
 </body>
 </html>
