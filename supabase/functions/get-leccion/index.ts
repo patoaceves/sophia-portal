@@ -29,6 +29,9 @@ const FIELDS = {
   CAPITULOS: {
     CURSO: "fldYXfwCaNILYPhkV",
     LECCIONES: "fld6zL7apr0D82dgJ",
+    TITULO: "fldyuVY3I4StxA5Fe",
+    ORDEN: "fldRzPBGYxP7lkiaZ",
+    PONENTE: "flduzlxs03hIYGhXi",
   },
   LECCIONES: {
     TITULO: "fldMtiOdTsLzqa7Zc",
@@ -444,6 +447,12 @@ Deno.serve(async (req) => {
         completadaEn,
       },
       capituloId,
+      capitulo: {
+        id: capituloId,
+        titulo: (cf[FIELDS.CAPITULOS.TITULO] as string) ?? "",
+        orden: (cf[FIELDS.CAPITULOS.ORDEN] as number) ?? 0,
+        ponente: (cf[FIELDS.CAPITULOS.PONENTE] as string) ?? "",
+      },
       cursoId,
       inscripcionId,
       prevId,

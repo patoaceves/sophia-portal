@@ -31,7 +31,7 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     persona,
     title: "Cargando temario…",
     activePath: "/app/cursos",
-    contentHtml: `<div class="spinner" style="margin: 60px auto;"></div>`,
+    contentHtml: `<div class="spinner spinner--wheel" style="margin: 60px auto;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>`,
   });
 
   try {

@@ -47,6 +47,7 @@ const FIELDS = {
     ORDEN: "fldRzPBGYxP7lkiaZ",
     DESCRIPCION: "fldw8UGWMUY5FHv0s",
     LECCIONES: "fld6zL7apr0D82dgJ",
+    PONENTE: "flduzlxs03hIYGhXi",
   },
   LECCIONES: {
     TITULO: "fldMtiOdTsLzqa7Zc",
@@ -451,6 +452,7 @@ Deno.serve(async (req) => {
         titulo: (c.fields[FIELDS.CAPITULOS.TITULO] as string) ?? "",
         orden: (c.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0,
         descripcion: (c.fields[FIELDS.CAPITULOS.DESCRIPCION] as string) ?? "",
+        ponente: (c.fields[FIELDS.CAPITULOS.PONENTE] as string) ?? "",
         lecciones: leccionesOut,
       };
     });

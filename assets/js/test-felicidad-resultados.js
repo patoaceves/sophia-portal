@@ -32,7 +32,7 @@ const NIVEL_CLASS = {
     persona,
     title: "Resultados · Test de Felicidad",
     activePath: "/app/test-felicidad",
-    contentHtml: `<div class="spinner" style="margin: 60px auto;"></div>`,
+    contentHtml: `<div class="spinner spinner--wheel" style="margin: 60px auto;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>`,
   });
 
   try {

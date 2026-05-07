@@ -1,4 +1,4 @@
-// SOPHIA Portal — Lección (player de contenido)
+// SOPHIA Portal — Lección (player de contenido con checkpoints visuales)
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
@@ -30,7 +30,7 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     persona,
     title: "Cargando lección…",
     activePath: "/app/cursos",
-    contentHtml: `<div class="spinner" style="margin: 60px auto;"></div>`,
+    contentHtml: `<div style="display:grid;place-items:center;padding:80px 0;"><div class="spinner spinner--wheel"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>`,
   });
 
   let leccionData;
@@ -48,8 +48,7 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     return;
   }
 
-  // Caso especial: lección tipo "test" → llevar al wizard del Test de Felicidad
-  // Usamos location.href (NO replace) para que el back funcione.
+  // Test felicidad: redirige al wizard
   if (leccionData.leccion.tipo === "test" || leccionData.leccion.tipo === "autoeval") {
     const testUrl =
       `/app/test-felicidad?inscripcion=${encodeURIComponent(leccionData.inscripcionId)}` +
@@ -58,27 +57,16 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     return;
   }
 
-  // Necesitamos el contexto del curso (capítulos + slug) para la barra de
-  // progreso del capítulo y la navegación al volver.
+  // Necesitamos el contexto del curso para los checkpoints del capítulo
   let cursoContext = null;
-  try {
-    cursoContext = await fetchCursoContext(leccionData.cursoId);
-  } catch (e) {
-    console.warn("Could not fetch curso context for progress bar:", e);
+  try { cursoContext = await fetchCursoContext(leccionData.cursoId); } catch (e) {
+    console.warn("Could not fetch curso context for checkpoints:", e);
   }
 
   renderLeccion(persona, leccionData, cursoContext);
 })();
 
-/**
- * El endpoint get-leccion devuelve cursoId pero no el slug ni el capítulo
- * completo. Para tener la barra de progreso del capítulo necesitamos los datos
- * del curso. Hacemos una llamada extra (cacheada) — alternativamente podríamos
- * mover esto al endpoint en una iteración futura.
- */
 async function fetchCursoContext(cursoId) {
-  // No tenemos un endpoint "get-curso-by-id"; el endpoint es por slug.
-  // Estrategia: traer mis cursos, encontrar el slug, después el detalle.
   const { cursos } = await api.misCursos();
   const c = cursos.find((x) => x.id === cursoId);
   if (!c) return null;
@@ -87,43 +75,33 @@ async function fetchCursoContext(cursoId) {
 }
 
 function renderLeccion(persona, payload, cursoContext) {
-  const { leccion, capituloId, cursoId, inscripcionId, prevId, nextId } = payload;
+  const { leccion, capituloId, capitulo: capInfo, cursoId, inscripcionId, prevId, nextId } = payload;
 
-  // Encontrar el capítulo actual y calcular progreso
-  let capitulo = null;
-  let cursoTitulo = "";
+  // Encontrar el capítulo en el contexto del curso (para conocer todas las lecciones)
+  let capCompleto = null;
   let cursoSlug = "";
+  let cursoTitulo = "";
   if (cursoContext) {
-    capitulo = cursoContext.capitulos.find((c) => c.id === capituloId);
-    cursoTitulo = cursoContext.curso.titulo;
+    capCompleto = cursoContext.capitulos.find((c) => c.id === capituloId);
     cursoSlug = cursoContext.slug;
+    cursoTitulo = cursoContext.curso.titulo;
   }
 
-  const capLecciones = capitulo?.lecciones ?? [];
-  const totalLecc = capLecciones.length;
-  // Marcar la lección actual como "in progress" pero no completada hasta que el
-  // usuario haga click. Para la barra: completadas + 1 (la que está viendo)
-  // sería visualmente útil. Pero para no engañar, mostramos solo completadas.
-  const completadas = capLecciones.filter((l) => l.completada).length;
+  const capLecciones = capCompleto?.lecciones ?? [];
   const idxHere = capLecciones.findIndex((l) => l.id === leccion.id);
-  const pctChapter = totalLecc > 0
-    ? Math.round(((idxHere >= 0 ? idxHere : 0) + (leccion.completada ? 1 : 0)) / totalLecc * 100)
-    : 0;
+  const ponente = capInfo?.ponente || capCompleto?.ponente || "";
 
-  // Header: link de regreso al temario
   const backHref = cursoSlug
-    ? `/app/temario?slug=${encodeURIComponent(cursoSlug)}`
+    ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}&tab=temario`
     : "/app/cursos";
-  const backLabel = cursoTitulo || "Volver";
+  const backLabel = cursoTitulo ? `${cursoTitulo} · Temario` : "Volver";
 
   renderShell({
     persona,
     title: leccion.titulo,
     activePath: "/app/cursos",
     contentHtml: `
-      <div class="leccion-progress-bar">
-        <div class="leccion-progress-bar__fill" style="width: ${pctChapter}%;"></div>
-      </div>
+      ${renderCheckpointBar(capLecciones, idxHere, leccion)}
 
       <article class="leccion-page">
         <header class="leccion-page__header">
@@ -131,11 +109,13 @@ function renderLeccion(persona, payload, cursoContext) {
             ${icon("chevronLeft")}
             <span>${escapeHtml(backLabel)}</span>
           </a>
-          ${capitulo ? `
+          ${capInfo || capCompleto ? `
             <div class="leccion-page__crumb">
-              <span class="leccion-page__crumb-cap">Capítulo ${capitulo.orden} · ${escapeHtml(capitulo.titulo)}</span>
-              <span class="leccion-page__crumb-sep">·</span>
-              <span class="leccion-page__crumb-leccion">Lección ${leccion.orden} de ${totalLecc}</span>
+              <span class="leccion-page__crumb-cap">Capítulo ${capInfo?.orden ?? capCompleto?.orden} · ${escapeHtml(capInfo?.titulo ?? capCompleto?.titulo ?? "")}</span>
+              ${capLecciones.length > 0 ? `
+                <span class="leccion-page__crumb-sep">·</span>
+                <span class="leccion-page__crumb-leccion">Lección ${leccion.orden} de ${capLecciones.length}</span>
+              ` : ""}
             </div>
           ` : ""}
           <div class="leccion-page__tipo">
@@ -144,6 +124,12 @@ function renderLeccion(persona, payload, cursoContext) {
             ${leccion.etiqueta ? `<span class="leccion-page__etiqueta">${escapeHtml(leccion.etiqueta)}</span>` : ""}
           </div>
           <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
+          ${ponente ? `
+            <div class="leccion-page__ponente">
+              ${icon("instructor")}
+              <span><strong>Ponente:</strong> ${escapeHtml(ponente)}</span>
+            </div>
+          ` : ""}
         </header>
 
         <div class="leccion-page__body">
@@ -154,8 +140,7 @@ function renderLeccion(persona, payload, cursoContext) {
           <div>
             ${prevId
               ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
-                   ${icon("arrowLeft")}
-                   <span>Anterior</span>
+                   ${icon("arrowLeft")}<span>Anterior</span>
                  </a>`
               : ""}
           </div>
@@ -171,14 +156,54 @@ function renderLeccion(persona, payload, cursoContext) {
 }
 
 /**
- * Decide qué CTA mostrar:
- * - Si la lección NO está completada y hay siguiente: "Marcar y siguiente"
- *   (botón principal único).
- * - Si la lección NO está completada y NO hay siguiente: "Marcar como completada"
- *   (último capítulo completado → vuelve al curso).
- * - Si ya está completada y hay siguiente: "Siguiente".
- * - Si ya está completada y NO hay siguiente: "Volver al curso".
+ * Barra de checkpoints. Un dot por cada lección del capítulo, con check
+ * cuando está completada, dot lleno cuando es la actual, vacío cuando no
+ * se ha tocado. Líneas conectoras entre dots.
+ *
+ * Si no hay contexto del capítulo (capLecciones vacío), fallback a barra
+ * simple de progreso porcentual.
  */
+function renderCheckpointBar(capLecciones, idxHere, currentLeccion) {
+  if (capLecciones.length === 0) {
+    return `<div class="leccion-progress-bar"><div class="leccion-progress-bar__fill" style="width: 50%;"></div></div>`;
+  }
+
+  return `
+    <div class="checkpoint-bar">
+      <ol class="checkpoint-bar__list">
+        ${capLecciones.map((l, i) => {
+          const isHere = i === idxHere;
+          const isDone = l.completada;
+          // Si la lección actual no está marcada done pero estamos en ella,
+          // mostrarla como "current" (pendiente pero activa)
+          const state = isHere && !isDone ? "current"
+            : isDone ? "done"
+            : i < idxHere ? "skipped"
+            : "todo";
+          return `
+            <li class="checkpoint checkpoint--${state}">
+              ${i > 0 ? `<span class="checkpoint__line ${state === "todo" ? "checkpoint__line--todo" : ""}"></span>` : ""}
+              <a class="checkpoint__dot" href="/app/leccion?id=${encodeURIComponent(l.id)}"
+                 title="${escapeHtml(l.titulo)}"
+                 aria-current="${isHere ? "true" : "false"}">
+                ${isDone ? icon("check") : ""}
+                ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
+              </a>
+              <span class="checkpoint__label">${escapeHtml(shortenTitle(l.titulo))}</span>
+            </li>
+          `;
+        }).join("")}
+      </ol>
+    </div>
+  `;
+}
+
+function shortenTitle(t) {
+  if (!t) return "";
+  if (t.length <= 22) return t;
+  return t.slice(0, 22).trimEnd() + "…";
+}
+
 function renderCta(leccion, inscripcionId, nextId, backHref) {
   if (!leccion.completada && nextId) {
     return `
@@ -215,39 +240,35 @@ function renderCta(leccion, inscripcionId, nextId, backHref) {
 }
 
 function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
-  const completeNextBtn = document.getElementById("completeNextBtn");
-  const completeBtn = document.getElementById("completeBtn");
+  const completeNext = document.getElementById("completeNextBtn");
+  const complete = document.getElementById("completeBtn");
 
-  async function markAsCompleted() {
-    return await api.marcarLeccion(leccion.id, inscripcionId);
-  }
+  async function mark() { return await api.marcarLeccion(leccion.id, inscripcionId); }
 
-  completeNextBtn?.addEventListener("click", async () => {
-    completeNextBtn.disabled = true;
-    completeNextBtn.innerHTML = `<span>Guardando…</span>`;
+  completeNext?.addEventListener("click", async () => {
+    completeNext.disabled = true;
+    completeNext.innerHTML = `<span>Guardando…</span>`;
     try {
-      await markAsCompleted();
-      // Navegar a la siguiente lección
+      await mark();
       location.href = `/app/leccion?id=${encodeURIComponent(nextId)}`;
     } catch (err) {
       console.error("marcar-leccion error:", err);
-      completeNextBtn.disabled = false;
-      completeNextBtn.innerHTML = `<span>Reintentar</span> ${icon("arrowRight")}`;
+      completeNext.disabled = false;
+      completeNext.innerHTML = `<span>Reintentar</span> ${icon("arrowRight")}`;
       alert(`No se pudo marcar: ${err.message}`);
     }
   });
 
-  completeBtn?.addEventListener("click", async () => {
-    completeBtn.disabled = true;
-    completeBtn.innerHTML = `<span>Guardando…</span>`;
+  complete?.addEventListener("click", async () => {
+    complete.disabled = true;
+    complete.innerHTML = `<span>Guardando…</span>`;
     try {
-      await markAsCompleted();
-      // Sin siguiente: volver al temario
+      await mark();
       location.href = backHref;
     } catch (err) {
       console.error("marcar-leccion error:", err);
-      completeBtn.disabled = false;
-      completeBtn.innerHTML = `<span>Reintentar</span> ${icon("check")}`;
+      complete.disabled = false;
+      complete.innerHTML = `<span>Reintentar</span> ${icon("check")}`;
       alert(`No se pudo marcar: ${err.message}`);
     }
   });
@@ -256,7 +277,6 @@ function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
 function renderContent(l) {
   const html = l.contenidoHTML || "";
   const tipo = (l.tipo || "texto").toLowerCase();
-
   switch (tipo) {
     case "video":
       return `
@@ -266,50 +286,29 @@ function renderContent(l) {
     case "documento":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
-        ${l.archivoUrl
-          ? `<a class="btn btn-secondary" href="${escapeHtml(l.archivoUrl)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
-               ${icon("download")}
-               <span>Abrir ${escapeHtml(l.archivoNombre || "documento")}</span>
-             </a>`
-          : ""}
+        ${l.archivoUrl ? `<a class="btn btn-secondary" href="${escapeHtml(l.archivoUrl)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">${icon("download")}<span>Abrir ${escapeHtml(l.archivoNombre || "documento")}</span></a>` : ""}
       `;
     case "enlace":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
-        ${l.urlExterna
-          ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
-               ${icon("external")}
-               <span>Abrir enlace</span>
-             </a>`
-          : ""}
+        ${l.urlExterna ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">${icon("external")}<span>Abrir enlace</span></a>` : ""}
       `;
     case "sesion_live":
     case "sesion-live":
     case "live":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
-        ${l.urlExterna
-          ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
-               ${icon("lessonLive")}
-               <span>Unirme a la sesión</span>
-             </a>`
-          : `<p style="color:var(--color-text-muted);">El enlace a la sesión aparecerá aquí cuando se publique.</p>`}
+        ${l.urlExterna ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">${icon("lessonLive")}<span>Unirme a la sesión</span></a>` : `<p style="color:var(--color-text-muted);">El enlace a la sesión aparecerá aquí cuando se publique.</p>`}
       `;
     default:
-      return html
-        ? `<div class="leccion-html">${html}</div>`
-        : `<p style="color:var(--color-text-muted);">Sin contenido.</p>`;
+      return html ? `<div class="leccion-html">${html}</div>` : `<p style="color:var(--color-text-muted);">Sin contenido.</p>`;
   }
 }
 
 function renderVideoEmbed(url) {
   const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([\w-]+)/);
-  if (yt) {
-    return `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe></div>`;
-  }
+  if (yt) return `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   const vm = url.match(/vimeo\.com\/(\d+)/);
-  if (vm) {
-    return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
-  }
+  if (vm) return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
 }

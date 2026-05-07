@@ -28,6 +28,21 @@
   --color-danger: #b04a3e;
   --color-danger-soft: #f0d8d3;
 
+  /* Dimensional colors of the Rueda de Felicidad model.
+     Each maps to one of the 4 dimensions (with 2 pillars each):
+     - Espiritual: Estética Existencial + Fe y Filosofía
+     - Afectivo:   Vínculos Vitales + Bienestar Emocional
+     - Físico:     Bienestar Físico + Presencia Consciente
+     - Mental:     Autoconocimiento + Trabajo con Propósito */
+  --pillar-spiritual: #d4a017;
+  --pillar-spiritual-soft: rgba(212, 160, 23, 0.18);
+  --pillar-afectivo: #b8344a;
+  --pillar-afectivo-soft: rgba(184, 52, 74, 0.18);
+  --pillar-fisico: #7a8237;
+  --pillar-fisico-soft: rgba(122, 130, 55, 0.18);
+  --pillar-mental: #5a7eb8;
+  --pillar-mental-soft: rgba(90, 126, 184, 0.18);
+
   /* Typography */
   --font-display: "Fraunces", "Iowan Old Style", "Apple Garamond", Georgia, serif;
   --font-body: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -209,15 +224,81 @@ img {
   background: var(--color-bg-subtle);
 }
 
-/* Loader */
+/* Spinner — 8 dots arranged in a circle, pulsing in sequence in the
+   dimensional colors of the rueda de felicidad (Espiritual / Afectivo /
+   Físico / Mental). Brand-aligned, custom SOPHIA loader. */
 .spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: inline-block;
 }
+
+.spinner::before {
+  /* The outer faint ring as visual context */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px dashed var(--color-border);
+  opacity: 0.6;
+}
+
+.spinner::after,
+.spinner > span {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: -5px 0 0 -5px;
+  animation: spinner-pulse 1.6s ease-in-out infinite;
+}
+
+/* Pseudo-element variant for inline use without children — single dot */
+.spinner::after {
+  content: "";
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: var(--color-accent);
+  animation: spinner-center-pulse 1.6s ease-in-out infinite;
+}
+
+/* Use .spinner--wheel with 8 child <span> elements for the full effect */
+.spinner--wheel::after { display: none; }
+
+.spinner--wheel > span:nth-child(1) { top: 5px;  left: 28px; background: #d4a017; animation-delay: 0s; }
+.spinner--wheel > span:nth-child(2) { top: 11.86px; left: 44.14px; background: #d4a017; animation-delay: 0.18s; }
+.spinner--wheel > span:nth-child(3) { top: 28px; left: 51px; background: #b8344a; animation-delay: 0.36s; }
+.spinner--wheel > span:nth-child(4) { top: 44.14px; left: 44.14px; background: #b8344a; animation-delay: 0.54s; }
+.spinner--wheel > span:nth-child(5) { top: 51px; left: 28px; background: #7a8237; animation-delay: 0.72s; }
+.spinner--wheel > span:nth-child(6) { top: 44.14px; left: 11.86px; background: #7a8237; animation-delay: 0.90s; }
+.spinner--wheel > span:nth-child(7) { top: 28px; left: 5px;  background: #5a7eb8; animation-delay: 1.08s; }
+.spinner--wheel > span:nth-child(8) { top: 11.86px; left: 11.86px; background: #5a7eb8; animation-delay: 1.26s; }
+
+@keyframes spinner-pulse {
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.25; }
+  40%           { transform: scale(1.25); opacity: 1; }
+}
+
+@keyframes spinner-center-pulse {
+  0%, 100% { transform: scale(0.7); opacity: 0.4; }
+  50%      { transform: scale(1.1); opacity: 1; }
+}
+
+/* Sizing variants */
+.spinner--sm { width: 32px; height: 32px; }
+.spinner--sm > span { width: 6px; height: 6px; margin: -3px 0 0 -3px; }
+.spinner--sm > span:nth-child(1) { top: 3px;  left: 16px; }
+.spinner--sm > span:nth-child(2) { top: 7.79px; left: 24.21px; }
+.spinner--sm > span:nth-child(3) { top: 16px; left: 28px; }
+.spinner--sm > span:nth-child(4) { top: 24.21px; left: 24.21px; }
+.spinner--sm > span:nth-child(5) { top: 28px; left: 16px; }
+.spinner--sm > span:nth-child(6) { top: 24.21px; left: 7.79px; }
+.spinner--sm > span:nth-child(7) { top: 16px; left: 3px; }
+.spinner--sm > span:nth-child(8) { top: 7.79px; left: 7.79px; }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
