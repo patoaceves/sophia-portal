@@ -63,7 +63,6 @@
 
     try {
       const url = new URL(location.href);
-      const code = url.searchParams.get("code");
 
       // Errores que mande el provider (e.g. user cancela en Google)
       const errorParam =
@@ -78,19 +77,14 @@
           ? decodeURIComponent(errorDescription).replace(/\+/g, " ")
           : `Error de autenticación: ${decodeURIComponent(errorParam)}`;
         fail(human);
-      } else if (code) {
-        // PKCE flow: intercambiar code por sesión explícitamente.
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          fail("No pudimos completar el inicio de sesión.", error.message);
-        } else {
-          success();
-        }
       } else {
-        // Magic link u otro flow donde detectSessionInUrl ya hizo el trabajo.
-        // Polleamos brevemente por la sesión.
+        // Con `detectSessionInUrl: true` el cliente Supabase ya hace el
+        // exchange del code (PKCE) automáticamente al instanciarse — solo
+        // tenemos que polear hasta que la sesión esté lista.
+        // (NO llamar a exchangeCodeForSession explícitamente: el verifier
+        // ya fue consumido por el auto-exchange y la 2da llamada falla.)
         let session = null;
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 15; i++) {
           const { data } = await supabase.auth.getSession();
           if (data.session) { session = data.session; break; }
           await new Promise(r => setTimeout(r, 200));

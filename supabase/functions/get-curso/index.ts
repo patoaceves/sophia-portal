@@ -23,6 +23,7 @@ const TABLES = {
   INSCRIPCIONES: "tblIT40GILMUHhLKK",
   PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
   PERSONAS: "tbl5XKtg0mRfLeFYH",
+  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
 } as const;
 
 const FIELDS = {
@@ -72,6 +73,11 @@ const FIELDS = {
     NOMBRE: "fldEbEI3pLEAmlYAe",
     APELLIDOS: "fldCnRa0XFvH1FtfQ",
     ROL: "fldOF0bnjfErxEOCO",
+  },
+  PERSONAS_PORTAL: {
+    NOMBRE: "fldhTiwmmXtIIS8dD",
+    EMAIL: "fldnRbi4mJRtfuAmV",
+    AUTH_USER_ID: "fldSKACBNXloxYRBc",
   },
 } as const;
 
@@ -217,6 +223,7 @@ interface AuthedUser {
   authUserId: string;
   email: string;
   personaId: string;
+  personaPortalId: string;
   rol: string;
   nombre: string;
   apellidos: string;
@@ -281,10 +288,35 @@ async function requireAuth(req: Request): Promise<AuthedUser> {
   const p = personas[0];
   const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
 
+  // Lookup adicional: la tabla synced de Personas en Portal (tblwo4xOFhmx2TznJ).
+  // Inscripciones.persona linkea a ESTA tabla, no a CRM, así que necesitamos
+  // su record ID (distinto al de CRM) para filtrar Inscripciones.
+  const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
+    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
+    maxRecords: 1,
+  });
+  let personaPortalId = personasPortal[0]?.id;
+  if (!personaPortalId) {
+    // Fallback: buscar por email (la sync de CRM→Portal puede tardar)
+    const byEmail = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
+      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
+      maxRecords: 1,
+    });
+    personaPortalId = byEmail[0]?.id;
+  }
+  if (!personaPortalId) {
+    throw new HttpError(
+      403,
+      "Persona no encontrada en sync de Portal. Espera unos minutos a que Airtable sincronice CRM→Portal o contacta a soporte.",
+    );
+  }
+
+
   return {
     authUserId,
     email,
     personaId: p.id,
+    personaPortalId,
     rol,
     nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] as string) ?? "",
     apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] as string) ?? "",
@@ -324,7 +356,7 @@ Deno.serve(async (req) => {
     const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
       filterByFormula:
         `AND(` +
-          `FIND('${user.personaId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}})),` +
+          `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}})),` +
           `FIND('${curso.id}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.CURSO}}))` +
         `)`,
       maxRecords: 1,
