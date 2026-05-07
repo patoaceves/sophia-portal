@@ -1961,11 +1961,11 @@
 
 .curso-hero__cover {
   flex-shrink: 0;
-  width: 280px;
-  /* Slightly taller than 5:4 so the cover doesn't crop on top/bottom.
-     Most course covers are portrait or near-square; 4:5 (320 tall for 280 wide)
-     gives them room to breathe. */
-  aspect-ratio: 4 / 5;
+  /* Cover is horizontal (~2:1, matching the actual artwork at 960×484).
+     Use object-fit: cover with aspect-ratio matching the source so the
+     image fills the area completely without cropping. */
+  width: 480px;
+  aspect-ratio: 960 / 484;
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--color-bg-subtle);
@@ -1975,12 +1975,8 @@
 .curso-hero__cover img {
   width: 100%;
   height: 100%;
-  /* Show the entire image without cropping. The card area around it
-     uses a soft tint so the image looks intentionally "inset" rather
-     than cropped. */
-  object-fit: contain;
+  object-fit: cover;
   display: block;
-  background: var(--color-bg-subtle);
 }
 
 .curso-hero__cover-placeholder {
@@ -2080,8 +2076,8 @@
   }
   .curso-hero__cover {
     width: 100%;
-    max-width: 280px;
-    margin: 0 auto;
+    /* No max-width cap on mobile — let the horizontal cover use the
+       full row width and stay at 2:1 ratio. */
   }
   .curso-hero__body { text-align: center; align-items: center; }
   .curso-hero__chip { margin: 0 auto; }
