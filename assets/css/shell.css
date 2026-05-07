@@ -1412,8 +1412,11 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 240px;
+  /* Smooth transition on width when label changes (Marcar... → Avanzar) */
+  transition: all 0.25s ease, padding 0.25s ease;
+  /* Width fits content, so when the label shrinks (e.g. "Marcar como
+     completada" → "Avanzar"), the button visibly shrinks too. */
+  width: fit-content;
   position: relative;
 }
 
@@ -1455,7 +1458,6 @@
 }
 
 .leccion-cta__label {
-  flex: 1;
   text-align: left;
   white-space: nowrap;
 }
@@ -1948,7 +1950,7 @@
 
 .curso-hero__inner {
   display: flex;
-  gap: var(--s-7);
+  gap: var(--s-8);
   align-items: stretch;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -1959,8 +1961,11 @@
 
 .curso-hero__cover {
   flex-shrink: 0;
-  width: 260px;
-  aspect-ratio: 5 / 4;
+  width: 280px;
+  /* Slightly taller than 5:4 so the cover doesn't crop on top/bottom.
+     Most course covers are portrait or near-square; 4:5 (320 tall for 280 wide)
+     gives them room to breathe. */
+  aspect-ratio: 4 / 5;
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--color-bg-subtle);
@@ -1970,8 +1975,12 @@
 .curso-hero__cover img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* Show the entire image without cropping. The card area around it
+     uses a soft tint so the image looks intentionally "inset" rather
+     than cropped. */
+  object-fit: contain;
   display: block;
+  background: var(--color-bg-subtle);
 }
 
 .curso-hero__cover-placeholder {
@@ -2034,7 +2043,7 @@
 .curso-hero__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-5) var(--s-7);
+  gap: var(--s-5) var(--s-9);
   margin: var(--s-3) 0 0 0;
   padding-top: var(--s-4);
   border-top: 1px solid var(--color-border);
@@ -2743,7 +2752,7 @@
 
 .pillar-grid__header {
   text-align: center;
-  margin-bottom: var(--s-9);
+  margin-bottom: var(--s-11);
   padding-top: var(--s-2);
 }
 
@@ -2751,7 +2760,7 @@
   color: var(--color-text-muted);
   font-size: 0.9375rem;
   max-width: 540px;
-  margin: var(--s-2) auto 0 auto;
+  margin: var(--s-3) auto 0 auto;
 }
 
 .pillar-grid__eyebrow {
@@ -3138,7 +3147,7 @@
 
 .resumen-extras__header {
   text-align: center;
-  margin-bottom: var(--s-9);
+  margin-bottom: var(--s-11);
   padding-top: var(--s-2);
 }
 
@@ -3269,23 +3278,28 @@
 
 .checkpoint-bar {
   position: sticky;
-  /* Stick BELOW the app-header (which is also sticky at top:0).
-     Approximate header height; small offset so they don't overlap. */
+  /* Stick BELOW the app-header (which is also sticky at top:0). */
   top: 56px;
   background: var(--color-bg);
   z-index: 9;
-  /* Full-width: extend negative margins to cancel out the .app-main
-     horizontal padding (var(--s-10) on desktop, var(--s-4) on mobile),
-     and re-add equivalent padding inside so contents don't touch edges. */
-  margin: 0 calc(-1 * var(--s-10)) var(--s-6);
-  padding: var(--s-4) var(--s-10);
+  /* Full-width VIEWPORT: extend to the edges of the screen regardless of
+     .app-main's max-width. The trick: width 100vw + negative margins of
+     (50% - 50vw) on each side anchor it to the viewport. */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-bottom: var(--s-7);
+  /* Inner padding mirrors what .app-main would use, so content
+     (the dots) lines up visually with the page content. */
+  padding: var(--s-5) var(--s-10);
   border-bottom: 1px solid var(--color-border);
+  box-sizing: border-box;
 }
 
 @media (max-width: 880px) {
   .checkpoint-bar {
-    margin: 0 calc(-1 * var(--s-4)) var(--s-5);
-    padding: var(--s-3) var(--s-4);
+    padding: var(--s-4) var(--s-4);
+    margin-bottom: var(--s-5);
   }
 }
 
