@@ -438,7 +438,9 @@
   }
 }
 
-/* Page entrance */
+/* Page entrance — fade-in only (no residual transform: residual transforms
+   create a new containing block and break position:fixed children like the
+   rueda tooltip). */
 .app-main > * {
   opacity: 0;
   animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
@@ -448,8 +450,8 @@
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -925,34 +927,35 @@
 
 .rueda-icon-img.visible { opacity: 1; }
 
-/* Wheel tooltip */
+/* Wheel tooltip — tight to cursor (200px width matches the JS positioning) */
 .rueda-tooltip {
   position: fixed;
   background: white;
   color: var(--color-text);
-  padding: var(--s-3) var(--s-4);
+  padding: var(--s-2) var(--s-3);
   border-radius: var(--r-md);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.18s ease;
   z-index: 1000;
-  max-width: 250px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--color-border);
+  max-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1.5px solid var(--color-border);
+  line-height: 1.3;
 }
 
 .rueda-tooltip.active { opacity: 1; }
 
 .rueda-tooltip__title {
   font-weight: 600;
-  margin-bottom: var(--s-1);
-  font-size: 0.9375rem;
+  margin-bottom: 2px;
+  font-size: 0.875rem;
 }
 
 .rueda-tooltip__score {
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
 /* Summary card next to the wheel */
@@ -1910,108 +1913,139 @@
 /* Hero minimalista — solo back link + chip de modalidad. La portada
    habla por sí sola; el título del curso vive en el continue-panel. */
 /* ──────────────────────────────────────────────────────────────────
- * Curso hero — compact card with real <img> (not background-image).
- * Designed for portrait-ish covers (e.g. 5:4 ratio). The image is
- * height-capped and centered, with overlay controls floating on top.
+ * Curso hero — horizontal layout. Image on the left at native 5:4
+ * ratio (capped width), title + chip on the right. Back button floats
+ * above the whole card. Image is shown intact, not stretched into a band.
  * ────────────────────────────────────────────────────────────────── */
 
 .curso-hero {
   position: relative;
-  border-radius: var(--r-lg);
-  overflow: hidden;
   margin-bottom: var(--s-6);
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-text) 100%);
-  isolation: isolate;
-  /* Cap height so the cover doesn't stretch into a poster */
-  height: 200px;
-}
-
-.curso-hero__media {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  /* Subtle gradient overlay for legibility */
-  background: linear-gradient(180deg, rgba(31,26,20,0.05) 0%, rgba(31,26,20,0.45) 100%);
-}
-
-.curso-hero__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* Anchor a bit lower so the overlay doesn't clip subjects */
-  object-position: center 30%;
-  /* Behind the gradient overlay */
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-}
-
-.curso-hero__media--placeholder {
-  background: linear-gradient(135deg, var(--color-accent-soft), var(--color-bg-subtle));
-}
-
-.curso-hero__overlay {
-  position: absolute;
-  inset: 0;
-  padding: var(--s-5) var(--s-6);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  pointer-events: none;
+  flex-direction: column;
+  gap: var(--s-3);
 }
-
-.curso-hero__overlay > * { pointer-events: auto; }
 
 .curso-hero__back {
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  padding: var(--s-2) var(--s-4);
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--color-text);
+  color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
-  border-radius: var(--r-full);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: var(--s-2) var(--s-1);
+  align-self: flex-start;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .curso-hero__back:hover {
-  background: white;
+  color: var(--color-accent);
   transform: translateX(-2px);
 }
 
-.curso-hero__back svg {
-  width: 16px;
-  height: 16px;
+.curso-hero__back svg { width: 16px; height: 16px; }
+
+.curso-hero__inner {
+  display: flex;
+  gap: var(--s-6);
+  align-items: stretch;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  padding: var(--s-5);
+}
+
+.curso-hero__cover {
+  flex-shrink: 0;
+  width: 200px;
+  aspect-ratio: 5 / 4;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--color-bg-subtle);
+  position: relative;
+}
+
+.curso-hero__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.curso-hero__cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: var(--color-accent);
+  font-style: italic;
+  background: linear-gradient(135deg, var(--color-accent-soft), var(--color-bg-subtle));
+}
+
+.curso-hero__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-3);
 }
 
 .curso-hero__chip {
   display: inline-block;
+  width: fit-content;
   padding: var(--s-1) var(--s-3);
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--color-text);
+  background: var(--color-accent-faint);
+  color: var(--color-accent);
   font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   border-radius: var(--r-full);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.curso-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  font-variation-settings: "opsz" 144;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.curso-hero__lead {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 @media (max-width: 760px) {
-  .curso-hero { height: 160px; }
-  .curso-hero__overlay { padding: var(--s-4); }
+  .curso-hero__inner {
+    flex-direction: column;
+    padding: var(--s-4);
+  }
+  .curso-hero__cover {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .curso-hero__body { text-align: center; align-items: center; }
+  .curso-hero__chip { margin: 0 auto; }
 }
 
-/* Legacy class still referenced in some places — make it inherit from curso-hero */
-.curso-hero--minimal { /* compat: kept for any stray references */ }
+/* Legacy class — keep for back-compat */
+.curso-hero--minimal { /* compat */ }
 
 /* Dashboard rows grid layout */
 
@@ -2658,20 +2692,21 @@
 
 /* ──────────────────────────────────────────────────────────────────
  * Pillar grid (the 8 icons - resumen tab visual centerpiece).
- * Visually distinct section: its own card-like wrapper with a top-border
- * separator and a different header treatment than tab-panel-header.
+ * Visually distinct section: top-border separator + generous breathing
+ * room above the eyebrow so it doesn't feel stuck to the line above.
  * ────────────────────────────────────────────────────────────────── */
 
 .pillar-grid {
-  margin-top: var(--s-9);
-  margin-bottom: var(--s-7);
-  padding-top: var(--s-7);
+  margin-top: var(--s-10);
+  margin-bottom: var(--s-8);
+  padding-top: var(--s-10);
   border-top: 1px solid var(--color-border);
 }
 
 .pillar-grid__header {
   text-align: center;
-  margin-bottom: var(--s-6);
+  margin-bottom: var(--s-7);
+  padding-top: var(--s-2);
 }
 
 .pillar-grid__eyebrow {
@@ -2681,7 +2716,7 @@
   font-weight: 600;
   color: var(--color-accent);
   display: block;
-  margin-bottom: var(--s-2);
+  margin-bottom: var(--s-3);
 }
 
 .pillar-grid__title {
@@ -2955,10 +2990,16 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Test preview card (compact, in resumen) and full test tab
+ * Test cajita (Resumen tab — Tu rueda de la felicidad).
+ * Two states: CTA (no results yet) or RESULTS (full rueda preview with
+ * icons + hover, plus link to full results page).
+ *
+ * Note: this card is NOT a single anchor (because the rueda inside has
+ * its own hover interactions). The "Ver mis resultados" link is a
+ * separate <a> at the bottom.
  * ────────────────────────────────────────────────────────────────── */
 
-.test-preview-card {
+.test-cajita {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
@@ -2966,19 +3007,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  text-decoration: none;
-  color: inherit;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
-.test-preview-card:hover {
-  border-color: var(--color-accent-soft);
-  transform: translateY(-2px);
+.test-cajita:hover {
+  border-color: var(--color-border-strong);
 }
 
-.test-preview-card::before {
+.test-cajita::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -2987,15 +3025,19 @@
     radial-gradient(at 100% 30%, var(--pillar-afectivo-soft) 0%, transparent 35%),
     radial-gradient(at 90% 100%, var(--pillar-fisico-soft) 0%, transparent 35%),
     radial-gradient(at 0% 80%, var(--pillar-mental-soft) 0%, transparent 35%);
-  opacity: 0.55;
+  opacity: 0.45;
   pointer-events: none;
 }
 
-.test-preview-card > * { position: relative; z-index: 1; }
+.test-cajita > * { position: relative; z-index: 1; }
 
-.test-preview-card__header { display: flex; flex-direction: column; gap: var(--s-1); }
+.test-cajita__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
 
-.test-preview-card__eyebrow {
+.test-cajita__eyebrow {
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -3003,7 +3045,7 @@
   font-weight: 500;
 }
 
-.test-preview-card__title {
+.test-cajita__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
   font-weight: 500;
@@ -3011,107 +3053,100 @@
   font-variation-settings: "opsz" 144;
 }
 
-.test-preview-card__lead {
+.test-cajita__lead {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   margin: 0;
 }
 
-.test-preview-card__chart {
+.test-cajita__chart {
   display: grid;
   place-items: center;
   flex: 1;
-  padding: var(--s-2) 0;
+  padding: var(--s-3) 0;
+  position: relative;
 }
 
-.test-preview-card__chart .rueda-svg {
-  max-width: 200px;
+.rueda-svg-preview {
   width: 100%;
+  max-width: 220px;
   height: auto;
+  display: block;
 }
 
-.test-preview-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: auto;
+.test-cajita__cta {
+  align-self: flex-start;
 }
 
-.test-preview-card__cta {
+.test-cajita__link {
+  align-self: flex-end;
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
   font-size: 0.875rem;
   color: var(--color-accent);
   font-weight: 500;
+  text-decoration: none;
+  padding: var(--s-2) 0;
+  transition: gap 0.15s ease;
 }
 
-.test-preview-card__cta svg { width: 16px; height: 16px; }
-
-/* Full Test tab layout */
-
-.test-tab__cta-box {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s-6);
-  align-items: center;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
-  padding: var(--s-7);
+.test-cajita__link:hover {
+  gap: var(--s-2);
 }
 
-@media (max-width: 800px) {
-  .test-tab__cta-box { grid-template-columns: 1fr; }
+.test-cajita__link svg { width: 16px; height: 16px; }
+
+/* Legacy class names (kept for back-compat with other places) */
+
+/* ──────────────────────────────────────────────────────────────────
+ * Resumen — Material adicional (own delimited section).
+ * Treated like pillar-grid: top-border separator + own header eyebrow.
+ * Visually distinct from the pillars section above so the reader sees
+ * three distinct zones in the dashboard:
+ *   1. Continúa + Test rueda
+ *   2. Las 8 dimensiones
+ *   3. Material adicional (mini-cards)
+ * ────────────────────────────────────────────────────────────────── */
+
+.resumen-extras {
+  margin-top: var(--s-10);
+  padding-top: var(--s-10);
+  border-top: 1px solid var(--color-border);
 }
 
-.test-tab__chart-tease { display: grid; place-items: center; }
-.test-tab__chart-tease .rueda-svg { max-width: 280px; }
+.resumen-extras__header {
+  text-align: center;
+  margin-bottom: var(--s-7);
+  padding-top: var(--s-2);
+}
 
-.test-tab__cta-body h4 {
+.resumen-extras__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--color-accent);
+  display: block;
+  margin-bottom: var(--s-3);
+}
+
+.resumen-extras__title {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 500;
-  margin: 0 0 var(--s-3) 0;
-  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0;
   font-variation-settings: "opsz" 144;
 }
 
-.test-tab__cta-body p {
-  color: var(--color-text-muted);
-  margin: 0 0 var(--s-5) 0;
-  line-height: 1.5;
-}
-
-.test-results-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s-6);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
-  padding: var(--s-6);
-  align-items: center;
-}
-
-@media (max-width: 800px) {
-  .test-results-row { grid-template-columns: 1fr; }
-}
-
-.test-results-row__chart .rueda-svg { max-width: 320px; margin: 0 auto; display: block; }
-
-.test-results-row__summary { display: flex; flex-direction: column; gap: var(--s-3); }
-
-/* ──────────────────────────────────────────────────────────────────
- * Resumen mini row (Temario, Recursos, Mensajes mini cards)
- * ────────────────────────────────────────────────────────────────── */
-
-.resumen-mini-row {
+.resumen-extras__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--s-3);
 }
 
-@media (max-width: 800px) { .resumen-mini-row { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .resumen-extras__grid { grid-template-columns: 1fr; } }
 
 .mini-tab-card {
   display: flex;

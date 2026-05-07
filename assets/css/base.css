@@ -347,8 +347,14 @@ html:hover {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* ──────────────────────────────────────────────────────────────────
- * Page loader — full-page or in-shell loader with rotating message.
- * Centered both axes via grid; min-height inlined per call site.
+ * Page loader — contained card with rotating message.
+ * 
+ * Two variants:
+ *   - .page-loader (default, in-shell): centered within its parent
+ *     container. The parent is .app-main (already excludes sidebar).
+ *   - .full-page-loader (pre-shell, raw HTML): full viewport but
+ *     padded-left by sidebar width on desktop so when the shell renders
+ *     the loader doesn't visually shift.
  * ────────────────────────────────────────────────────────────────── */
 .page-loader {
   display: grid;
@@ -364,6 +370,12 @@ html:hover {
   gap: var(--s-5);
   max-width: 360px;
   text-align: center;
+  /* Card-like container so it doesn't feel naked on the page */
+  padding: var(--s-7) var(--s-8);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .page-loader__text {
@@ -397,12 +409,21 @@ html:hover {
   30%           { opacity: 1; }
 }
 
-/* Standalone full-screen variant (used in pre-shell HTMLs like /app/curso.html
-   where the JS bootstrap is still loading). */
+/* Full-screen variant (used in pre-shell HTMLs at /app/curso.html etc.).
+   On desktop, offset by sidebar width so the loader appears centered
+   in the main area (matching the post-shell position). */
 .full-page-loader {
   display: grid;
   place-items: center;
   min-height: 100vh;
   width: 100%;
   padding: var(--s-6);
+}
+
+@media (min-width: 881px) {
+  /* Desktop: account for the sidebar that will appear after JS bootstrap.
+     Matches the shell breakpoint at max-width: 880px where sidebar collapses. */
+  .full-page-loader {
+    padding-left: var(--sidebar-w, 264px);
+  }
 }
