@@ -48,11 +48,13 @@ export function mountRueda({ svg, tooltip, scores, animate = true, compact = fal
   svg.setAttribute("viewBox", `0 0 500 500`);
 
   // El iconSize escala con el tamaño visual.
-  // - compact (preview chica ≤320px): iconos pequeños (40px)
-  // - normal (resultados, ≥420px): iconos legacy (56px) o 1.13x en mobile
+  // - compact (preview en dashboard): iconos visibles pero más chicos
+  //   que en el modo full (resultados page). Cuidado con hacerlos muy
+  //   chicos porque se pierden los detalles.
+  // - normal (resultados): iconos legacy (56px) o 1.13x en mobile
   const isMobile = window.innerWidth < 600;
   const iconSize = compact
-    ? (isMobile ? 38 : 32)
+    ? (isMobile ? 50 : 46)
     : (isMobile ? 56 * 1.13 : 56);
 
   drawWheel(svg, iconSize);

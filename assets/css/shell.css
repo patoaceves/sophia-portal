@@ -1948,18 +1948,18 @@
 
 .curso-hero__inner {
   display: flex;
-  gap: var(--s-6);
+  gap: var(--s-7);
   align-items: stretch;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
   overflow: hidden;
-  padding: var(--s-5);
+  padding: var(--s-6);
 }
 
 .curso-hero__cover {
   flex-shrink: 0;
-  width: 200px;
+  width: 260px;
   aspect-ratio: 5 / 4;
   border-radius: var(--r-md);
   overflow: hidden;
@@ -2010,7 +2010,7 @@
 
 .curso-hero__title {
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-size: clamp(1.625rem, 2.5vw, 2.125rem);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.15;
@@ -2030,10 +2030,44 @@
   overflow: hidden;
 }
 
+/* Hero metadata — directora + capítulo en curso, displayed as definition list */
+.curso-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5) var(--s-7);
+  margin: var(--s-3) 0 0 0;
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.curso-hero__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.curso-hero__meta dt {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  color: var(--color-text-subtle);
+  margin: 0;
+}
+
+.curso-hero__meta dd {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.3;
+}
+
 @media (max-width: 760px) {
   .curso-hero__inner {
     flex-direction: column;
     padding: var(--s-4);
+    gap: var(--s-4);
   }
   .curso-hero__cover {
     width: 100%;
@@ -2042,6 +2076,10 @@
   }
   .curso-hero__body { text-align: center; align-items: center; }
   .curso-hero__chip { margin: 0 auto; }
+  .curso-hero__meta {
+    justify-content: center;
+    gap: var(--s-3) var(--s-5);
+  }
 }
 
 /* Legacy class — keep for back-compat */
@@ -2705,8 +2743,15 @@
 
 .pillar-grid__header {
   text-align: center;
-  margin-bottom: var(--s-7);
+  margin-bottom: var(--s-9);
   padding-top: var(--s-2);
+}
+
+.pillar-grid__sub {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  max-width: 540px;
+  margin: var(--s-2) auto 0 auto;
 }
 
 .pillar-grid__eyebrow {
@@ -2726,13 +2771,6 @@
   letter-spacing: -0.01em;
   margin: 0 0 var(--s-2) 0;
   font-variation-settings: "opsz" 144;
-}
-
-.pillar-grid__sub {
-  color: var(--color-text-muted);
-  font-size: 0.9375rem;
-  max-width: 540px;
-  margin: 0 auto;
 }
 
 .pillar-grid__grid {
@@ -2764,8 +2802,10 @@
   transform: translateY(-1px);
 }
 
-/* The SVG is shown directly — it already contains a colored circle bg
-   matching the pillar. We control state by filter on the img only. */
+/* Pillar icon visual — image source determines the look:
+   - todo / in-progress / locked: PNG already gray (no filter)
+   - done: SVG full color (no filter)
+   No CSS filters applied — what you see is what's in the file. */
 .pillar-icon__visual {
   position: relative;
   width: 64px;
@@ -2779,7 +2819,6 @@
   width: 64px;
   height: 64px;
   display: block;
-  transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .pillar-icon__check {
@@ -2833,27 +2872,14 @@
   color: var(--color-text-muted);
 }
 
-/* States */
+/* States — slight container styling, no image filters */
 
-/* todo — grayscale + low opacity */
-.pillar-icon--todo .pillar-icon__visual img {
-  filter: grayscale(100%) opacity(0.45);
-}
-
-/* in-progress — partial saturation */
-.pillar-icon--in-progress .pillar-icon__visual img {
-  filter: grayscale(40%);
-  opacity: 0.85;
+.pillar-icon--todo {
+  /* default look, gray icon already shows the muted state */
 }
 
 .pillar-icon--in-progress {
   background: linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-subtle) 100%);
-}
-
-/* done — full color, slight glow + green border */
-.pillar-icon--done .pillar-icon__visual img {
-  filter: none;
-  opacity: 1;
 }
 
 .pillar-icon--done {
@@ -2867,14 +2893,9 @@
 .pillar-icon--fisico    .pillar-icon__progress-fill { background: var(--pillar-fisico); }
 .pillar-icon--mental    .pillar-icon__progress-fill { background: var(--pillar-mental); }
 
-/* locked — no chapter assigned yet */
 .pillar-icon--locked {
-  opacity: 0.5;
+  opacity: 0.55;
   background: var(--color-bg-subtle);
-}
-
-.pillar-icon--locked .pillar-icon__visual img {
-  filter: grayscale(100%) opacity(0.3);
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -3069,7 +3090,7 @@
 
 .rueda-svg-preview {
   width: 100%;
-  max-width: 220px;
+  max-width: 320px;
   height: auto;
   display: block;
 }
@@ -3117,7 +3138,7 @@
 
 .resumen-extras__header {
   text-align: center;
-  margin-bottom: var(--s-7);
+  margin-bottom: var(--s-9);
   padding-top: var(--s-2);
 }
 
@@ -3248,12 +3269,24 @@
 
 .checkpoint-bar {
   position: sticky;
-  top: 0;
+  /* Stick BELOW the app-header (which is also sticky at top:0).
+     Approximate header height; small offset so they don't overlap. */
+  top: 56px;
   background: var(--color-bg);
-  z-index: 20;
-  margin: 0 calc(-1 * var(--s-6)) var(--s-6);
-  padding: var(--s-3) var(--s-6);
+  z-index: 9;
+  /* Full-width: extend negative margins to cancel out the .app-main
+     horizontal padding (var(--s-10) on desktop, var(--s-4) on mobile),
+     and re-add equivalent padding inside so contents don't touch edges. */
+  margin: 0 calc(-1 * var(--s-10)) var(--s-6);
+  padding: var(--s-4) var(--s-10);
   border-bottom: 1px solid var(--color-border);
+}
+
+@media (max-width: 880px) {
+  .checkpoint-bar {
+    margin: 0 calc(-1 * var(--s-4)) var(--s-5);
+    padding: var(--s-3) var(--s-4);
+  }
 }
 
 .checkpoint-bar__list {
