@@ -1,28 +1,26 @@
-// SOPHIA Portal · Supabase client (singleton)
-// Carga el SDK desde CDN y exporta una instancia única.
+// SOPHIA Portal — Supabase client singleton
+//
+// La anon key es PÚBLICA por diseño (la seguridad real vive en RLS de
+// la base de datos). Por eso se hardcodea aquí y se commitea — exactamente
+// como recomienda la doc oficial de Supabase para sitios estáticos.
+//
+// La service_role key (NUNCA aquí) sí es secreta — vive en Supabase Secrets
+// de las Edge Functions.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const PORTAL_CONFIG = window.PORTAL_CONFIG || {};
+export const SUPABASE_URL = "https://ajvjyisplqsrjsessayo.supabase.co";
+export const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqdmp5aXNwbHFzcmpzZXNzYXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMTA2NDIsImV4cCI6MjA5MzU4NjY0Mn0.Q9nnRffenm78Qil6Q2Tu3kpTI4m3JolW2S8iM6PMlfA";
 
-if (!PORTAL_CONFIG.SUPABASE_URL || !PORTAL_CONFIG.SUPABASE_ANON_KEY) {
-  console.error(
-    '[supabase-client] Falta config. Revisa que /assets/js/config.js esté cargado y exponga ' +
-    'window.PORTAL_CONFIG = { SUPABASE_URL, SUPABASE_ANON_KEY }.'
-  );
-}
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: "pkce",
+  },
+});
 
-export const supabase = createClient(
-  PORTAL_CONFIG.SUPABASE_URL || '',
-  PORTAL_CONFIG.SUPABASE_ANON_KEY || '',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce'
-    }
-  }
-);
-
-window.__sb = supabase; // útil para debug en consola
+// Útil para debug en consola
+if (typeof window !== "undefined") window.__sb = supabase;

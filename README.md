@@ -2,7 +2,7 @@
 
 Portal académico de SOPHIA. Frontend estático en Vercel, auth con Supabase, datos en Airtable.
 
-> Dominio de producción: `portal.sophiamx.org`
+> Producción: `portal.sophiamx.org`
 > Curso piloto: **Happiness Workshop**
 
 ---
@@ -10,128 +10,152 @@ Portal académico de SOPHIA. Frontend estático en Vercel, auth con Supabase, da
 ## Stack
 
 - **Frontend**: HTML/CSS/JS estático, deploy en Vercel (`@vercel/static`). Sin frameworks.
-- **Auth**: Supabase (Google + Microsoft + Magic Link)
-- **DB**: Airtable. Base `SOPHIA - Portal` (`app0S6GrJQ8YatvCc`) con tablas synced desde `SOPHIA - CRM`.
-- **API layer**: Supabase Edge Functions (Deno) que leen/escriben Airtable. El PAT de Airtable nunca toca el cliente.
-- **Storage**: Supabase Storage (entregas de tareas; los avatars y portadas se sirven de `/assets/img/`).
+- **Auth**: Supabase (Google + Magic Link, flow PKCE).
+- **DB**: Airtable. Dos bases: `SOPHIA - Portal` (`app0S6GrJQ8YatvCc`) y `SOPHIA - CRM` (`app1SbOC98k2OP5m1`).
+- **API layer**: 7 Supabase Edge Functions (Deno), self-contained, deployadas vía dashboard.
 
 ---
 
-## Estructura del repo
+## Estructura
 
 ```
 sophia-portal/
-├── index.html                       # landing + login (rutea a /app si hay sesión)
+├── index.html                          # login (Google + Magic Link)
 ├── auth/
-│   └── callback.html                # OAuth + magic link landing
-├── app/                             # portal del alumno (auth required)
-│   ├── cursos.html                  # mis cursos
-│   ├── curso.html                   # ?slug=happiness-workshop  → course player
-│   ├── perfil.html                  # datos del alumno
-│   └── test-felicidad/
-│       ├── index.html               # formulario 16 preguntas
-│       └── resultados.html          # dashboard rueda 8 pilares
+│   └── callback.html                   # PKCE callback (exchangeCodeForSession explícito)
+├── app/                                # portal del alumno (auth required)
+│   ├── index.html                      # redirect → /app/cursos
+│   ├── cursos.html                     # mis cursos
+│   ├── curso.html                      # ?slug=  → detalle con capítulos/lecciones
+│   ├── leccion.html                    # ?id=    → reproductor de lección
+│   ├── perfil.html                     # datos del usuario
+│   ├── test-felicidad/
+│   │   ├── index.html                  # formulario 16 preguntas
+│   │   └── resultados.html             # rueda + análisis por pilar
+│   └── admin/
+│       └── index.html                  # gated por rol === "admin"
 ├── assets/
-│   ├── css/main.css                 # design system completo
+│   ├── css/
+│   │   ├── base.css                    # design tokens, tipografía, botones, spinner
+│   │   ├── login.css                   # estilos página de login
+│   │   └── shell.css                   # sidebar + header + páginas internas
 │   ├── js/
-│   │   ├── supabase-client.js       # cliente singleton
-│   │   ├── auth.js                  # guard, getSession, signOut
-│   │   ├── api.js                   # wrapper de fetch a Edge Functions
-│   │   └── ui-shell.js              # carga sidebar/header en /app
-│   ├── icons/                       # 8 SVGs de pilares
-│   └── img/                         # portadas, fotos, imágenes Nota Técnica
-├── partials/
-│   ├── sidebar.html
-│   └── header.html
+│   │   ├── supabase-client.js          # singleton (URL + anon key hardcodeados)
+│   │   ├── auth.js                     # login/logout/requireAuth/bootstrapPersona/showFatalError
+│   │   ├── api.js                      # callEdge() + ApiError + métodos por endpoint
+│   │   ├── ui-shell.js                 # renderShell() con NAV_GROUPS + ICONS inline
+│   │   ├── cursos.js                   # lógica /app/cursos
+│   │   ├── curso.js                    # lógica /app/curso
+│   │   ├── leccion.js                  # lógica /app/leccion
+│   │   ├── perfil.js                   # lógica /app/perfil
+│   │   ├── test-felicidad.js           # lógica formulario test
+│   │   ├── test-felicidad-resultados.js  # lógica resultados con rueda SVG
+│   │   └── admin.js                    # gate del panel admin
+│   ├── icons/                          # 8 SVGs de pilares del Test de Felicidad
+│   └── img/                            # portadas, fotos del Capítulo 1
 ├── supabase/
-│   └── functions/                  # Cada función es auto-contenida (paste en dashboard)
-│       ├── auth-bootstrap/         # primera vez: linkea sesión con Persona del CRM
-│       ├── get-mis-cursos/         # lista de cursos del alumno con % progreso
-│       ├── get-curso/              # detalle curso + capítulos + lecciones
-│       ├── get-leccion/            # contenido de una lección
-│       ├── marcar-leccion/         # marca lección completada
-│       ├── submit-test-felicidad/  # recibe respuestas, calcula scores, guarda
-│       └── get-resultados-test/    # devuelve scores y análisis para dashboard
+│   └── functions/                      # 7 Edge Functions auto-contenidas (sin _shared)
+│       ├── auth-bootstrap/             # POST: crea/encuentra Persona en CRM
+│       ├── get-mis-cursos/             # GET: lista cursos del alumno con %
+│       ├── get-curso/                  # GET ?slug= → curso + capítulos + lecciones
+│       ├── get-leccion/                # GET ?id= → contenido + prev/next
+│       ├── marcar-leccion/             # POST: idempotente, marca completada
+│       ├── submit-test-felicidad/      # POST: 16 respuestas → scores + análisis
+│       └── get-resultados-test/        # GET: resultados (último o por id)
 ├── docs/
-│   ├── airtable-schema.md           # tabla de field IDs por tabla
-│   └── deployment.md                # cómo deployar
-├── .env.example
-├── vercel.json                      # solo @vercel/static
-├── package.json                     # solo para dev tooling (opcional)
+│   ├── airtable-schema.md
+│   ├── deployment.md
+│   └── contenido-capitulo-1/           # HTML del contenido del primer cap
+├── vercel.json                         # @vercel/static + cleanUrls
 └── README.md
 ```
 
 ---
 
-## Setup local (dev)
+## Patrón de páginas
 
-```bash
-# 1. Clona y entra al repo
-git clone <repo-url> sophia-portal && cd sophia-portal
+Cada página de `/app/*` sigue la misma forma:
 
-# 2. Copia las variables
-cp .env.example .env.local
+1. **HTML mínimo** (15 líneas): solo carga CSS + spinner + un `<script type="module" src="...">`
+2. **JS por página** (`assets/js/<página>.js`):
+   - `requireAuth()` → bloquea o devuelve la `persona`
+   - `renderShell({ persona, title, contentHtml })` → pinta sidebar/header/main
+   - Llama `api.<endpoint>()` para datos
+   - Maneja errores con `ApiError`
 
-# 3. Sirve estático (cualquier servidor)
-npx serve .
-# o: python3 -m http.server 8080
+```js
+// Ejemplo: cursos.js
+import { requireAuth } from "./auth.js";
+import { api } from "./api.js";
+import { renderShell } from "./ui-shell.js";
+
+(async () => {
+  const persona = await requireAuth();
+  if (!persona) return;
+  renderShell({ persona, title: "Mis cursos", contentHtml: "..." });
+  const { cursos } = await api.misCursos();
+  // render...
+})();
 ```
 
-Las variables de entorno del frontend viven en `assets/js/config.js` (gitignored). Para producción se inyectan en build/deploy (ver `docs/deployment.md`).
+`renderShell` arma la sidebar a partir del array `NAV_GROUPS` (en `ui-shell.js`), no fetch a partials. Cambiar la nav = editar el array.
 
 ---
 
-## Setup de servicios
-
-### 1. Supabase
-
-1. Proyecto: `sophia-portal` (region us-east o us-west)
-2. Auth → Providers:
-   - Google: client ID/secret de Google Cloud Console (autorizar `https://portal.sophiamx.org/auth/callback` y `http://localhost:*/auth/callback`)
-   - Microsoft (Azure AD): mismo callback
-   - Email (magic link): activar
-3. Auth → URL Configuration:
-   - Site URL: `https://portal.sophiamx.org`
-   - Redirect URLs: agregar `https://portal.sophiamx.org/auth/callback`
-4. **IMPORTANTE**: Auth → Email → desactivar "Confirm email" si quieres que el magic link funcione sin double-opt-in. (Ver nota en `docs/deployment.md`.)
-
-### 2. Airtable
-
-Bases:
-- `SOPHIA - Portal` (`app0S6GrJQ8YatvCc`) — cursos, capítulos, lecciones, inscripciones, progreso, autoeval.
-- `SOPHIA - CRM` (`app1SbOC98k2OP5m1`) — Personas (con `Auth User ID` linkeado a Supabase).
-
-Crear un **Personal Access Token** con scopes:
-- `data.records:read`, `data.records:write` (ambas bases)
-- `schema.bases:read` (ambas bases)
-
-Guardar como secret de Supabase Edge Functions: `AIRTABLE_PAT`.
-
-### 3. Variables de Edge Functions
+## Setup local
 
 ```bash
-# Vía dashboard (Settings → Edge Functions → Secrets) o CLI:
-supabase secrets set AIRTABLE_PAT=patXXXXX...
-# SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY (o SUPABASE_ANON_KEY) ya están auto-inyectadas.
+git clone <repo> sophia-portal && cd sophia-portal
+npx serve .       # o python3 -m http.server 8080
 ```
+
+No hay variables de entorno locales — la URL y anon key viven hardcoded en `assets/js/supabase-client.js` (la anon key es pública por diseño).
 
 ---
 
 ## Deploy
 
+### Frontend
 ```bash
-# Frontend
 vercel --prod
 ```
 
-**Edge Functions: deploy via Supabase Dashboard.** Cada archivo en `supabase/functions/<nombre>/index.ts` es auto-contenido (sin imports a `_shared/`), listo para pegar tal cual en el dashboard:
+### Edge Functions (vía Dashboard)
 
+Para cada función en `supabase/functions/<nombre>/index.ts`:
 1. Supabase Dashboard → Edge Functions → Deploy a new function
-2. Nombre = nombre de la carpeta (`auth-bootstrap`, `get-curso`, etc.)
-3. Borrar boilerplate, pegar contenido de `index.ts`
+2. Nombre = nombre de la carpeta
+3. Borrar boilerplate, pegar el contenido del `index.ts`
 4. Deploy
 
-(Si prefieres CLI, también sirve: `supabase functions deploy <nombre>` desde la raíz del repo.)
+Las funciones son auto-contenidas (sin imports a `_shared/`), 1:1 con lo que se pega en el dashboard.
+
+### Secrets de Edge Functions
+
+```bash
+supabase secrets set AIRTABLE_PAT=patXXXXX...
+# SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY se inyectan automáticamente
+```
+
+### Auth providers
+
+**Supabase → Authentication → URL Configuration:**
+- Site URL: `https://portal.sophiamx.org`
+- Redirect URLs: `https://portal.sophiamx.org/auth/callback`
+
+**Google Cloud Console → OAuth Client → Authorized redirect URIs:**
+- `https://ajvjyisplqsrjsessayo.supabase.co/auth/v1/callback`
+
+(El redirect en Google apunta a Supabase, no al portal — Supabase es el intermediario.)
+
+---
+
+## Roles
+
+Definidos en `Personas.Rol` (Airtable, base CRM):
+- `participante` — default, acceso a `/app/*` excepto `/app/admin`
+- `admin` — acceso completo, ve la sección "Administración" en sidebar
+- `instructor` — futuro, no implementado
 
 ---
 
@@ -141,17 +165,9 @@ vercel --prod
 2. **Filtros de Airtable usan field IDs**, nunca field names. Ver el bloque `FIELDS` al inicio de cada Edge Function.
 3. **`filterByFormula` mínimo posible**, filtrado pesado en JS post-fetch.
 4. **PAT de Airtable SOLO en Edge Functions** (Supabase secrets), nunca expuesta al cliente.
-5. **Anon key sí va en cliente**, es la clave que valida JWT del usuario.
-6. **Cada Edge Function es auto-contenida** (todo el helper code inline). No hay carpeta `_shared/`. Si actualizas el patrón de auth o CORS, actualízalo en las 7 funciones.
-
----
-
-## Estado actual del Happiness Workshop
-
-- ✅ 9 capítulos creados (Capítulo 1 con contenido, Capítulos 2-9 vacíos pendientes)
-- ✅ Capítulo 1 con 5 lecciones: Bienvenida, Claustro, Nota técnica, Caso 1, Test de Felicidad
-- ✅ Test de Felicidad integrado al portal (form + dashboard rueda)
-- ⏳ Sesiones live (lecciones tipo `sesion_live`) las agrega Pato manualmente cuando tenga URLs de Zoom
+5. **Anon key sí va en cliente** (es pública por diseño).
+6. **Cada Edge Function es auto-contenida** (sin imports a `_shared/`). Si actualizas el patrón de auth o CORS, hay que sincronizarlo en las 7.
+7. **Páginas HTML son mínimas** — toda la lógica vive en `assets/js/<página>.js`. Para agregar una página nueva, copia este patrón.
 
 ---
 
