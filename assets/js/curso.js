@@ -1,23 +1,31 @@
-// SOPHIA Portal — Dashboard del curso (tabs)
-// Estructura:
-//   ?slug=X (default tab=resumen)
-//     · resumen  → preview de todo, con los 8 iconos como visual central
-//     · temario  → lista completa de capítulos y lecciones (con ponente)
-//     · test     → resultados del Test de Felicidad o CTA para tomarlo
-//     · recursos → placeholder
-//     · mensajes → placeholder
+// SOPHIA Portal — Dashboard del curso (tabs client-side, sin reload)
+//
+// Layout:
+//   ┌──────────────────────────────────────────────┐
+//   │  HERO compacto con portada (5:4 ratio aware) │
+//   └──────────────────────────────────────────────┘
+//   [ Resumen ]  Temario   Test   Recursos   Mensajes
+//   ─────────────────────────────────────────────────
+//
+// Resumen tab order:
+//   1. Continúa donde te quedaste + Test preview (lado a lado)
+//   2. Las 8 dimensiones del bienestar (sección visualmente distinta)
+//   3. Mini-cards: Temario / Recursos / Mensajes
+//
+// Tab navigation is client-side: panels are pre-rendered once, swapping is
+// just a class toggle + pushState. No re-fetch when changing tabs.
 
 import { requireAuth } from "./auth.js";
 import { api, ApiError } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
+import { loaderHtml, startLoaderRotation } from "./loader.js";
 
 const LOCAL_COVERS = new Set(["happiness-workshop"]);
 
-// 8 pilares en orden para el componente visual.
-// El mapeo capítulo→pilar es por orden: capítulo N (con N≥2) se asigna al
-// pilar (N-2). El capítulo 1 ("Bienvenida") es intro y no mapea a pilar.
-// Si un curso futuro no respeta este orden, agregar campo `Capitulos.pilar`.
+// 8 pilares en orden visual de la rueda. El mapeo capítulo→pilar va por
+// capítulo.orden: capítulo N (con N≥2) se asigna al pilar (N-2).
+// El capítulo 1 (Bienvenida) es intro y no mapea.
 const PILARES = [
   { key: "estetica_existencial", file: "estetica-existencial",  dim: "spiritual", name: "Estética Existencial" },
   { key: "fe_filosofia",          file: "fe-filosofia",          dim: "spiritual", name: "Fe y Filosofía" },
@@ -51,19 +59,24 @@ const VALID_TABS = ["resumen", "temario", "test", "recursos", "mensajes"];
     return;
   }
 
+  // Render shell with in-shell loader while fetching
   renderShell({
     persona,
     title: "Cargando…",
     activePath: "/app/cursos",
-    contentHtml: spinnerHtml(),
+    contentHtml: loaderHtml({ context: "curso" }),
   });
+  const stopLoader = startLoaderRotation();
 
   try {
-    const data = await api.curso(slug);
-    let resultadoTest = null;
-    try { resultadoTest = await api.resultadosTest(); } catch {}
+    const [data, resultadoTest] = await Promise.all([
+      api.curso(slug),
+      api.resultadosTest().catch(() => null),
+    ]);
+    stopLoader();
     renderDashboard(persona, slug, tab, data, resultadoTest);
   } catch (e) {
+    stopLoader();
     console.error("get-curso failed:", e);
     document.querySelector(".app-main").innerHTML = emptyState(
       "No pudimos cargar este curso",
@@ -76,7 +89,7 @@ const VALID_TABS = ["resumen", "temario", "test", "recursos", "mensajes"];
 })();
 
 // ────────────────────────────────────────────────────────────────────
-function renderDashboard(persona, slug, tab, payload, resultadoTest) {
+function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
   const { curso, inscripcion, capitulos } = payload;
 
   const totalLecc = capitulos.reduce((s, c) => s + c.lecciones.length, 0);
@@ -92,14 +105,14 @@ function renderDashboard(persona, slug, tab, payload, resultadoTest) {
 
   const ctx = { persona, slug, curso, inscripcion, capitulos, totalLecc, completadas, progresoPct, next, resultadoTest };
 
-  let body = "";
-  switch (tab) {
-    case "temario":  body = renderTemarioTab(ctx); break;
-    case "test":     body = renderTestTab(ctx); break;
-    case "recursos": body = renderRecursosTab(ctx); break;
-    case "mensajes": body = renderMensajesTab(ctx); break;
-    default:         body = renderResumenTab(ctx); break;
-  }
+  // Pre-render every tab panel ONCE — no re-fetch on tab change.
+  const panels = {
+    resumen:  renderResumenTab(ctx),
+    temario:  renderTemarioTab(ctx),
+    test:     renderTestTab(ctx),
+    recursos: renderRecursosTab(ctx),
+    mensajes: renderMensajesTab(ctx),
+  };
 
   renderShell({
     persona,
@@ -107,24 +120,98 @@ function renderDashboard(persona, slug, tab, payload, resultadoTest) {
     activePath: "/app/cursos",
     contentHtml: `
       ${renderHero(curso, coverUrl)}
-      ${renderTabsNav(slug, tab)}
-      <div class="tab-panel">${body}</div>
+      ${renderTabsNav(slug, initialTab)}
+      <div class="tab-panels">
+        ${VALID_TABS.map(t => `
+          <section class="tab-panel ${t === initialTab ? "is-active" : ""}" data-tab="${t}" id="tab-${t}">
+            ${panels[t]}
+          </section>
+        `).join("")}
+      </div>
     `,
   });
+
+  wireTabsClientSide(slug, initialTab);
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Tab navigation (client-side, no reload)
+// ────────────────────────────────────────────────────────────────────
+function wireTabsClientSide(slug, initialTab) {
+  const tabsNav = document.querySelector(".tab-nav");
+  if (!tabsNav) return;
+
+  tabsNav.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-tab-target]");
+    if (!a) return;
+    e.preventDefault();
+    const target = a.dataset.tabTarget;
+    if (!VALID_TABS.includes(target)) return;
+    activateTab(target, slug);
+  });
+
+  // Mini-cards inside Resumen tab also navigate via tab change (no reload)
+  document.querySelector(".app-main")?.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-tab-jump]");
+    if (!a) return;
+    e.preventDefault();
+    const target = a.dataset.tabJump;
+    if (!VALID_TABS.includes(target)) return;
+    activateTab(target, slug);
+  });
+
+  // Browser back/forward navigation
+  window.addEventListener("popstate", () => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab") || "resumen";
+    activateTab(tab, slug, /* updateHistory */ false);
+  });
+}
+
+function activateTab(tab, slug, updateHistory = true) {
+  if (!VALID_TABS.includes(tab)) tab = "resumen";
+
+  document.querySelectorAll(".tab-nav__tab").forEach((el) => {
+    const isActive = el.dataset.tabTarget === tab;
+    el.classList.toggle("is-active", isActive);
+    el.setAttribute("aria-selected", String(isActive));
+  });
+
+  document.querySelectorAll(".tab-panel").forEach((el) => {
+    el.classList.toggle("is-active", el.dataset.tab === tab);
+  });
+
+  if (updateHistory) {
+    const params = new URLSearchParams(location.search);
+    params.set("tab", tab);
+    history.pushState({ tab }, "", `?${params}`);
+  }
+
+  // Scroll to top of the tab panel for context
+  document.querySelector(`#tab-${tab}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // ────────────────────────────────────────────────────────────────────
 // Hero & Tabs nav
 // ────────────────────────────────────────────────────────────────────
 function renderHero(curso, coverUrl) {
-  const inline = coverUrl ? `style="--curso-cover: url('${escapeHtml(coverUrl)}');"` : "";
+  // Use a real <img> with object-fit: cover, capped at sensible aspect ratio
+  // (the image is portrait-ish 5:4, so we don't want a thin band).
   return `
-    <header class="curso-hero curso-hero--minimal" ${inline}>
-      <a href="/app/cursos" class="curso-hero__back">
-        ${icon("chevronLeft")}
-        <span>Mis cursos</span>
-      </a>
-      ${curso.modalidad ? `<span class="curso-hero__chip">${escapeHtml(curso.modalidad)}</span>` : ""}
+    <header class="curso-hero">
+      ${coverUrl
+        ? `<div class="curso-hero__media">
+             <img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(curso.titulo)}">
+           </div>`
+        : `<div class="curso-hero__media curso-hero__media--placeholder"></div>`
+      }
+      <div class="curso-hero__overlay">
+        <a href="/app/cursos" class="curso-hero__back">
+          ${icon("chevronLeft")}
+          <span>Mis cursos</span>
+        </a>
+        ${curso.modalidad ? `<span class="curso-hero__chip">${escapeHtml(curso.modalidad)}</span>` : ""}
+      </div>
     </header>
   `;
 }
@@ -143,6 +230,7 @@ function renderTabsNav(slug, currentTab) {
         <a role="tab"
            class="tab-nav__tab ${currentTab === t.id ? "is-active" : ""}"
            href="?slug=${encodeURIComponent(slug)}&tab=${t.id}"
+           data-tab-target="${t.id}"
            aria-selected="${currentTab === t.id}">
           ${escapeHtml(t.label)}
         </a>
@@ -152,31 +240,36 @@ function renderTabsNav(slug, currentTab) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// TAB · Resumen — overview con 8 iconos como visual + previews
+// TAB · Resumen — REORDEN: continue+test → pillars → mini-cards
 // ────────────────────────────────────────────────────────────────────
 function renderResumenTab(ctx) {
   const { slug, capitulos, totalLecc, completadas, progresoPct, next, resultadoTest, inscripcion } = ctx;
 
   return `
     <div class="resumen">
-      <section class="pillar-grid">
-        <header class="resumen-section-header">
-          <span class="resumen-section-header__eyebrow">Tu camino</span>
-          <h3 class="resumen-section-header__title">Las 8 dimensiones del bienestar</h3>
-          <p class="resumen-section-header__sub">Cada capítulo (después de la bienvenida) profundiza en uno de los pilares. Se iluminan a medida que los completas.</p>
-        </header>
-        <div class="pillar-grid__grid">
-          ${PILARES.map((p, i) => renderPillarIcon(p, i, capitulos)).join("")}
-        </div>
-      </section>
+      <header class="tab-panel-header">
+        <span class="tab-panel-header__eyebrow">Tu camino</span>
+        <h3 class="tab-panel-header__title">Continúa donde te quedaste</h3>
+      </header>
 
       <div class="resumen-row">
         ${renderContinuePanel(next, capitulos, totalLecc, completadas, progresoPct)}
         ${renderTestPreview(ctx, /* compact */ true)}
       </div>
 
+      <section class="pillar-grid">
+        <header class="pillar-grid__header">
+          <span class="pillar-grid__eyebrow">Las 8 dimensiones del bienestar</span>
+          <h3 class="pillar-grid__title">Tu camino, capítulo por capítulo</h3>
+          <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su capítulo.</p>
+        </header>
+        <div class="pillar-grid__grid">
+          ${PILARES.map((p, i) => renderPillarIcon(p, i, capitulos)).join("")}
+        </div>
+      </section>
+
       <div class="resumen-mini-row">
-        <a class="mini-tab-card" href="?slug=${encodeURIComponent(slug)}&tab=temario">
+        <a class="mini-tab-card" href="?slug=${encodeURIComponent(slug)}&tab=temario" data-tab-jump="temario">
           <div class="mini-tab-card__icon">${icon("temario")}</div>
           <div class="mini-tab-card__body">
             <span class="mini-tab-card__eyebrow">Temario</span>
@@ -185,7 +278,7 @@ function renderResumenTab(ctx) {
           </div>
           ${icon("arrowRight")}
         </a>
-        <a class="mini-tab-card mini-tab-card--soft" href="?slug=${encodeURIComponent(slug)}&tab=recursos">
+        <a class="mini-tab-card mini-tab-card--soft" href="?slug=${encodeURIComponent(slug)}&tab=recursos" data-tab-jump="recursos">
           <div class="mini-tab-card__icon">${icon("recursos")}</div>
           <div class="mini-tab-card__body">
             <span class="mini-tab-card__eyebrow">Recursos</span>
@@ -194,7 +287,7 @@ function renderResumenTab(ctx) {
           </div>
           ${icon("arrowRight")}
         </a>
-        <a class="mini-tab-card mini-tab-card--soft" href="?slug=${encodeURIComponent(slug)}&tab=mensajes">
+        <a class="mini-tab-card mini-tab-card--soft" href="?slug=${encodeURIComponent(slug)}&tab=mensajes" data-tab-jump="mensajes">
           <div class="mini-tab-card__icon">${icon("mensajes")}</div>
           <div class="mini-tab-card__body">
             <span class="mini-tab-card__eyebrow">Mensajes</span>
@@ -209,23 +302,20 @@ function renderResumenTab(ctx) {
 }
 
 /**
- * Renderiza un icono del pilar. Estados:
- * - "todo"        — gris, baja opacidad, sin progreso
- * - "in-progress" — color dimensional con opacidad media, barra parcial
- * - "done"        — color dimensional full, badge ✓
+ * Pillar icon. States:
+ * - locked       — sin capítulo asignado (cap > 9 o futuro)
+ * - todo         — gris/baja opacidad, sin progreso
+ * - in-progress  — color dimensional con opacidad media, barra parcial
+ * - done         — color dimensional full, badge ✓
  */
 function renderPillarIcon(pillar, idx, capitulos) {
-  // Capítulo correspondiente: el orden = idx + 2 (capítulo 1 es Bienvenida)
   const cap = capitulos.find(c => c.orden === idx + 2);
-  let progress = 0;
-  let total = 0;
-  let done = 0;
+  let progress = 0, total = 0, done = 0;
   if (cap) {
     total = cap.lecciones.length;
     done = cap.lecciones.filter(l => l.completada).length;
     progress = total > 0 ? done / total : 0;
   }
-
   const state = !cap ? "locked"
     : progress === 1 && total > 0 ? "done"
     : progress > 0 ? "in-progress"
@@ -292,14 +382,14 @@ function renderContinuePanel(next, capitulos, total, completadas, pct) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// TAB · Temario — full chapter list with ponente
+// TAB · Temario
 // ────────────────────────────────────────────────────────────────────
 function renderTemarioTab(ctx) {
   const { capitulos, totalLecc, completadas, progresoPct } = ctx;
   return `
-    <header class="resumen-section-header">
-      <span class="resumen-section-header__eyebrow">Temario</span>
-      <h3 class="resumen-section-header__title">9 capítulos · ${totalLecc} lecciones · ${progresoPct}% completado</h3>
+    <header class="tab-panel-header">
+      <span class="tab-panel-header__eyebrow">Temario</span>
+      <h3 class="tab-panel-header__title">${capitulos.length} capítulos · ${totalLecc} lecciones · ${progresoPct}% completado</h3>
     </header>
     <div class="curso-progress-bar" style="margin-bottom: var(--s-6);">
       <div class="curso-progress-bar__fill" style="width: ${progresoPct}%;"></div>
@@ -362,7 +452,7 @@ function renderLeccionItem(l) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// TAB · Test de Felicidad — preview / results
+// TAB · Test de Felicidad
 // ────────────────────────────────────────────────────────────────────
 function renderTestTab(ctx) {
   return renderTestPreview(ctx, /* compact */ false);
@@ -376,10 +466,9 @@ function renderTestPreview(ctx, compact) {
   const taken = !!resultadoTest?.tieneResultados;
 
   if (compact) {
-    // Compact preview shown alongside continue panel in Resumen tab
     if (!taken) {
       return `
-        <a class="test-preview-card test-preview-card--cta" href="?slug=${encodeURIComponent(slug)}&tab=test">
+        <a class="test-preview-card test-preview-card--cta" href="?slug=${encodeURIComponent(slug)}&tab=test" data-tab-jump="test">
           <div class="test-preview-card__header">
             <span class="test-preview-card__eyebrow">Tu evaluación inicial</span>
             <h3 class="test-preview-card__title">Test de Felicidad</h3>
@@ -394,15 +483,14 @@ function renderTestPreview(ctx, compact) {
         </a>
       `;
     }
-    // Taken: show wheel preview
     return `
-      <a class="test-preview-card test-preview-card--results" href="?slug=${encodeURIComponent(slug)}&tab=test">
+      <a class="test-preview-card test-preview-card--results" href="?slug=${encodeURIComponent(slug)}&tab=test" data-tab-jump="test">
         <div class="test-preview-card__header">
           <span class="test-preview-card__eyebrow">Tu evaluación · ${formatDate(resultadoTest.completedAt)}</span>
           <h3 class="test-preview-card__title">Tu rueda de la felicidad</h3>
         </div>
         <div class="test-preview-card__chart">
-          ${renderRuedaSVG(resultadoTest.scores)}
+          ${renderRuedaPreviewSVG(resultadoTest.scores)}
         </div>
         <div class="test-preview-card__footer">
           <span class="test-preview-card__cta">
@@ -417,21 +505,21 @@ function renderTestPreview(ctx, compact) {
   // Full Test tab
   if (!taken) {
     return `
-      <header class="resumen-section-header">
-        <span class="resumen-section-header__eyebrow">Tu evaluación inicial</span>
-        <h3 class="resumen-section-header__title">Test de Felicidad</h3>
-        <p class="resumen-section-header__sub">Una autoevaluación de 16 preguntas en los 8 pilares del bienestar. Tarda ~5 minutos. Recibes un análisis personalizado y una rueda visual con tus dimensiones.</p>
+      <header class="tab-panel-header">
+        <span class="tab-panel-header__eyebrow">Tu evaluación inicial</span>
+        <h3 class="tab-panel-header__title">Test de Felicidad</h3>
+        <p class="tab-panel-header__sub">Una autoevaluación de 16 preguntas en los 8 pilares del bienestar. Tarda ~5 minutos.</p>
       </header>
 
       <section class="test-tab__cta-box">
         <div class="test-tab__chart-tease">
-          ${renderRuedaSVG(null /* preview */)}
+          ${renderRuedaPreviewSVG(null)}
         </div>
         <div class="test-tab__cta-body">
           <h4>Cuando tomes el test, tu rueda aparecerá aquí llena con tus puntajes.</h4>
           <p>El análisis cualitativo te dirá qué pilares son tu fortaleza y cuáles necesitan más atención.</p>
           ${testLecc ? `
-            <a class="btn btn-accent btn-lg" href="/app/test-felicidad?inscripcion=${encodeURIComponent(inscripcion.id)}&leccion=${encodeURIComponent(testLecc.id)}">
+            <a class="btn btn-accent btn-lg" href="/app/leccion?id=${encodeURIComponent(testLecc.id)}">
               <span>Tomar el test</span>
               ${icon("arrowRight")}
             </a>
@@ -447,17 +535,16 @@ function renderTestPreview(ctx, compact) {
   }
 
   // Has taken the test: show results inline
-  const { scores, niveles, analisis, pilarNombres } = resultadoTest;
-  const pillars = Object.keys(scores);
+  const { scores, pilarNombres } = resultadoTest;
   return `
-    <header class="resumen-section-header">
-      <span class="resumen-section-header__eyebrow">Tu evaluación · ${formatDate(resultadoTest.completedAt)}</span>
-      <h3 class="resumen-section-header__title">Tu rueda de la felicidad</h3>
+    <header class="tab-panel-header">
+      <span class="tab-panel-header__eyebrow">Tu evaluación · ${formatDate(resultadoTest.completedAt)}</span>
+      <h3 class="tab-panel-header__title">Tu rueda de la felicidad</h3>
     </header>
 
     <section class="test-results-row">
       <div class="test-results-row__chart">
-        ${renderRuedaSVG(scores)}
+        ${renderRuedaPreviewSVG(scores)}
       </div>
       <div class="test-results-row__summary">
         <div class="summary-stat">
@@ -472,11 +559,6 @@ function renderTestPreview(ctx, compact) {
           <span>Ver análisis completo</span>
           ${icon("arrowRight")}
         </a>
-        ${testLecc ? `
-          <a class="btn btn-ghost btn-sm" href="/app/test-felicidad?inscripcion=${encodeURIComponent(inscripcion.id)}&leccion=${encodeURIComponent(testLecc.id)}">
-            <span>Volver a tomar</span>
-          </a>
-        ` : ""}
       </div>
     </section>
   `;
@@ -487,9 +569,9 @@ function renderTestPreview(ctx, compact) {
 // ────────────────────────────────────────────────────────────────────
 function renderRecursosTab(ctx) {
   return `
-    <header class="resumen-section-header">
-      <span class="resumen-section-header__eyebrow">Material complementario</span>
-      <h3 class="resumen-section-header__title">Recursos</h3>
+    <header class="tab-panel-header">
+      <span class="tab-panel-header__eyebrow">Material complementario</span>
+      <h3 class="tab-panel-header__title">Recursos</h3>
     </header>
     <div class="placeholder-state">
       <div class="placeholder-state__icon">${icon("recursos")}</div>
@@ -501,9 +583,9 @@ function renderRecursosTab(ctx) {
 
 function renderMensajesTab(ctx) {
   return `
-    <header class="resumen-section-header">
-      <span class="resumen-section-header__eyebrow">Comunicaciones</span>
-      <h3 class="resumen-section-header__title">Mensajes</h3>
+    <header class="tab-panel-header">
+      <span class="tab-panel-header__eyebrow">Comunicaciones</span>
+      <h3 class="tab-panel-header__title">Mensajes</h3>
     </header>
     <div class="placeholder-state">
       <div class="placeholder-state__icon">${icon("mensajes")}</div>
@@ -514,10 +596,10 @@ function renderMensajesTab(ctx) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// SVG de la rueda (compartido — preview o con scores)
+// SVG de la rueda PREVIEW (versión chiquita simplificada)
+// La rueda completa con tooltips e iconos está en test-felicidad-resultados.js
 // ────────────────────────────────────────────────────────────────────
-function renderRuedaSVG(scores) {
-  // Mismo orden que PILARES para la rueda visual
+function renderRuedaPreviewSVG(scores) {
   const order = PILARES;
   const cx = 100, cy = 100;
   const rOuter = 84;
@@ -609,10 +691,6 @@ function formatDate(iso) {
   try {
     return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
   } catch { return iso; }
-}
-
-function spinnerHtml() {
-  return `<div style="display:grid;place-items:center;padding:80px 0;"><div class="spinner spinner--wheel"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>`;
 }
 
 function emptyState(title, desc, extra = "") {

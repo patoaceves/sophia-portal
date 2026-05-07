@@ -862,14 +862,15 @@
 
 /* ──────────────────────────────────────────────────────────────────
  * Test resultados — rueda + análisis
+ * Diseño portado del HTML legacy (sophia-test-felicidad).
  * ────────────────────────────────────────────────────────────────── */
 
 .resultados-overview {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   gap: var(--s-8);
   align-items: center;
-  margin-bottom: var(--s-12);
+  margin-bottom: var(--s-10);
   padding: var(--s-6);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -877,23 +878,93 @@
 }
 
 @media (max-width: 760px) {
-  .resultados-overview { grid-template-columns: 1fr; }
+  .resultados-overview { grid-template-columns: 1fr; padding: var(--s-4); gap: var(--s-5); }
 }
 
 .rueda-wrap {
+  position: relative;
+  width: 100%;
   display: grid;
   place-items: center;
 }
 
-.rueda-svg {
-  max-width: 420px;
+.rueda-svg-full {
   width: 100%;
+  max-width: 480px;
   height: auto;
+  display: block;
 }
 
-.summary-stat {
+/* Wheel segments */
+.rueda-segment-group { cursor: pointer; }
+
+.rueda-segment-empty {
+  fill: #f0ece4;
+  stroke: var(--color-bg-elevated);
+  stroke-width: 3;
+}
+
+.rueda-segment-filled {
+  stroke: var(--color-bg-elevated);
+  stroke-width: 3;
+  transition: filter 0.3s ease;
+}
+
+.rueda-segment-group:hover .rueda-segment-filled {
+  filter: brightness(1.12) saturate(1.05);
+}
+
+.rueda-center-circle { fill: var(--color-bg-elevated); }
+
+.rueda-icon-img {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.rueda-icon-img.visible { opacity: 1; }
+
+/* Wheel tooltip */
+.rueda-tooltip {
+  position: fixed;
+  background: white;
+  color: var(--color-text);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  font-size: 0.875rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+  max-width: 250px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+}
+
+.rueda-tooltip.active { opacity: 1; }
+
+.rueda-tooltip__title {
+  font-weight: 600;
+  margin-bottom: var(--s-1);
+  font-size: 0.9375rem;
+}
+
+.rueda-tooltip__score {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* Summary card next to the wheel */
+.resultados-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  align-items: center;
   text-align: center;
 }
+
+.summary-stat { text-align: center; }
 
 .summary-stat__num {
   font-family: var(--font-display);
@@ -913,65 +984,91 @@
 }
 
 .summary-text {
-  margin-top: var(--s-5);
   font-size: 0.9375rem;
   color: var(--color-text);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-.resultados-pilares {
-  display: flex;
-  flex-direction: column;
+/* ── Bloques: 3 columnas (Fortaleza / Crecimiento / Vulnerable) ── */
+
+.resultados-bloques {
+  margin-top: var(--s-8);
+}
+
+.rueda-bloques-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--s-4);
 }
 
-.resultados-pilares__title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  margin-bottom: var(--s-3);
+@media (max-width: 900px) {
+  .rueda-bloques-grid { grid-template-columns: 1fr; }
 }
 
-.pilar-card {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+.rueda-bloque {
   border-radius: var(--r-lg);
-  padding: var(--s-5);
-  border-left-width: 4px;
+  padding: var(--s-5) var(--s-4);
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.pilar-card.is-high   { border-left-color: var(--color-success); }
-.pilar-card.is-mid    { border-left-color: var(--color-accent); }
-.pilar-card.is-low    { border-left-color: var(--color-danger); }
+.rueda-bloque.show { opacity: 1; transform: translateY(0); }
 
-.pilar-card__header {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  margin-bottom: var(--s-3);
-}
+.rueda-bloque--fortaleza   { background: linear-gradient(160deg, #d1fae5, #f0fdf4); }
+.rueda-bloque--crecimiento { background: linear-gradient(160deg, #fef3cd, #fffbeb); }
+.rueda-bloque--vulnerable  { background: linear-gradient(160deg, #fce4e4, #fef2f2); }
 
-.pilar-card__icon {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-}
-
-.pilar-card__name {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
+.rueda-bloque__title {
   font-weight: 500;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: var(--s-4);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: center;
 }
 
-.pilar-card__nivel {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
+.rueda-bloque--fortaleza   .rueda-bloque__title { color: #059669; }
+.rueda-bloque--crecimiento .rueda-bloque__title { color: #d97706; }
+.rueda-bloque--vulnerable  .rueda-bloque__title { color: #dc2626; }
+
+.rueda-card {
+  background: white;
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  margin-bottom: var(--s-3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.pilar-card__analisis {
+.rueda-card:last-child { margin-bottom: 0; }
+
+.rueda-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rueda-card__title {
+  font-weight: 600;
   font-size: 0.9375rem;
+  margin: 0 0 var(--s-2) 0;
+}
+
+.rueda-card__text {
+  font-size: 0.875rem;
+  line-height: 1.65;
   color: var(--color-text);
-  line-height: 1.6;
+  margin: 0;
+}
+
+.rueda-bloque__empty {
+  text-align: center;
+  padding: var(--s-6) var(--s-3);
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.35);
+  font-style: italic;
 }
 
 .resultados-footer {
@@ -1015,113 +1112,7 @@
  * Course Dashboard (curso.html)
  * ────────────────────────────────────────────────────────────────── */
 
-.curso-hero {
-  position: relative;
-  min-height: 260px;
-  background:
-    linear-gradient(180deg, rgba(31,26,20,0) 0%, rgba(31,26,20,0.55) 50%, rgba(31,26,20,0.85) 100%),
-    var(--curso-cover, var(--color-accent-faint));
-  background-size: cover;
-  background-position: center;
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  margin-bottom: var(--s-6);
-  isolation: isolate;
-}
-
-/* Fallback cuando no hay coverUrl */
-.curso-hero:not([style*="--curso-cover"]) {
-  background:
-    linear-gradient(135deg, var(--color-accent) 0%, var(--color-text) 100%);
-  color: white;
-}
-
-.curso-hero__overlay {
-  position: relative;
-  height: 100%;
-  min-height: 260px;
-  padding: var(--s-6) var(--s-7);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  color: white;
-}
-
-.curso-hero__back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  font-size: 0.875rem;
-  align-self: flex-start;
-  padding: var(--s-2) var(--s-3);
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-  border-radius: var(--r-full);
-  transition: all 0.15s ease;
-}
-
-.curso-hero__back:hover {
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-}
-
-.curso-hero__back svg {
-  width: 16px;
-  height: 16px;
-}
-
-.curso-hero__content {
-  max-width: 600px;
-}
-
-.curso-hero__eyebrow {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-  display: block;
-  margin-bottom: var(--s-2);
-}
-
-.curso-hero__title {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-  font-weight: 500;
-  line-height: 1.1;
-  margin-bottom: var(--s-3);
-  font-variation-settings: "opsz" 144, "SOFT" 50;
-  color: white;
-}
-
-.curso-hero__lead {
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 1rem;
-  line-height: 1.5;
-  margin-bottom: var(--s-4);
-  max-width: 540px;
-}
-
-.curso-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-4);
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.curso-hero__meta span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.curso-hero__meta svg {
-  width: 16px;
-  height: 16px;
-}
+/* Curso hero — see definition below at ~line 1789 (post-refactor) */
 
 /* Progress strip + bar */
 
@@ -1389,23 +1380,137 @@
   gap: var(--s-3);
 }
 
-.leccion-done-pill {
+/* ──────────────────────────────────────────────────────────────────
+ * Lesson CTA button — single button with internal checkbox.
+ *
+ * State 1 (not completed):
+ *   ┌─────────────────────────────────────────┐
+ *   │ ☐  Marcar como completada               │
+ *   └─────────────────────────────────────────┘
+ *
+ * State 2 (completed):
+ *   ┌─────────────────────────────────────────┐
+ *   │ ✓  Avanzar                          →   │
+ *   └─────────────────────────────────────────┘
+ *
+ * The same button transforms in place.
+ * ────────────────────────────────────────────────────────────────── */
+
+.leccion-cta {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-1);
-  padding: var(--s-1) var(--s-3);
-  background: var(--color-success-soft);
-  color: var(--color-success);
-  border-radius: var(--r-full);
-  font-size: 0.75rem;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  border-radius: var(--r-md);
+  font-size: 0.9375rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 240px;
+  position: relative;
 }
 
-.leccion-done-pill svg {
+.leccion-cta:hover:not(:disabled) {
+  border-color: var(--color-text);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.leccion-cta:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.leccion-cta__check {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.leccion-cta__check-box {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 4px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.leccion-cta__check-box svg {
   width: 14px;
   height: 14px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.leccion-cta__label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.leccion-cta__arrow {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: currentColor;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.leccion-cta__arrow svg { width: 18px; height: 18px; }
+
+/* Checked / completed state */
+.leccion-cta.is-checked {
+  background: var(--color-success);
+  color: white;
+  border-color: var(--color-success);
+}
+
+.leccion-cta.is-checked:hover:not(:disabled) {
+  background: #5e7c4f;
+  border-color: #5e7c4f;
+}
+
+.leccion-cta.is-checked .leccion-cta__check-box {
+  background: white;
+  border-color: white;
+  color: var(--color-success);
+}
+
+.leccion-cta.is-checked .leccion-cta__check-box svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.leccion-cta.is-checked .leccion-cta__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Subtle pulse the moment it transforms */
+.leccion-cta.just-marked {
+  animation: leccion-cta-pulse 0.7s ease-out;
+}
+
+@keyframes leccion-cta-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(111, 142, 94, 0.5); }
+  100% { box-shadow: 0 0 0 12px rgba(111, 142, 94, 0); }
+}
+
+@media (max-width: 540px) {
+  .leccion-cta { min-width: 0; width: 100%; }
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -1466,6 +1571,30 @@
   max-width: 720px;
   margin: 0 auto;
   padding-top: var(--s-3);
+}
+
+/* Embedded mode (mounted inside a lesson body):
+   - No own header (lesson handles back/title/checkpoints)
+   - No own progress bar (lesson's checkpoint-bar is the indicator)
+   - Counter goes at the bottom for context */
+.test-wizard--embedded {
+  padding-top: 0;
+}
+
+.test-wizard--embedded .test-wizard__body {
+  min-height: 0;
+}
+
+.test-wizard__embedded-counter {
+  text-align: center;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-subtle);
+  font-weight: 500;
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--color-border);
 }
 
 .test-wizard__header {
@@ -1780,45 +1909,83 @@
 
 /* Hero minimalista — solo back link + chip de modalidad. La portada
    habla por sí sola; el título del curso vive en el continue-panel. */
-.curso-hero--minimal {
+/* ──────────────────────────────────────────────────────────────────
+ * Curso hero — compact card with real <img> (not background-image).
+ * Designed for portrait-ish covers (e.g. 5:4 ratio). The image is
+ * height-capped and centered, with overlay controls floating on top.
+ * ────────────────────────────────────────────────────────────────── */
+
+.curso-hero {
   position: relative;
-  height: 220px;
-  margin-bottom: var(--s-6);
   border-radius: var(--r-lg);
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(31,26,20,0) 0%, rgba(31,26,20,0.18) 60%, rgba(31,26,20,0.55) 100%),
-    var(--curso-cover, linear-gradient(135deg, var(--color-accent) 0%, var(--color-text) 100%));
-  background-size: cover;
-  background-position: center;
+  margin-bottom: var(--s-6);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-text) 100%);
+  isolation: isolate;
+  /* Cap height so the cover doesn't stretch into a poster */
+  height: 200px;
+}
+
+.curso-hero__media {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* Subtle gradient overlay for legibility */
+  background: linear-gradient(180deg, rgba(31,26,20,0.05) 0%, rgba(31,26,20,0.45) 100%);
+}
+
+.curso-hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Anchor a bit lower so the overlay doesn't clip subjects */
+  object-position: center 30%;
+  /* Behind the gradient overlay */
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.curso-hero__media--placeholder {
+  background: linear-gradient(135deg, var(--color-accent-soft), var(--color-bg-subtle));
+}
+
+.curso-hero__overlay {
+  position: absolute;
+  inset: 0;
   padding: var(--s-5) var(--s-6);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  isolation: isolate;
+  pointer-events: none;
 }
 
-.curso-hero--minimal .curso-hero__back {
+.curso-hero__overlay > * { pointer-events: auto; }
+
+.curso-hero__back {
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
   padding: var(--s-2) var(--s-4);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--color-text);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: var(--r-full);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.curso-hero--minimal .curso-hero__back:hover {
+.curso-hero__back:hover {
   background: white;
   transform: translateX(-2px);
 }
 
-.curso-hero--minimal .curso-hero__back svg {
+.curso-hero__back svg {
   width: 16px;
   height: 16px;
 }
@@ -1826,7 +1993,7 @@
 .curso-hero__chip {
   display: inline-block;
   padding: var(--s-1) var(--s-3);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--color-text);
   font-size: 0.6875rem;
   font-weight: 600;
@@ -1834,11 +2001,17 @@
   letter-spacing: 0.14em;
   border-radius: var(--r-full);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 760px) {
-  .curso-hero--minimal { height: 160px; padding: var(--s-4); }
+  .curso-hero { height: 160px; }
+  .curso-hero__overlay { padding: var(--s-4); }
 }
+
+/* Legacy class still referenced in some places — make it inherit from curso-hero */
+.curso-hero--minimal { /* compat: kept for any stray references */ }
 
 /* Dashboard rows grid layout */
 
@@ -2380,9 +2553,12 @@
   border-bottom: 1px solid var(--color-border);
   margin-bottom: var(--s-7);
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 }
+
+.tab-nav::-webkit-scrollbar { display: none; }
 
 .tab-nav__tab {
   position: relative;
@@ -2404,7 +2580,49 @@
   border-bottom-color: var(--color-accent);
 }
 
-.tab-panel { min-height: 400px; }
+.tab-panels { position: relative; }
+
+.tab-panel {
+  display: none;
+  min-height: 400px;
+}
+
+.tab-panel.is-active { display: block; }
+
+/* tab-panel-header — sits at the top of every tab body. Generous margin-top
+   to separate it from the tab-nav line, and consistent typography across
+   tabs (replaces the old .resumen-section-header which doubled as both a
+   tab-level header and a sub-section header). */
+.tab-panel-header {
+  margin-top: var(--s-6);
+  margin-bottom: var(--s-6);
+}
+
+.tab-panel-header__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--color-accent);
+  display: block;
+  margin-bottom: var(--s-2);
+}
+
+.tab-panel-header__title {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--s-2) 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.tab-panel-header__sub {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  max-width: 640px;
+  margin: 0;
+}
 
 /* Section headers (used in tabs) */
 
@@ -2439,11 +2657,47 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Pillar grid (the 8 icons - resumen tab visual centerpiece)
+ * Pillar grid (the 8 icons - resumen tab visual centerpiece).
+ * Visually distinct section: its own card-like wrapper with a top-border
+ * separator and a different header treatment than tab-panel-header.
  * ────────────────────────────────────────────────────────────────── */
 
 .pillar-grid {
-  margin-bottom: var(--s-8);
+  margin-top: var(--s-9);
+  margin-bottom: var(--s-7);
+  padding-top: var(--s-7);
+  border-top: 1px solid var(--color-border);
+}
+
+.pillar-grid__header {
+  text-align: center;
+  margin-bottom: var(--s-6);
+}
+
+.pillar-grid__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--color-accent);
+  display: block;
+  margin-bottom: var(--s-2);
+}
+
+.pillar-grid__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--s-2) 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.pillar-grid__sub {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  max-width: 540px;
+  margin: 0 auto;
 }
 
 .pillar-grid__grid {
@@ -2470,25 +2724,27 @@
   transition: all 0.2s ease;
 }
 
+.pillar-icon:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+/* The SVG is shown directly — it already contains a colored circle bg
+   matching the pillar. We control state by filter on the img only. */
 .pillar-icon__visual {
   position: relative;
   width: 64px;
   height: 64px;
-  border-radius: var(--r-full);
   display: grid;
   place-items: center;
-  background: var(--color-bg-subtle);
   margin-bottom: var(--s-1);
-  transition: all 0.25s ease;
 }
 
 .pillar-icon__visual img {
-  width: 36px;
-  height: 36px;
+  width: 64px;
+  height: 64px;
   display: block;
-  /* Default: grayscale + low opacity. Coloreará via filter when active. */
-  filter: grayscale(100%) opacity(0.45);
-  transition: filter 0.25s ease;
+  transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .pillar-icon__check {
@@ -2503,6 +2759,7 @@
   display: grid;
   place-items: center;
   border: 2px solid var(--color-bg-elevated);
+  z-index: 2;
 }
 
 .pillar-icon__check svg { width: 12px; height: 12px; }
@@ -2541,34 +2798,32 @@
   color: var(--color-text-muted);
 }
 
-/* States: dim color + opacity per state */
+/* States */
 
-/* todo (default) — gray, no color */
-.pillar-icon--todo .pillar-icon__visual { background: var(--color-bg-subtle); }
-
-/* in-progress — soft dim color, partially saturated icon */
-.pillar-icon--spiritual.pillar-icon--in-progress .pillar-icon__visual { background: var(--pillar-spiritual-soft); }
-.pillar-icon--afectivo.pillar-icon--in-progress  .pillar-icon__visual { background: var(--pillar-afectivo-soft); }
-.pillar-icon--fisico.pillar-icon--in-progress    .pillar-icon__visual { background: var(--pillar-fisico-soft); }
-.pillar-icon--mental.pillar-icon--in-progress    .pillar-icon__visual { background: var(--pillar-mental-soft); }
-
-.pillar-icon--in-progress .pillar-icon__visual img {
-  filter: grayscale(0%) opacity(0.85);
+/* todo — grayscale + low opacity */
+.pillar-icon--todo .pillar-icon__visual img {
+  filter: grayscale(100%) opacity(0.45);
 }
 
-/* done — full dim color, full saturation icon */
-.pillar-icon--spiritual.pillar-icon--done .pillar-icon__visual { background: var(--pillar-spiritual); }
-.pillar-icon--afectivo.pillar-icon--done  .pillar-icon__visual { background: var(--pillar-afectivo); }
-.pillar-icon--fisico.pillar-icon--done    .pillar-icon__visual { background: var(--pillar-fisico); }
-.pillar-icon--mental.pillar-icon--done    .pillar-icon__visual { background: var(--pillar-mental); }
+/* in-progress — partial saturation */
+.pillar-icon--in-progress .pillar-icon__visual img {
+  filter: grayscale(40%);
+  opacity: 0.85;
+}
 
+.pillar-icon--in-progress {
+  background: linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-subtle) 100%);
+}
+
+/* done — full color, slight glow + green border */
 .pillar-icon--done .pillar-icon__visual img {
-  /* SVG icons are dark-stroked; invert to white when on colored bg */
-  filter: brightness(0) invert(1) opacity(1);
+  filter: none;
+  opacity: 1;
 }
 
 .pillar-icon--done {
-  border-color: var(--color-success);
+  border-color: var(--color-success-soft);
+  box-shadow: 0 2px 8px rgba(111, 142, 94, 0.12);
 }
 
 /* progress fill colored per dimension */
@@ -2577,10 +2832,14 @@
 .pillar-icon--fisico    .pillar-icon__progress-fill { background: var(--pillar-fisico); }
 .pillar-icon--mental    .pillar-icon__progress-fill { background: var(--pillar-mental); }
 
-/* locked (no chapter assigned yet) */
+/* locked — no chapter assigned yet */
 .pillar-icon--locked {
-  opacity: 0.45;
+  opacity: 0.5;
   background: var(--color-bg-subtle);
+}
+
+.pillar-icon--locked .pillar-icon__visual img {
+  filter: grayscale(100%) opacity(0.3);
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -2970,9 +3229,12 @@
   align-items: flex-start;
   gap: 0;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 }
+
+.checkpoint-bar__list::-webkit-scrollbar { display: none; }
 
 .checkpoint {
   display: flex;
@@ -3121,4 +3383,49 @@
   max-width: 420px;
   margin: 0 auto;
   line-height: 1.5;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Lesson page — broken image graceful fallback
+ * Replaces an <img> that failed to load with a soft caption + icon.
+ * ────────────────────────────────────────────────────────────────── */
+
+.leccion-html__broken-img {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-3) 0;
+  padding: var(--s-3) var(--s-4);
+  background: var(--color-bg-subtle);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--r-md);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  font-style: italic;
+}
+
+.leccion-html__broken-img svg {
+  flex-shrink: 0;
+  color: var(--color-text-subtle);
+}
+
+/* Make lesson images responsive by default (Airtable HTML often has none) */
+.leccion-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+  margin: var(--s-4) 0;
+}
+
+/* When the lesson body contains the embedded test (id=testEmbed), let the
+   wizard breathe — remove the body's own padding so the wizard's centered
+   layout works as expected. */
+.leccion-page__body:has(#testEmbed) {
+  padding: var(--s-5) var(--s-4);
+}
+
+@media (max-width: 720px) {
+  .leccion-page__body:has(#testEmbed) {
+    padding: var(--s-4) var(--s-2);
+  }
 }

@@ -4,6 +4,10 @@ import { requireAuth } from "./auth.js";
 import { callEdge } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 
+// Cursos que tienen una portada local en /assets/img/{slug}/portada.png
+// (fallback cuando no hay COVER_IMAGE en Airtable)
+const LOCAL_COVERS = new Set(["happiness-workshop"]);
+
 (async () => {
   const persona = await requireAuth();
   if (!persona) return;
@@ -56,10 +60,15 @@ function renderCursos(cursos) {
 }
 
 function renderCursoCard(c) {
-  const cover = c.coverUrl
-    ? `<img src="${escapeHtml(c.coverUrl)}" alt="${escapeHtml(c.titulo)}" loading="lazy">`
-    : `<div class="curso-card__cover-placeholder">${escapeHtml(initial(c.titulo))}</div>`;
   const slug = c.slug || c.id;
+  // Fallback: si Airtable no tiene cover, usar la portada local (si existe).
+  const coverUrl = c.coverUrl
+    || (LOCAL_COVERS.has(slug) ? `/assets/img/${slug}/portada.png` : null);
+
+  const cover = coverUrl
+    ? `<img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(c.titulo)}" loading="lazy">`
+    : `<div class="curso-card__cover-placeholder">${escapeHtml(initial(c.titulo))}</div>`;
+
   return `
     <a class="curso-card" href="/app/curso?slug=${encodeURIComponent(slug)}">
       <div class="curso-card__cover">${cover}</div>

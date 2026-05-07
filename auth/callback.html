@@ -11,13 +11,14 @@
       display: grid;
       place-items: center;
       background: var(--color-bg);
+      margin: 0;
     }
     .auth-status {
       text-align: center;
-      max-width: 420px;
+      max-width: 460px;
       padding: var(--s-8);
+      width: 100%;
     }
-    .auth-status p { color: var(--color-text-muted); margin-top: var(--s-5); }
     .auth-status .err-detail {
       background: var(--color-danger-soft);
       color: var(--color-danger);
@@ -28,24 +29,62 @@
       text-align: left;
     }
     .hidden { display: none; }
+
+    /* Override page-loader to be inline-friendly inside this minimal page */
+    .page-loader {
+      min-height: auto;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
   <div class="auth-status">
-    <div class="spinner spinner--wheel" style="margin:0 auto;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <p id="msg">Iniciando sesión…</p>
+    <div class="page-loader" data-context="portal">
+      <div class="page-loader__inner">
+        <div class="spinner spinner--wheel" role="status" aria-live="polite">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="page-loader__text">
+          <span class="page-loader__msg" id="msg">Iniciando tu sesión</span><span class="page-loader__dots"><span>.</span><span>.</span><span>.</span></span>
+        </div>
+      </div>
+    </div>
     <div id="errDetail" class="err-detail hidden"></div>
   </div>
+
+  <script>
+    // Pre-bootstrap text rotation (kicks off immediately)
+    (function() {
+      var msgs = ["Iniciando tu sesión", "Verificando tu cuenta", "Cargando tu progreso", "Preparando tu camino"];
+      var i = 0;
+      var el = document.getElementById("msg");
+      window.__rot = setInterval(function() {
+        if (!el || !document.body.contains(el)) { clearInterval(window.__rot); return; }
+        i = (i + 1) % msgs.length;
+        el.style.transition = "opacity 0.22s ease";
+        el.style.opacity = "0";
+        setTimeout(function() { if (el) { el.textContent = msgs[i]; el.style.opacity = "1"; } }, 220);
+      }, 2000);
+    })();
+  </script>
 
   <script type="module">
     import { supabase } from "/assets/js/supabase-client.js";
 
     const $msg = document.getElementById("msg");
     const $err = document.getElementById("errDetail");
+    function clearRotation() {
+      if (window.__rot) { clearInterval(window.__rot); window.__rot = null; }
+    }
 
     function fail(reason, detail) {
       console.error("[auth/callback]", reason, detail);
+      clearRotation();
       $msg.textContent = reason;
+      // Stop animating dots when there's an error
+      const dotsEl = document.querySelector(".page-loader__dots");
+      if (dotsEl) dotsEl.style.display = "none";
       if (detail) {
         $err.textContent = String(detail);
         $err.classList.remove("hidden");
@@ -54,7 +93,8 @@
     }
 
     function success() {
-      $msg.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px;color:var(--color-success);"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Sesión iniciada. Redirigiendo…`;
+      clearRotation();
+      $msg.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px;color:var(--color-success);"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Sesión iniciada. Redirigiendo`;
       const target =
         sessionStorage.getItem("sophia_post_login_redirect") || "/app/cursos";
       sessionStorage.removeItem("sophia_post_login_redirect");
@@ -64,7 +104,6 @@
     try {
       const url = new URL(location.href);
 
-      // Errores que mande el provider (e.g. user cancela en Google)
       const errorParam =
         url.searchParams.get("error") ||
         url.hash.match(/error=([^&]+)/)?.[1];
@@ -78,11 +117,6 @@
           : `Error de autenticación: ${decodeURIComponent(errorParam)}`;
         fail(human);
       } else {
-        // Con `detectSessionInUrl: true` el cliente Supabase ya hace el
-        // exchange del code (PKCE) automáticamente al instanciarse — solo
-        // tenemos que polear hasta que la sesión esté lista.
-        // (NO llamar a exchangeCodeForSession explícitamente: el verifier
-        // ya fue consumido por el auto-exchange y la 2da llamada falla.)
         let session = null;
         for (let i = 0; i < 15; i++) {
           const { data } = await supabase.auth.getSession();

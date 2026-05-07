@@ -1,9 +1,21 @@
-// SOPHIA Portal — Lección (player de contenido con checkpoints visuales)
+// SOPHIA Portal — Lección (player de contenido).
+//
+// Cambios clave en esta iteración:
+//   - El Test de Felicidad ya NO redirige a /app/test-felicidad. Se monta
+//     embebido en la misma página manteniendo el checkpoint bar de la lección.
+//   - El CTA de completar usa un solo botón con checkbox interno:
+//     [☐] Marcar como completada  →  [✓] Avanzar
+//     Click en el checkbox marca la lección. Click en el botón (cuando ya
+//     está marcado) navega a la siguiente lección.
+//   - Se sanitizan URLs de imágenes en el contenido HTML de Airtable
+//     (auto-fix para rutas relativas malformadas, espacios, dominios viejos).
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
+import { loaderHtml, startLoaderRotation } from "./loader.js";
+import { mountWizard as mountTestWizard } from "./test-felicidad.js";
 
 (async () => {
   const persona = await requireAuth();
@@ -30,13 +42,15 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     persona,
     title: "Cargando lección…",
     activePath: "/app/cursos",
-    contentHtml: `<div style="display:grid;place-items:center;padding:80px 0;"><div class="spinner spinner--wheel"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>`,
+    contentHtml: loaderHtml({ context: "leccion" }),
   });
+  const stopLoader = startLoaderRotation();
 
   let leccionData;
   try {
     leccionData = await api.leccion(leccionId);
   } catch (e) {
+    stopLoader();
     console.error("get-leccion failed:", e);
     document.querySelector(".app-main").innerHTML = `
       <div class="empty-state">
@@ -48,21 +62,15 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     return;
   }
 
-  // Test felicidad: redirige al wizard
-  if (leccionData.leccion.tipo === "test" || leccionData.leccion.tipo === "autoeval") {
-    const testUrl =
-      `/app/test-felicidad?inscripcion=${encodeURIComponent(leccionData.inscripcionId)}` +
-      `&leccion=${encodeURIComponent(leccionData.leccion.id)}`;
-    location.href = testUrl;
-    return;
-  }
-
   // Necesitamos el contexto del curso para los checkpoints del capítulo
   let cursoContext = null;
-  try { cursoContext = await fetchCursoContext(leccionData.cursoId); } catch (e) {
+  try {
+    cursoContext = await fetchCursoContext(leccionData.cursoId);
+  } catch (e) {
     console.warn("Could not fetch curso context for checkpoints:", e);
   }
 
+  stopLoader();
   renderLeccion(persona, leccionData, cursoContext);
 })();
 
@@ -77,7 +85,6 @@ async function fetchCursoContext(cursoId) {
 function renderLeccion(persona, payload, cursoContext) {
   const { leccion, capituloId, capitulo: capInfo, cursoId, inscripcionId, prevId, nextId } = payload;
 
-  // Encontrar el capítulo en el contexto del curso (para conocer todas las lecciones)
   let capCompleto = null;
   let cursoSlug = "";
   let cursoTitulo = "";
@@ -96,12 +103,14 @@ function renderLeccion(persona, payload, cursoContext) {
     : "/app/cursos";
   const backLabel = cursoTitulo ? `${cursoTitulo} · Temario` : "Volver";
 
+  const isTest = leccion.tipo === "test" || leccion.tipo === "autoeval";
+
   renderShell({
     persona,
     title: leccion.titulo,
     activePath: "/app/cursos",
     contentHtml: `
-      ${renderCheckpointBar(capLecciones, idxHere, leccion)}
+      ${renderCheckpointBar(capLecciones, idxHere)}
 
       <article class="leccion-page">
         <header class="leccion-page__header">
@@ -133,37 +142,53 @@ function renderLeccion(persona, payload, cursoContext) {
         </header>
 
         <div class="leccion-page__body">
-          ${renderContent(leccion)}
+          ${isTest ? `<div id="testEmbed"></div>` : renderContent(leccion)}
         </div>
 
-        <footer class="leccion-page__footer">
-          <div>
-            ${prevId
-              ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
-                   ${icon("arrowLeft")}<span>Anterior</span>
-                 </a>`
-              : ""}
-          </div>
-          <div class="leccion-page__cta">
-            ${renderCta(leccion, inscripcionId, nextId, backHref)}
-          </div>
-        </footer>
+        ${isTest ? "" : `
+          <footer class="leccion-page__footer">
+            <div>
+              ${prevId
+                ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
+                     ${icon("arrowLeft")}<span>Anterior</span>
+                   </a>`
+                : ""}
+            </div>
+            <div class="leccion-page__cta">
+              ${renderCta(leccion, nextId, backHref)}
+            </div>
+          </footer>
+        `}
       </article>
     `,
   });
 
-  wireCtaButtons(leccion, inscripcionId, nextId, backHref);
+  // After render: post-process content (sanitize image URLs)
+  if (!isTest) {
+    sanitizeLessonContent();
+    wireCtaButtons(leccion, inscripcionId, nextId, backHref);
+  } else {
+    // Mount the test wizard embedded
+    const container = document.getElementById("testEmbed");
+    mountTestWizard({
+      container,
+      inscripcionId,
+      leccionId: leccion.id,
+      cursoSlug,
+      embedded: true,
+      onComplete: (result) => {
+        // After submitting, navigate to results within the same UX feel.
+        // The lesson is already marked completed by the wizard.
+        location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}`;
+      },
+    });
+  }
 }
 
-/**
- * Barra de checkpoints. Un dot por cada lección del capítulo, con check
- * cuando está completada, dot lleno cuando es la actual, vacío cuando no
- * se ha tocado. Líneas conectoras entre dots.
- *
- * Si no hay contexto del capítulo (capLecciones vacío), fallback a barra
- * simple de progreso porcentual.
- */
-function renderCheckpointBar(capLecciones, idxHere, currentLeccion) {
+// ────────────────────────────────────────────────────────────────────
+// Checkpoint bar (sticky top of the lesson body)
+// ────────────────────────────────────────────────────────────────────
+function renderCheckpointBar(capLecciones, idxHere) {
   if (capLecciones.length === 0) {
     return `<div class="leccion-progress-bar"><div class="leccion-progress-bar__fill" style="width: 50%;"></div></div>`;
   }
@@ -174,8 +199,6 @@ function renderCheckpointBar(capLecciones, idxHere, currentLeccion) {
         ${capLecciones.map((l, i) => {
           const isHere = i === idxHere;
           const isDone = l.completada;
-          // Si la lección actual no está marcada done pero estamos en ella,
-          // mostrarla como "current" (pendiente pero activa)
           const state = isHere && !isDone ? "current"
             : isDone ? "done"
             : i < idxHere ? "skipped"
@@ -204,76 +227,108 @@ function shortenTitle(t) {
   return t.slice(0, 22).trimEnd() + "…";
 }
 
-function renderCta(leccion, inscripcionId, nextId, backHref) {
-  if (!leccion.completada && nextId) {
-    return `
-      <button class="btn btn-accent" id="completeNextBtn" type="button">
-        <span>Marcar y siguiente</span>
-        ${icon("arrowRight")}
-      </button>
-    `;
-  }
-  if (!leccion.completada && !nextId) {
-    return `
-      <button class="btn btn-accent" id="completeBtn" type="button">
-        <span>Marcar como completada</span>
-        ${icon("check")}
-      </button>
-    `;
-  }
-  if (leccion.completada && nextId) {
-    return `
-      <a class="btn btn-accent" href="/app/leccion?id=${encodeURIComponent(nextId)}">
-        <span>Siguiente lección</span>
-        ${icon("arrowRight")}
-      </a>
-      <span class="leccion-done-pill">${icon("check")} Completada</span>
-    `;
-  }
+// ────────────────────────────────────────────────────────────────────
+// CTA button — single button with internal checkbox
+//
+// State 1 (not completed): a button labeled "Marcar como completada"
+//   with a [☐] checkbox glyph on the left. Click triggers marcarLeccion.
+// State 2 (completed):     the same button transforms into "Avanzar"
+//   with a [✓] check glyph on the left. Click navigates to nextId.
+//
+// If completed && !nextId (last lesson): button says "Volver al temario".
+// ────────────────────────────────────────────────────────────────────
+function renderCta(leccion, nextId, backHref) {
+  const completada = !!leccion.completada;
+  const nextHref = nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref;
+  const advanceLabel = nextId ? "Avanzar" : "Volver al temario";
+
   return `
-    <a class="btn btn-accent" href="${backHref}">
-      <span>Volver al temario</span>
-      ${icon("arrowRight")}
-    </a>
-    <span class="leccion-done-pill">${icon("check")} Completada</span>
+    <button
+      type="button"
+      id="leccionCtaBtn"
+      class="leccion-cta ${completada ? "is-checked" : ""}"
+      data-completed="${completada}"
+      data-next-href="${escapeHtml(nextHref)}"
+      data-leccion-id="${escapeHtml(leccion.id)}"
+      aria-pressed="${completada}"
+    >
+      <span class="leccion-cta__check" aria-hidden="true">
+        <span class="leccion-cta__check-box">
+          ${completada ? icon("check") : ""}
+        </span>
+      </span>
+      <span class="leccion-cta__label">
+        ${completada ? escapeHtml(advanceLabel) : "Marcar como completada"}
+      </span>
+      <span class="leccion-cta__arrow" aria-hidden="true">
+        ${completada ? icon("arrowRight") : ""}
+      </span>
+    </button>
   `;
 }
 
 function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
-  const completeNext = document.getElementById("completeNextBtn");
-  const complete = document.getElementById("completeBtn");
+  const btn = document.getElementById("leccionCtaBtn");
+  if (!btn) return;
 
-  async function mark() { return await api.marcarLeccion(leccion.id, inscripcionId); }
+  btn.addEventListener("click", async (e) => {
+    const completedNow = btn.dataset.completed === "true";
 
-  completeNext?.addEventListener("click", async () => {
-    completeNext.disabled = true;
-    completeNext.innerHTML = `<span>Guardando…</span>`;
-    try {
-      await mark();
-      location.href = `/app/leccion?id=${encodeURIComponent(nextId)}`;
-    } catch (err) {
-      console.error("marcar-leccion error:", err);
-      completeNext.disabled = false;
-      completeNext.innerHTML = `<span>Reintentar</span> ${icon("arrowRight")}`;
-      alert(`No se pudo marcar: ${err.message}`);
+    if (!completedNow) {
+      // Click on the checkbox area OR the label both mark as completed.
+      // After marking, the button transforms but doesn't auto-navigate —
+      // user explicitly clicks again to advance (or clicks the box again
+      // to uncheck — but uncheck isn't supported by the API yet, so the
+      // second click is what advances).
+      const targetIsCheckbox = e.target.closest(".leccion-cta__check");
+      // Either way: marcar.
+      btn.disabled = true;
+      const originalLabel = btn.querySelector(".leccion-cta__label").textContent;
+      btn.querySelector(".leccion-cta__label").textContent = "Guardando…";
+
+      try {
+        await api.marcarLeccion(leccion.id, inscripcionId);
+
+        // Transform into "Avanzar" state
+        btn.dataset.completed = "true";
+        btn.classList.add("is-checked");
+        btn.setAttribute("aria-pressed", "true");
+        btn.disabled = false;
+
+        const labelEl = btn.querySelector(".leccion-cta__label");
+        const boxEl = btn.querySelector(".leccion-cta__check-box");
+        const arrowEl = btn.querySelector(".leccion-cta__arrow");
+
+        labelEl.textContent = nextId ? "Avanzar" : "Volver al temario";
+        boxEl.innerHTML = icon("check");
+        arrowEl.innerHTML = icon("arrowRight");
+
+        // If the user clicked the checkbox, stay (let them admire the change).
+        // If they clicked the wider button area when it was uncompleted,
+        // also stay — they need to click again to advance. This matches the
+        // "checkbox toggles, button advances" mental model.
+        if (!targetIsCheckbox) {
+          // Subtle hint: a small pulse animation
+          btn.classList.add("just-marked");
+          setTimeout(() => btn.classList.remove("just-marked"), 700);
+        }
+      } catch (err) {
+        console.error("marcar-leccion error:", err);
+        btn.disabled = false;
+        btn.querySelector(".leccion-cta__label").textContent = originalLabel;
+        alert(`No se pudo marcar: ${err.message}`);
+      }
+      return;
     }
-  });
 
-  complete?.addEventListener("click", async () => {
-    complete.disabled = true;
-    complete.innerHTML = `<span>Guardando…</span>`;
-    try {
-      await mark();
-      location.href = backHref;
-    } catch (err) {
-      console.error("marcar-leccion error:", err);
-      complete.disabled = false;
-      complete.innerHTML = `<span>Reintentar</span> ${icon("check")}`;
-      alert(`No se pudo marcar: ${err.message}`);
-    }
+    // Already completed: click → advance
+    location.href = btn.dataset.nextHref;
   });
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Content rendering + image URL sanitization
+// ────────────────────────────────────────────────────────────────────
 function renderContent(l) {
   const html = l.contenidoHTML || "";
   const tipo = (l.tipo || "texto").toLowerCase();
@@ -311,4 +366,67 @@ function renderVideoEmbed(url) {
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
+}
+
+/**
+ * Post-process .leccion-html content after insertion in DOM.
+ * Fixes common Airtable HTML issues:
+ *  - Image URLs without leading slash (assets/foo.png → /assets/foo.png)
+ *  - Image URLs with spaces (URI-encode them)
+ *  - Old domain references (sophiamx.org/old/... → /assets/...)  // best effort
+ *  - Adds onerror fallback so a broken image becomes a graceful caption
+ */
+function sanitizeLessonContent() {
+  const root = document.querySelector(".leccion-html");
+  if (!root) return;
+
+  // Fix images
+  const imgs = root.querySelectorAll("img");
+  imgs.forEach((img) => {
+    let src = img.getAttribute("src") || "";
+    if (!src) return;
+
+    // Already absolute? (data:, http:, https://) — leave alone
+    if (/^(data:|https?:)/i.test(src)) {
+      // Fix legacy wix references that happen to be on the right CDN
+      // — no-op for now, just leave them.
+    } else {
+      // Relative path. Common fixes:
+      // 1. Missing leading slash: "assets/foo.png" → "/assets/foo.png"
+      if (/^assets\//.test(src)) {
+        src = "/" + src;
+      }
+      // 2. Apple/iOS Photos export style with spaces: encode them
+      if (/\s/.test(src)) {
+        src = src
+          .split("/")
+          .map((seg) => encodeURIComponent(decodeURIComponent(seg.replace(/\+/g, " "))))
+          .join("/")
+          // We're going to reassemble — but want to keep root slash
+          .replace(/^%2F/, "/");
+      }
+    }
+
+    img.setAttribute("src", src);
+    img.setAttribute("loading", "lazy");
+    img.setAttribute("decoding", "async");
+
+    // Graceful fallback if the image fails to load
+    img.addEventListener("error", () => {
+      const alt = img.getAttribute("alt") || "Imagen no disponible";
+      const fallback = document.createElement("figcaption");
+      fallback.className = "leccion-html__broken-img";
+      fallback.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:-4px;margin-right:8px;opacity:0.6;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg><span>${escapeHtml(alt)}</span>`;
+      img.replaceWith(fallback);
+    }, { once: true });
+  });
+
+  // Fix anchor links: open external in new tab
+  root.querySelectorAll("a[href]").forEach((a) => {
+    const href = a.getAttribute("href");
+    if (/^https?:/i.test(href) && !href.includes(location.host)) {
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener noreferrer");
+    }
+  });
 }

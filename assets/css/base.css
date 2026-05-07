@@ -304,19 +304,105 @@ img {
   to { transform: rotate(360deg); }
 }
 
-/* Scrollbars (webkit only) */
+/* Scrollbars (webkit only) — slim, paper-toned, only visible on hover */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: transparent;
   border-radius: var(--r-full);
-  border: 2px solid var(--color-bg);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background 0.2s ease;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(155, 138, 110, 0.35);
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-strong);
+  background-clip: content-box;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+html:hover {
+  scrollbar-color: rgba(155, 138, 110, 0.35) transparent;
+}
+
+/* Utility: hide scrollbar without losing scroll capability.
+   Used in horizontal scrollers (tab-nav, checkpoint-bar) where the chrome
+   is distracting. */
+.no-scrollbar {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge */
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ──────────────────────────────────────────────────────────────────
+ * Page loader — full-page or in-shell loader with rotating message.
+ * Centered both axes via grid; min-height inlined per call site.
+ * ────────────────────────────────────────────────────────────────── */
+.page-loader {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: var(--s-6) var(--s-4);
+}
+
+.page-loader__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-5);
+  max-width: 360px;
+  text-align: center;
+}
+
+.page-loader__text {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  transition: opacity 0.22s ease;
+  min-height: 1.5em;
+}
+
+.page-loader__msg { display: inline; }
+
+.page-loader__dots {
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.page-loader__dots span {
+  display: inline-block;
+  opacity: 0.25;
+  animation: loader-dot 1.4s ease-in-out infinite;
+}
+
+.page-loader__dots span:nth-child(1) { animation-delay: 0s; }
+.page-loader__dots span:nth-child(2) { animation-delay: 0.2s; }
+.page-loader__dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes loader-dot {
+  0%, 60%, 100% { opacity: 0.25; }
+  30%           { opacity: 1; }
+}
+
+/* Standalone full-screen variant (used in pre-shell HTMLs like /app/curso.html
+   where the JS bootstrap is still loading). */
+.full-page-loader {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: var(--s-6);
 }
