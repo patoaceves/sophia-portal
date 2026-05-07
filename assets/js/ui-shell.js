@@ -2,20 +2,12 @@
 // Mounts into <body class="shell">…</body> on authenticated pages.
 
 import { logout, isAdmin } from "./auth.js";
+import { ICONS, icon } from "./icons.js";
 
-const ICONS = {
-  cursos: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 6.5A2.5 2.5 0 0 1 4.5 4H10v15.5L8 18l-2 1.5V18l-2 2v-3.5A2.5 2.5 0 0 1 2 14V6.5zM10 4h7.5A2.5 2.5 0 0 1 20 6.5V20a2 2 0 0 1-2 2H10V4z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  calendario: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="16" rx="2" stroke-width="1.5"/><path d="M3 9h18M8 3v4M16 3v4" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  progreso: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 17l6-6 4 4 8-8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 7h7v7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  testFelicidad: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4L18.4 5.6" stroke-width="1.2" stroke-linecap="round"/></svg>`,
-  anuncios: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  recursos: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M9 13h6M9 17h6" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  certificados: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="9" r="6" stroke-width="1.5"/><path d="M8.21 13.89L7 22l5-3 5 3-1.21-8.12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  perfil: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke-width="1.5"/></svg>`,
-  ayuda: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  admin: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  logout: `<svg class="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-};
+// Helper: wrap an icon in the sidebar size
+function sidebarIcon(name) {
+  return `<span class="sidebar__icon">${icon(name)}</span>`;
+}
 
 const NAV_GROUPS = [
   {
@@ -92,7 +84,7 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
       <h1 class="app-header__title">${escapeHtml(title)}</h1>
       <div class="app-header__actions">
         <button class="btn btn-ghost" id="logoutBtn" type="button">
-          ${ICONS.logout}
+          ${sidebarIcon("logout")}
           <span>Salir</span>
         </button>
       </div>
@@ -117,11 +109,11 @@ function renderGroup(group, currentPath) {
   `;
 }
 
-function renderLink({ href, icon, label }, currentPath) {
+function renderLink({ href, icon: iconName, label }, currentPath) {
   const active = currentPath === href || currentPath.startsWith(href + "/");
   return `
     <a class="sidebar__link ${active ? "is-active" : ""}" href="${href}">
-      ${ICONS[icon] || ""}
+      ${sidebarIcon(iconName)}
       <span>${escapeHtml(label)}</span>
     </a>
   `;
@@ -139,4 +131,4 @@ function escapeHtml(s) {
   }[c]));
 }
 
-export { escapeHtml };
+export { escapeHtml, ICONS, icon };

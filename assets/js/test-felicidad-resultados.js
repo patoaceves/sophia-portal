@@ -5,14 +5,14 @@ import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 
 const PILAR_ICON = {
-  autoconocimiento: "/assets/icons/autoconocimiento.svg",
-  bienestar_emocional: "/assets/icons/bienestar-emocional.svg",
-  bienestar_fisico: "/assets/icons/bienestar-fisico.svg",
-  presencia_consciente: "/assets/icons/presencia-consciente.svg",
-  vinculos_vitales: "/assets/icons/vinculos-vitales.svg",
-  trabajo_proposito: "/assets/icons/trabajo-proposito.svg",
-  estetica_existencial: "/assets/icons/estetica-existencial.svg",
-  fe_filosofia: "/assets/icons/fe-filosofia.svg",
+  autoconocimiento: "/assets/img/happiness-workshop/pilares/autoconocimiento.svg",
+  bienestar_emocional: "/assets/img/happiness-workshop/pilares/bienestar-emocional.svg",
+  bienestar_fisico: "/assets/img/happiness-workshop/pilares/bienestar-fisico.svg",
+  presencia_consciente: "/assets/img/happiness-workshop/pilares/presencia-consciente.svg",
+  vinculos_vitales: "/assets/img/happiness-workshop/pilares/vinculos-vitales.svg",
+  trabajo_proposito: "/assets/img/happiness-workshop/pilares/trabajo-proposito.svg",
+  estetica_existencial: "/assets/img/happiness-workshop/pilares/estetica-existencial.svg",
+  fe_filosofia: "/assets/img/happiness-workshop/pilares/fe-filosofia.svg",
 };
 
 const NIVEL_CLASS = {

@@ -1,8 +1,9 @@
-// SOPHIA Portal — Lección (player de contenido + marca de progreso)
+// SOPHIA Portal — Lección (player de contenido)
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
+import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 
 (async () => {
   const persona = await requireAuth();
@@ -32,9 +33,9 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
     contentHtml: `<div class="spinner" style="margin: 60px auto;"></div>`,
   });
 
+  let leccionData;
   try {
-    const data = await api.leccion(leccionId);
-    renderLeccion(persona, data);
+    leccionData = await api.leccion(leccionId);
   } catch (e) {
     console.error("get-leccion failed:", e);
     document.querySelector(".app-main").innerHTML = `
@@ -44,31 +45,105 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
         <a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">Volver a mis cursos</a>
       </div>
     `;
-  }
-})();
-
-function renderLeccion(persona, payload) {
-  const { leccion, capituloId, cursoId, inscripcionId, prevId, nextId } = payload;
-
-  // Caso especial: lección tipo "test" lanza al Test de Felicidad
-  if (leccion.tipo === "test" || leccion.tipo === "autoeval") {
-    const testUrl =
-      `/app/test-felicidad?inscripcion=${encodeURIComponent(inscripcionId)}` +
-      `&leccion=${encodeURIComponent(leccion.id)}`;
-    location.replace(testUrl);
     return;
   }
+
+  // Caso especial: lección tipo "test" → llevar al wizard del Test de Felicidad
+  // Usamos location.href (NO replace) para que el back funcione.
+  if (leccionData.leccion.tipo === "test" || leccionData.leccion.tipo === "autoeval") {
+    const testUrl =
+      `/app/test-felicidad?inscripcion=${encodeURIComponent(leccionData.inscripcionId)}` +
+      `&leccion=${encodeURIComponent(leccionData.leccion.id)}`;
+    location.href = testUrl;
+    return;
+  }
+
+  // Necesitamos el contexto del curso (capítulos + slug) para la barra de
+  // progreso del capítulo y la navegación al volver.
+  let cursoContext = null;
+  try {
+    cursoContext = await fetchCursoContext(leccionData.cursoId);
+  } catch (e) {
+    console.warn("Could not fetch curso context for progress bar:", e);
+  }
+
+  renderLeccion(persona, leccionData, cursoContext);
+})();
+
+/**
+ * El endpoint get-leccion devuelve cursoId pero no el slug ni el capítulo
+ * completo. Para tener la barra de progreso del capítulo necesitamos los datos
+ * del curso. Hacemos una llamada extra (cacheada) — alternativamente podríamos
+ * mover esto al endpoint en una iteración futura.
+ */
+async function fetchCursoContext(cursoId) {
+  // No tenemos un endpoint "get-curso-by-id"; el endpoint es por slug.
+  // Estrategia: traer mis cursos, encontrar el slug, después el detalle.
+  const { cursos } = await api.misCursos();
+  const c = cursos.find((x) => x.id === cursoId);
+  if (!c) return null;
+  const detalle = await api.curso(c.slug);
+  return { ...detalle, slug: c.slug };
+}
+
+function renderLeccion(persona, payload, cursoContext) {
+  const { leccion, capituloId, cursoId, inscripcionId, prevId, nextId } = payload;
+
+  // Encontrar el capítulo actual y calcular progreso
+  let capitulo = null;
+  let cursoTitulo = "";
+  let cursoSlug = "";
+  if (cursoContext) {
+    capitulo = cursoContext.capitulos.find((c) => c.id === capituloId);
+    cursoTitulo = cursoContext.curso.titulo;
+    cursoSlug = cursoContext.slug;
+  }
+
+  const capLecciones = capitulo?.lecciones ?? [];
+  const totalLecc = capLecciones.length;
+  // Marcar la lección actual como "in progress" pero no completada hasta que el
+  // usuario haga click. Para la barra: completadas + 1 (la que está viendo)
+  // sería visualmente útil. Pero para no engañar, mostramos solo completadas.
+  const completadas = capLecciones.filter((l) => l.completada).length;
+  const idxHere = capLecciones.findIndex((l) => l.id === leccion.id);
+  const pctChapter = totalLecc > 0
+    ? Math.round(((idxHere >= 0 ? idxHere : 0) + (leccion.completada ? 1 : 0)) / totalLecc * 100)
+    : 0;
+
+  // Header: link de regreso al temario
+  const backHref = cursoSlug
+    ? `/app/temario?slug=${encodeURIComponent(cursoSlug)}`
+    : "/app/cursos";
+  const backLabel = cursoTitulo || "Volver";
 
   renderShell({
     persona,
     title: leccion.titulo,
     activePath: "/app/cursos",
     contentHtml: `
+      <div class="leccion-progress-bar">
+        <div class="leccion-progress-bar__fill" style="width: ${pctChapter}%;"></div>
+      </div>
+
       <article class="leccion-page">
         <header class="leccion-page__header">
-          <a href="javascript:history.back()" style="color: var(--color-text-muted); font-size: 0.875rem;">← Volver al curso</a>
-          ${leccion.etiqueta ? `<span class="leccion-page__tag">${escapeHtml(leccion.etiqueta)}</span>` : ""}
-          <h2 class="page-title" style="margin-top: var(--s-3);">${escapeHtml(leccion.titulo)}</h2>
+          <a href="${backHref}" class="page-back">
+            ${icon("chevronLeft")}
+            <span>${escapeHtml(backLabel)}</span>
+          </a>
+          ${capitulo ? `
+            <div class="leccion-page__crumb">
+              <span class="leccion-page__crumb-cap">Capítulo ${capitulo.orden} · ${escapeHtml(capitulo.titulo)}</span>
+              <span class="leccion-page__crumb-sep">·</span>
+              <span class="leccion-page__crumb-leccion">Lección ${leccion.orden} de ${totalLecc}</span>
+            </div>
+          ` : ""}
+          <div class="leccion-page__tipo">
+            ${icon(lessonIcon(leccion.tipo))}
+            <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
+            ${leccion.etiqueta ? `<span class="leccion-page__etiqueta">${escapeHtml(leccion.etiqueta)}</span>` : ""}
+          </div>
+          <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
         </header>
 
         <div class="leccion-page__body">
@@ -78,36 +153,101 @@ function renderLeccion(persona, payload) {
         <footer class="leccion-page__footer">
           <div>
             ${prevId
-              ? `<a class="btn btn-secondary" href="/app/leccion?id=${encodeURIComponent(prevId)}">← Anterior</a>`
+              ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
+                   ${icon("arrowLeft")}
+                   <span>Anterior</span>
+                 </a>`
               : ""}
           </div>
-          <div style="display:flex;gap:var(--s-3);">
-            ${leccion.completada
-              ? `<span class="btn btn-ghost" style="cursor:default;">✓ Completada</span>`
-              : `<button class="btn btn-primary" id="markBtn" type="button">Marcar como completada</button>`}
-            ${nextId
-              ? `<a class="btn btn-accent" href="/app/leccion?id=${encodeURIComponent(nextId)}">Siguiente →</a>`
-              : `<a class="btn btn-accent" href="/app/curso?slug=${encodeURIComponent(payload.cursoSlug || "")}">Volver al curso</a>`}
+          <div class="leccion-page__cta">
+            ${renderCta(leccion, inscripcionId, nextId, backHref)}
           </div>
         </footer>
       </article>
     `,
   });
 
-  document.getElementById("markBtn")?.addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    btn.textContent = "Marcando…";
+  wireCtaButtons(leccion, inscripcionId, nextId, backHref);
+}
+
+/**
+ * Decide qué CTA mostrar:
+ * - Si la lección NO está completada y hay siguiente: "Marcar y siguiente"
+ *   (botón principal único).
+ * - Si la lección NO está completada y NO hay siguiente: "Marcar como completada"
+ *   (último capítulo completado → vuelve al curso).
+ * - Si ya está completada y hay siguiente: "Siguiente".
+ * - Si ya está completada y NO hay siguiente: "Volver al curso".
+ */
+function renderCta(leccion, inscripcionId, nextId, backHref) {
+  if (!leccion.completada && nextId) {
+    return `
+      <button class="btn btn-accent" id="completeNextBtn" type="button">
+        <span>Marcar y siguiente</span>
+        ${icon("arrowRight")}
+      </button>
+    `;
+  }
+  if (!leccion.completada && !nextId) {
+    return `
+      <button class="btn btn-accent" id="completeBtn" type="button">
+        <span>Marcar como completada</span>
+        ${icon("check")}
+      </button>
+    `;
+  }
+  if (leccion.completada && nextId) {
+    return `
+      <a class="btn btn-accent" href="/app/leccion?id=${encodeURIComponent(nextId)}">
+        <span>Siguiente lección</span>
+        ${icon("arrowRight")}
+      </a>
+      <span class="leccion-done-pill">${icon("check")} Completada</span>
+    `;
+  }
+  return `
+    <a class="btn btn-accent" href="${backHref}">
+      <span>Volver al temario</span>
+      ${icon("arrowRight")}
+    </a>
+    <span class="leccion-done-pill">${icon("check")} Completada</span>
+  `;
+}
+
+function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
+  const completeNextBtn = document.getElementById("completeNextBtn");
+  const completeBtn = document.getElementById("completeBtn");
+
+  async function markAsCompleted() {
+    return await api.marcarLeccion(leccion.id, inscripcionId);
+  }
+
+  completeNextBtn?.addEventListener("click", async () => {
+    completeNextBtn.disabled = true;
+    completeNextBtn.innerHTML = `<span>Guardando…</span>`;
     try {
-      await api.marcarLeccion(leccion.id, inscripcionId);
-      btn.textContent = "✓ Completada";
-      btn.classList.remove("btn-primary");
-      btn.classList.add("btn-ghost");
-      btn.style.cursor = "default";
+      await markAsCompleted();
+      // Navegar a la siguiente lección
+      location.href = `/app/leccion?id=${encodeURIComponent(nextId)}`;
     } catch (err) {
       console.error("marcar-leccion error:", err);
-      btn.disabled = false;
-      btn.textContent = "Marcar como completada";
+      completeNextBtn.disabled = false;
+      completeNextBtn.innerHTML = `<span>Reintentar</span> ${icon("arrowRight")}`;
+      alert(`No se pudo marcar: ${err.message}`);
+    }
+  });
+
+  completeBtn?.addEventListener("click", async () => {
+    completeBtn.disabled = true;
+    completeBtn.innerHTML = `<span>Guardando…</span>`;
+    try {
+      await markAsCompleted();
+      // Sin siguiente: volver al temario
+      location.href = backHref;
+    } catch (err) {
+      console.error("marcar-leccion error:", err);
+      completeBtn.disabled = false;
+      completeBtn.innerHTML = `<span>Reintentar</span> ${icon("check")}`;
       alert(`No se pudo marcar: ${err.message}`);
     }
   });
@@ -115,7 +255,7 @@ function renderLeccion(persona, payload) {
 
 function renderContent(l) {
   const html = l.contenidoHTML || "";
-  const tipo = l.tipo || "texto";
+  const tipo = (l.tipo || "texto").toLowerCase();
 
   switch (tipo) {
     case "video":
@@ -127,21 +267,32 @@ function renderContent(l) {
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
         ${l.archivoUrl
-          ? `<a class="btn btn-secondary" href="${escapeHtml(l.archivoUrl)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">Abrir ${escapeHtml(l.archivoNombre || "documento")}</a>`
+          ? `<a class="btn btn-secondary" href="${escapeHtml(l.archivoUrl)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
+               ${icon("download")}
+               <span>Abrir ${escapeHtml(l.archivoNombre || "documento")}</span>
+             </a>`
           : ""}
       `;
     case "enlace":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
         ${l.urlExterna
-          ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">Abrir enlace ↗</a>`
+          ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
+               ${icon("external")}
+               <span>Abrir enlace</span>
+             </a>`
           : ""}
       `;
     case "sesion_live":
+    case "sesion-live":
+    case "live":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
         ${l.urlExterna
-          ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">Unirme a la sesión 🎤</a>`
+          ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
+               ${icon("lessonLive")}
+               <span>Unirme a la sesión</span>
+             </a>`
           : `<p style="color:var(--color-text-muted);">El enlace a la sesión aparecerá aquí cuando se publique.</p>`}
       `;
     default:
@@ -152,16 +303,13 @@ function renderContent(l) {
 }
 
 function renderVideoEmbed(url) {
-  // YouTube
   const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([\w-]+)/);
   if (yt) {
     return `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   }
-  // Vimeo
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) {
     return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   }
-  // MP4 directo
   return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
 }

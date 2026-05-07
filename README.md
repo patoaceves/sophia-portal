@@ -52,7 +52,19 @@ sophia-portal/
 │   │   ├── test-felicidad-resultados.js  # lógica resultados con rueda SVG
 │   │   └── admin.js                    # gate del panel admin
 │   ├── icons/                          # 8 SVGs de pilares del Test de Felicidad
-│   └── img/                            # portadas, fotos del Capítulo 1
+│   └── img/
+│       ├── brand/                      # SOPHIA institución (cross-curso)
+│       │   ├── aristoteles.png
+│       │   ├── claustro-1.jpg
+│       │   ├── claustro-2.jpg
+│       │   └── mariana-riojas.png
+│       └── happiness-workshop/         # específico del curso (folder = slug)
+│           ├── portada.png             # hero del dashboard
+│           ├── intro-hw.png
+│           ├── modelo-felicidad-rueda.png
+│           ├── modelo-felicidad-niveles.png
+│           └── pilares/                # 8 SVGs de los pilares del modelo
+│               └── *.svg
 ├── supabase/
 │   └── functions/                      # 7 Edge Functions auto-contenidas (sin _shared)
 │       ├── auth-bootstrap/             # POST: crea/encuentra Persona en CRM

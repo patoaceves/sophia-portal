@@ -54,7 +54,7 @@
     }
 
     function success() {
-      $msg.textContent = "✓ Sesión iniciada. Redirigiendo…";
+      $msg.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px;color:var(--color-success);"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Sesión iniciada. Redirigiendo…`;
       const target =
         sessionStorage.getItem("sophia_post_login_redirect") || "/app/cursos";
       sessionStorage.removeItem("sophia_post_login_redirect");
