@@ -363,14 +363,13 @@ Deno.serve(async (req) => {
     const cursoId = cursoLinks[0];
     if (!cursoId) throw new HttpError(422, "Capítulo has no curso");
 
-    // 4. Validate enrollment
-    const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula:
-        `AND(` +
-          `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}})),` +
-          `FIND('${cursoId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.CURSO}}))` +
-        `)`,
-      maxRecords: 1,
+    // 4. Validate enrollment (filter client-side: Airtable can't match record
+    // IDs in linked-record fields via filterByFormula).
+    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {});
+    const inscripciones = allInscripciones.filter((ins) => {
+      const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+      const cs = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
+      return ps.includes(user.personaPortalId) && cs.includes(cursoId);
     });
     if (inscripciones.length === 0) {
       throw new HttpError(403, "Not enrolled in this course");
@@ -395,14 +394,20 @@ Deno.serve(async (req) => {
     const nextId =
       idxHere >= 0 && idxHere < sibRows.length - 1 ? sibRows[idxHere + 1].id : null;
 
-    // 6. Progreso for this lesson
-    const progresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula:
-        `AND(` +
-          `FIND('${inscripcionId}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}})),` +
-          `FIND('${leccionId}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.LECCION}}))` +
-        `)`,
-      maxRecords: 1,
+    // 6. Progreso for this lesson (filter client-side: Airtable can't match
+    // record IDs in linked-record fields via filterByFormula).
+    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
+      fields: [
+        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
+        FIELDS.PROGRESO_LECCIONES.LECCION,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN,
+      ],
+    });
+    const progresos = allProgresos.filter((p) => {
+      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
+      const lec = (p.fields[FIELDS.PROGRESO_LECCIONES.LECCION] as string[]) ?? [];
+      return ins.includes(inscripcionId) && lec.includes(leccionId);
     });
     const completada = progresos[0]
       ? Boolean(progresos[0].fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO])

@@ -450,16 +450,18 @@ Deno.serve(async (req) => {
     const valid = validateAnswers(respuestas);
     if (!valid.ok) return errorResponse(req, valid.error, 400);
 
-    // 1. Validate that the Inscripción belongs to this user
+    // 1. Validate that the Inscripción belongs to this user.
+    // RECORD_ID() filter works, but persona check has to be client-side.
     const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula:
-        `AND(` +
-          `RECORD_ID()='${inscripcionId}',` +
-          `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))` +
-        `)`,
+      filterByFormula: `RECORD_ID()='${inscripcionId}'`,
       maxRecords: 1,
     });
     if (insc.length === 0) {
+      throw new HttpError(404, "Inscripción not found");
+    }
+    const ownerPersonas =
+      (insc[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+    if (!ownerPersonas.includes(user.personaPortalId)) {
       throw new HttpError(403, "Inscripción does not belong to this user");
     }
 

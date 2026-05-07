@@ -342,27 +342,35 @@ Deno.serve(async (req) => {
       return errorResponse(req, "leccionId and inscripcionId are required", 400);
     }
 
-    // 1. Validate that the Inscripción belongs to this user
+    // 1. Validate that the Inscripción belongs to this user.
+    // RECORD_ID() filter works, but persona check has to be client-side.
     const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula:
-        `AND(` +
-          `RECORD_ID()='${inscripcionId}',` +
-          `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))` +
-        `)`,
+      filterByFormula: `RECORD_ID()='${inscripcionId}'`,
       maxRecords: 1,
     });
     if (insc.length === 0) {
+      throw new HttpError(404, "Inscripción not found");
+    }
+    const ownerPersonas =
+      (insc[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+    if (!ownerPersonas.includes(user.personaPortalId)) {
       throw new HttpError(403, "Inscripción does not belong to this user");
     }
 
-    // 2. Find existing progreso record (if any)
-    const existing = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula:
-        `AND(` +
-          `FIND('${inscripcionId}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}})),` +
-          `FIND('${leccionId}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.LECCION}}))` +
-        `)`,
-      maxRecords: 1,
+    // 2. Find existing progreso record (filter client-side: Airtable can't
+    // match record IDs in linked-record fields via filterByFormula).
+    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
+      fields: [
+        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
+        FIELDS.PROGRESO_LECCIONES.LECCION,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN,
+      ],
+    });
+    const existing = allProgresos.filter((p) => {
+      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
+      const lec = (p.fields[FIELDS.PROGRESO_LECCIONES.LECCION] as string[]) ?? [];
+      return ins.includes(inscripcionId) && lec.includes(leccionId);
     });
 
     const nowISO = new Date().toISOString();

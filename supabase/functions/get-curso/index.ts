@@ -352,14 +352,13 @@ Deno.serve(async (req) => {
     }
     const curso = cursos[0];
 
-    // 2. Validate that user is enrolled
-    const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula:
-        `AND(` +
-          `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}})),` +
-          `FIND('${curso.id}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.CURSO}}))` +
-        `)`,
-      maxRecords: 1,
+    // 2. Validate that user is enrolled (filter client-side: Airtable can't
+    // match record IDs in linked-record fields via filterByFormula).
+    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {});
+    const inscripciones = allInscripciones.filter((ins) => {
+      const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+      const cs = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
+      return ps.includes(user.personaPortalId) && cs.includes(curso.id);
     });
     if (inscripciones.length === 0) {
       throw new HttpError(403, "Not enrolled in this course");
@@ -398,15 +397,19 @@ Deno.serve(async (req) => {
       : [];
     const leccionById = new Map(lecciones.map((l) => [l.id, l]));
 
-    // 5. Progreso for this inscripción
-    const progresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula:
-        `FIND('${inscripcion.id}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}}))`,
+    // 5. Progreso for this inscripción (filter client-side: Airtable can't
+    // match record IDs in linked-record fields via filterByFormula).
+    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
       fields: [
+        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
         FIELDS.PROGRESO_LECCIONES.LECCION,
         FIELDS.PROGRESO_LECCIONES.COMPLETADO,
         FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN,
       ],
+    });
+    const progresos = allProgresos.filter((p) => {
+      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
+      return ins.includes(inscripcion.id);
     });
     const progresoByLeccion = new Map<
       string,

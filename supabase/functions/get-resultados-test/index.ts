@@ -338,28 +338,31 @@ Deno.serve(async (req) => {
       rec = await getRecord(BASES.PORTAL, TABLES.RESPUESTAS_AUTOEVAL, respuestaId);
       if (!rec) throw new HttpError(404, "Respuesta not found");
     } else {
-      // Mode 2: latest attempt for this user
-      const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-        filterByFormula:
-          `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))`,
+      // Mode 2: latest attempt for this user (client-side persona filter).
+      const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
         fields: [FIELDS.INSCRIPCIONES.PERSONA],
+      });
+      const inscripciones = allInscripciones.filter((ins) => {
+        const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+        return ps.includes(user.personaPortalId);
       });
       if (inscripciones.length === 0) {
         return jsonResponse(req, { tieneResultados: false });
       }
 
-      const inscOR = inscripciones
-        .map(
-          (i) =>
-            `FIND('${i.id}', ARRAYJOIN({${FIELDS.RESPUESTAS_AUTOEVAL.INSCRIPCION}}))`,
-        )
-        .join(",");
-      const respuestas = await listRecords(BASES.PORTAL, TABLES.RESPUESTAS_AUTOEVAL, {
-        filterByFormula:
-          `AND(` +
-            `OR(${inscOR}),` +
-            `FIND('${KNOWN_IDS.TEST_FELICIDAD}', ARRAYJOIN({${FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION}}))` +
-          `)`,
+      // OR(...) over inscripcion IDs works (RECORD_ID-based via FIND).
+      // But the AUTOEVALUACION link filter is broken (same bug); filter in JS.
+      const allRespuestas = await listRecords(BASES.PORTAL, TABLES.RESPUESTAS_AUTOEVAL, {});
+      const myInscripcionIds = new Set(inscripciones.map((i) => i.id));
+      const respuestas = allRespuestas.filter((r) => {
+        const inscLinks =
+          (r.fields[FIELDS.RESPUESTAS_AUTOEVAL.INSCRIPCION] as string[]) ?? [];
+        const autoLinks =
+          (r.fields[FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION] as string[]) ?? [];
+        return (
+          inscLinks.some((id) => myInscripcionIds.has(id)) &&
+          autoLinks.includes(KNOWN_IDS.TEST_FELICIDAD)
+        );
       });
       if (respuestas.length === 0) {
         return jsonResponse(req, { tieneResultados: false });
@@ -378,14 +381,15 @@ Deno.serve(async (req) => {
     const inscripcionId = inscLinks[0];
     if (inscripcionId) {
       const owns = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-        filterByFormula:
-          `AND(` +
-            `RECORD_ID()='${inscripcionId}',` +
-            `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))` +
-          `)`,
+        filterByFormula: `RECORD_ID()='${inscripcionId}'`,
         maxRecords: 1,
       });
-      if (owns.length === 0) throw new HttpError(403, "Not authorized");
+      if (owns.length === 0) throw new HttpError(404, "Inscripción not found");
+      const ownerPersonas =
+        (owns[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+      if (!ownerPersonas.includes(user.personaPortalId)) {
+        throw new HttpError(403, "Not authorized");
+      }
     }
 
     // Parse the JSON payload packed by submit-test-felicidad

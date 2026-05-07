@@ -326,16 +326,22 @@ Deno.serve(async (req) => {
   try {
     const user = await requireAuth(req);
 
-    // 1. Get all Inscripciones for this Persona
-    const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula: `FIND('${user.personaPortalId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}}))`,
+    // 1. Get all Inscripciones, then filter in JS by personaPortalId.
+    // (Airtable filterByFormula on linked-record fields can't match record IDs;
+    // ARRAYJOIN returns primary field values, not IDs.)
+    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
       fields: [
+        FIELDS.INSCRIPCIONES.PERSONA,
         FIELDS.INSCRIPCIONES.CURSO,
         FIELDS.INSCRIPCIONES.ESTATUS,
         FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION,
         FIELDS.INSCRIPCIONES.PROGRESO_LECCIONES,
         FIELDS.INSCRIPCIONES.PROGRESO_PCT,
       ],
+    });
+    const inscripciones = allInscripciones.filter((ins) => {
+      const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+      return ps.includes(user.personaPortalId);
     });
 
     if (inscripciones.length === 0) {
@@ -387,18 +393,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Count completed lessons per Inscripción
-    const inscripcionIds = inscripciones.map((i) => i.id);
-    const progresoFilter = inscripcionIds
-      .map((id) => `FIND('${id}', ARRAYJOIN({${FIELDS.PROGRESO_LECCIONES.INSCRIPCION}}))`)
-      .join(", ");
-    const progresoFormula = inscripcionIds.length === 1
-      ? progresoFilter
-      : `OR(${progresoFilter})`;
-
-    const progresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula: `AND(${progresoFormula}, {${FIELDS.PROGRESO_LECCIONES.COMPLETADO}})`,
-      fields: [FIELDS.PROGRESO_LECCIONES.INSCRIPCION],
+    // 4. Count completed lessons per Inscripción (filter client-side: Airtable
+    // can't match record IDs in linked-record fields via filterByFormula).
+    // The boolean COMPLETADO check works fine in Airtable, but we still need
+    // to filter by inscripcion in JS.
+    const inscripcionIds = new Set(inscripciones.map((i) => i.id));
+    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
+      filterByFormula: `{${FIELDS.PROGRESO_LECCIONES.COMPLETADO}}`,
+      fields: [
+        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
+        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
+      ],
+    });
+    const progresos = allProgresos.filter((p) => {
+      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
+      return ins.some((id) => inscripcionIds.has(id));
     });
 
     const completadasPorInscripcion = new Map<string, number>();
