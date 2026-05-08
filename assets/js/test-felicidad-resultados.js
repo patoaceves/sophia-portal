@@ -5,6 +5,7 @@ import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda, RUEDA_AXES } from "./rueda.js";
+import { icon } from "./icons.js";
 
 (async () => {
   const persona = await requireAuth();

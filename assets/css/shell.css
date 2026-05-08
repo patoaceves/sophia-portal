@@ -3162,6 +3162,7 @@
   font-size: 0.875rem;
   color: var(--color-text-muted);
   margin: 0;
+  flex: 1;
 }
 
 .test-cajita__chart {
@@ -3181,6 +3182,7 @@
 
 .test-cajita__cta {
   align-self: flex-start;
+  margin-top: var(--s-4);
 }
 
 .test-cajita__link {
