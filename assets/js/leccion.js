@@ -218,6 +218,7 @@ function renderCheckpointBar(capLecciones, idxHere) {
         }).join("")}
       </ol>
     </div>
+    <div class="checkpoint-bar-spacer" aria-hidden="true"></div>
   `;
 }
 
