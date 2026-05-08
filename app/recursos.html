@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi perfil · SOPHIA</title>
+  <title>Biblioteca · SOPHIA</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-touch-icon.png">
@@ -11,9 +11,12 @@
   <link rel="stylesheet" href="/assets/css/shell.css">
 </head>
 <body>
-  <div style="display: grid; place-items: center; min-height: 100vh;">
-    <div class="spinner spinner--wheel"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="full-page-loader">
+    <div class="page-loader__inner">
+      <div class="spinner" role="status" aria-live="polite"></div>
+      <div class="page-loader__text">Cargando<span class="page-loader__dots"><span>.</span><span>.</span><span>.</span></span></div>
+    </div>
   </div>
-  <script type="module" src="/assets/js/perfil.js"></script>
+  <script type="module" src="/assets/js/recursos.js"></script>
 </body>
 </html>

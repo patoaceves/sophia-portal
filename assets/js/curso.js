@@ -114,7 +114,7 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
     title: curso.titulo,
     activePath: "/app/cursos",
     contentHtml: `
-      ${renderHero(curso, coverUrl)}
+      ${renderHero(curso, coverUrl, ctx)}
       ${renderTabsNav(slug, initialTab)}
       <div class="tab-panels">
         ${VALID_TABS.map(t => `
@@ -195,8 +195,15 @@ function activateTab(tab, slug, updateHistory = true) {
 
 // ────────────────────────────────────────────────────────────────────
 // Hero — horizontal layout: image (5:4) on the left, content on the right
+//
+// Right side now includes additional metadata: directora del programa
+// and current chapter ("Vas en el capítulo X de N").
 // ────────────────────────────────────────────────────────────────────
-function renderHero(curso, coverUrl) {
+function renderHero(curso, coverUrl, ctx) {
+  const directora = ctx?.curso?.instructor || "Mariana Riojas";
+  const capituloEnCurso = findCurrentCapitulo(ctx?.capitulos || []);
+  const totalCaps = ctx?.capitulos?.length || 0;
+
   return `
     <header class="curso-hero">
       <a href="/app/cursos" class="curso-hero__back">
@@ -213,10 +220,39 @@ function renderHero(curso, coverUrl) {
           ${curso.modalidad ? `<span class="curso-hero__chip">${escapeHtml(curso.modalidad)}</span>` : ""}
           <h2 class="curso-hero__title">${escapeHtml(curso.titulo || "")}</h2>
           ${curso.descripcionCorta ? `<p class="curso-hero__lead">${escapeHtml(curso.descripcionCorta)}</p>` : ""}
+          <dl class="curso-hero__meta">
+            ${directora ? `
+              <div class="curso-hero__meta-item">
+                <dt>Directora del programa</dt>
+                <dd>${escapeHtml(directora)}</dd>
+              </div>
+            ` : ""}
+            ${capituloEnCurso ? `
+              <div class="curso-hero__meta-item">
+                <dt>${capituloEnCurso.done ? "Completado" : "Vas en"}</dt>
+                <dd>${capituloEnCurso.done
+                  ? `${totalCaps} de ${totalCaps} capítulos`
+                  : `Capítulo ${capituloEnCurso.orden}${totalCaps ? ` de ${totalCaps}` : ""}`}</dd>
+              </div>
+            ` : ""}
+          </dl>
         </div>
       </div>
     </header>
   `;
+}
+
+/**
+ * Find the chapter the student is currently in (first one with at least
+ * one incomplete lesson). Returns { orden, done } or null if all done.
+ */
+function findCurrentCapitulo(capitulos) {
+  for (const c of capitulos) {
+    const incomplete = c.lecciones.some(l => !l.completada);
+    if (incomplete) return { orden: c.orden, done: false };
+  }
+  if (capitulos.length > 0) return { orden: capitulos.length, done: true };
+  return null;
 }
 
 function renderTabsNav(slug, currentTab) {
@@ -419,10 +455,16 @@ function renderPillarIcon(pillar, idx, capitulos) {
     : progress > 0 ? "in-progress"
     : "todo";
 
+  // Use the gray PNG when not done (already gray, no CSS filter needed).
+  // Use the color SVG when done (full color, full saturation).
+  const iconSrc = state === "done"
+    ? `/assets/img/happiness-workshop/pilares/${pillar.file}.svg`
+    : `/assets/img/happiness-workshop/pilares/${pillar.file}-gris.png`;
+
   return `
     <article class="pillar-icon pillar-icon--${pillar.dim} pillar-icon--${state}">
       <div class="pillar-icon__visual">
-        <img src="/assets/img/happiness-workshop/pilares/${pillar.file}.svg" alt="" aria-hidden="true">
+        <img src="${iconSrc}" alt="" aria-hidden="true">
         ${state === "done" ? `<span class="pillar-icon__check">${icon("check")}</span>` : ""}
       </div>
       <div class="pillar-icon__name">${escapeHtml(pillar.name)}</div>

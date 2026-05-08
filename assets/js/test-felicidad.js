@@ -70,6 +70,12 @@ export function mountWizard(opts) {
     submitting: false,
   };
 
+  // Attach the click handler ONCE via event delegation on the container.
+  // Re-wiring on every renderInto() would accumulate handlers and cause
+  // the submit button to either fire multiple times or appear "stuck"
+  // because previous handlers had already set state.submitting = true.
+  state.container.addEventListener("click", (e) => clickHandler(state, e));
+
   renderInto(state);
   return state;
 }
@@ -99,22 +105,27 @@ function renderInto(state) {
 
   const wizardClass = `test-wizard ${state.embedded ? "test-wizard--embedded" : ""}`;
 
-  state.container.innerHTML = `
-    ${state.embedded ? "" : `
-      <div class="leccion-progress-bar">
-        <div class="leccion-progress-bar__fill" style="width: ${pct}%;"></div>
+  // Always show the test's own progress bar (both embedded and standalone).
+  // It indicates progress THROUGH THE TEST QUESTIONS, not the lesson.
+  // In embedded mode it sits below the checkpoint bar; in standalone mode
+  // it's the only progress indicator on the page.
+  const progressBarHtml = isIntro ? "" : `
+    <div class="test-progress">
+      <div class="test-progress__bar">
+        <div class="test-progress__fill" style="width: ${pct}%;"></div>
       </div>
-    `}
-    <div class="${wizardClass}">
-      ${headerHtml}
-      <div class="test-wizard__body">${bodyHtml}</div>
-      ${state.embedded && !isIntro ? `
-        <div class="test-wizard__embedded-counter">Pregunta ${state.currentIndex + 1} de ${total}</div>
-      ` : ""}
+      <div class="test-progress__label">${state.currentIndex + 1} de ${total}</div>
     </div>
   `;
 
-  wireWizard(state);
+  state.container.innerHTML = `
+    ${progressBarHtml}
+    <div class="${wizardClass}">
+      ${headerHtml}
+      <div class="test-wizard__body">${bodyHtml}</div>
+    </div>
+  `;
+  // Listener is wired ONCE in mountWizard via event delegation.
 }
 
 function backHref(state) {
@@ -199,10 +210,6 @@ function renderPregunta(idx, respuestas) {
   `;
 }
 
-function wireWizard(state) {
-  state.container.addEventListener("click", clickHandler.bind(null, state), { once: false });
-}
-
 async function clickHandler(state, e) {
   const btn = e.target.closest("[data-test-action]");
   if (!btn) return;
@@ -219,18 +226,28 @@ async function clickHandler(state, e) {
     const p = PREGUNTAS[state.currentIndex];
     state.respuestas[p.id] = v;
 
-    // Auto-advance after short delay (feels snappier)
-    // Last question: don't auto-advance; let user confirm with the next button
+    // Immediate visual feedback: mark this option active and unmark
+    // siblings BEFORE the auto-advance fires. Otherwise the user clicks
+    // and waits ~220ms with no visible change, which feels broken.
+    const allDots = btn.parentElement?.querySelectorAll(".dot-option");
+    if (allDots) {
+      allDots.forEach((d) => d.classList.remove("is-active"));
+      btn.classList.add("is-active");
+    }
+
+    // Enable the next/submit button (it was disabled until an answer existed)
+    const nextBtn = state.container.querySelector('[data-test-action="next"]');
+    if (nextBtn) nextBtn.disabled = false;
+
+    // Auto-advance after short delay (feels snappier).
+    // Last question: don't auto-advance; let user confirm with the next button.
     const isLast = state.currentIndex === PREGUNTAS.length - 1;
-    setTimeout(() => {
-      if (isLast) {
-        // Just re-render to show the selected state and enable submit button
-        renderInto(state);
-      } else {
+    if (!isLast) {
+      setTimeout(() => {
         state.currentIndex += 1;
         renderInto(state);
-      }
-    }, 220);
+      }, 280);
+    }
     return;
   }
 

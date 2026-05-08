@@ -28,18 +28,21 @@
 }
 
 .sidebar__brand {
-  height: var(--header-h);
-  padding: 0 var(--s-5);
+  /* Make the brand area taller so the horizontal logo can breathe */
+  min-height: var(--header-h);
+  padding: var(--s-5) var(--s-5);
   display: flex;
   align-items: center;
-  gap: var(--s-3);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
 .sidebar__logo {
-  height: 28px;
-  width: auto;
+  /* Fill the available sidebar width with comfortable gaps. */
+  width: 100%;
+  height: auto;
+  max-height: 56px;
+  object-fit: contain;
   display: block;
 }
 
@@ -187,9 +190,12 @@
 
 .app-header__title {
   font-family: var(--font-display);
-  font-size: 1.125rem;
+  /* Boosted from 1.125rem (~18px) to 1.5rem (~24px) for stronger
+     hierarchy — the lesson title in header was visually too quiet. */
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 144;
 }
 
 .app-header__actions {
@@ -1412,8 +1418,11 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 240px;
+  /* Smooth transition on width when label changes (Marcar... → Avanzar) */
+  transition: all 0.25s ease, padding 0.25s ease;
+  /* Width fits content, so when the label shrinks (e.g. "Marcar como
+     completada" → "Avanzar"), the button visibly shrinks too. */
+  width: fit-content;
   position: relative;
 }
 
@@ -1455,7 +1464,6 @@
 }
 
 .leccion-cta__label {
-  flex: 1;
   text-align: left;
   white-space: nowrap;
 }
@@ -1588,16 +1596,42 @@
   min-height: 0;
 }
 
-.test-wizard__embedded-counter {
-  text-align: center;
+/* ──────────────────────────────────────────────────────────────────
+ * Test progress — slim bar + counter shown above the question card
+ * (both embedded and standalone modes).
+ * ────────────────────────────────────────────────────────────────── */
+.test-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+  padding: var(--s-2) 0;
+}
+
+.test-progress__bar {
+  flex: 1;
+  height: 6px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.test-progress__fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--r-full);
+  transition: width 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.test-progress__label {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--color-text-subtle);
   font-weight: 500;
-  margin-top: var(--s-6);
-  padding-top: var(--s-4);
-  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+  min-width: 70px;
+  text-align: right;
 }
 
 .test-wizard__header {
@@ -1770,7 +1804,14 @@
 .dot-option.is-active .dot-option__circle {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 4px var(--color-accent-faint);
+  /* Stronger visual emphasis when selected: ring + slight scale */
+  box-shadow: 0 0 0 5px var(--color-accent-faint), 0 4px 12px rgba(193, 18, 47, 0.18);
+  transform: scale(1.08);
+}
+
+.dot-option.is-active {
+  /* Lock the active state in even on hover-out by overriding the hover scale */
+  transform: scale(1);
 }
 
 @media (max-width: 600px) {
@@ -1948,19 +1989,22 @@
 
 .curso-hero__inner {
   display: flex;
-  gap: var(--s-6);
+  gap: var(--s-8);
   align-items: stretch;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
   overflow: hidden;
-  padding: var(--s-5);
+  padding: var(--s-6);
 }
 
 .curso-hero__cover {
   flex-shrink: 0;
-  width: 200px;
-  aspect-ratio: 5 / 4;
+  /* Cover is horizontal (~2:1, matching the actual artwork at 960×484).
+     Use object-fit: cover with aspect-ratio matching the source so the
+     image fills the area completely without cropping. */
+  width: 480px;
+  aspect-ratio: 960 / 484;
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--color-bg-subtle);
@@ -2010,7 +2054,7 @@
 
 .curso-hero__title {
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-size: clamp(1.625rem, 2.5vw, 2.125rem);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.15;
@@ -2030,18 +2074,56 @@
   overflow: hidden;
 }
 
+/* Hero metadata — directora + capítulo en curso, displayed as definition list */
+.curso-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5) var(--s-9);
+  margin: var(--s-3) 0 0 0;
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.curso-hero__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.curso-hero__meta dt {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  color: var(--color-text-subtle);
+  margin: 0;
+}
+
+.curso-hero__meta dd {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.3;
+}
+
 @media (max-width: 760px) {
   .curso-hero__inner {
     flex-direction: column;
     padding: var(--s-4);
+    gap: var(--s-4);
   }
   .curso-hero__cover {
     width: 100%;
-    max-width: 280px;
-    margin: 0 auto;
+    /* No max-width cap on mobile — let the horizontal cover use the
+       full row width and stay at 2:1 ratio. */
   }
   .curso-hero__body { text-align: center; align-items: center; }
   .curso-hero__chip { margin: 0 auto; }
+  .curso-hero__meta {
+    justify-content: center;
+    gap: var(--s-3) var(--s-5);
+  }
 }
 
 /* Legacy class — keep for back-compat */
@@ -2705,8 +2787,15 @@
 
 .pillar-grid__header {
   text-align: center;
-  margin-bottom: var(--s-7);
+  margin-bottom: var(--s-11);
   padding-top: var(--s-2);
+}
+
+.pillar-grid__sub {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  max-width: 540px;
+  margin: var(--s-3) auto 0 auto;
 }
 
 .pillar-grid__eyebrow {
@@ -2726,13 +2815,6 @@
   letter-spacing: -0.01em;
   margin: 0 0 var(--s-2) 0;
   font-variation-settings: "opsz" 144;
-}
-
-.pillar-grid__sub {
-  color: var(--color-text-muted);
-  font-size: 0.9375rem;
-  max-width: 540px;
-  margin: 0 auto;
 }
 
 .pillar-grid__grid {
@@ -2764,8 +2846,10 @@
   transform: translateY(-1px);
 }
 
-/* The SVG is shown directly — it already contains a colored circle bg
-   matching the pillar. We control state by filter on the img only. */
+/* Pillar icon visual — image source determines the look:
+   - todo / in-progress / locked: PNG already gray (no filter)
+   - done: SVG full color (no filter)
+   No CSS filters applied — what you see is what's in the file. */
 .pillar-icon__visual {
   position: relative;
   width: 64px;
@@ -2779,7 +2863,6 @@
   width: 64px;
   height: 64px;
   display: block;
-  transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .pillar-icon__check {
@@ -2833,27 +2916,14 @@
   color: var(--color-text-muted);
 }
 
-/* States */
+/* States — slight container styling, no image filters */
 
-/* todo — grayscale + low opacity */
-.pillar-icon--todo .pillar-icon__visual img {
-  filter: grayscale(100%) opacity(0.45);
-}
-
-/* in-progress — partial saturation */
-.pillar-icon--in-progress .pillar-icon__visual img {
-  filter: grayscale(40%);
-  opacity: 0.85;
+.pillar-icon--todo {
+  /* default look, gray icon already shows the muted state */
 }
 
 .pillar-icon--in-progress {
   background: linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-subtle) 100%);
-}
-
-/* done — full color, slight glow + green border */
-.pillar-icon--done .pillar-icon__visual img {
-  filter: none;
-  opacity: 1;
 }
 
 .pillar-icon--done {
@@ -2867,14 +2937,9 @@
 .pillar-icon--fisico    .pillar-icon__progress-fill { background: var(--pillar-fisico); }
 .pillar-icon--mental    .pillar-icon__progress-fill { background: var(--pillar-mental); }
 
-/* locked — no chapter assigned yet */
 .pillar-icon--locked {
-  opacity: 0.5;
+  opacity: 0.55;
   background: var(--color-bg-subtle);
-}
-
-.pillar-icon--locked .pillar-icon__visual img {
-  filter: grayscale(100%) opacity(0.3);
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -3069,7 +3134,7 @@
 
 .rueda-svg-preview {
   width: 100%;
-  max-width: 220px;
+  max-width: 320px;
   height: auto;
   display: block;
 }
@@ -3117,7 +3182,7 @@
 
 .resumen-extras__header {
   text-align: center;
-  margin-bottom: var(--s-7);
+  margin-bottom: var(--s-11);
   padding-top: var(--s-2);
 }
 
@@ -3248,12 +3313,31 @@
 
 .checkpoint-bar {
   position: sticky;
-  top: 0;
+  /* Stick BELOW the app-header (which is also sticky at top:0). */
+  top: 56px;
   background: var(--color-bg);
-  z-index: 20;
-  margin: 0 calc(-1 * var(--s-6)) var(--s-6);
-  padding: var(--s-3) var(--s-6);
+  z-index: 9;
+  /* Full-width WITHIN .app-main only (NOT covering the sidebar).
+     The .app-main has horizontal padding (--s-10 desktop, --s-4 mobile);
+     negative margins cancel that padding so the checkpoint bar reaches
+     the .app-main's edges (which begin where the sidebar ends). */
+  margin-left: calc(-1 * var(--s-10));
+  margin-right: calc(-1 * var(--s-10));
+  margin-bottom: var(--s-7);
+  /* Re-add equivalent inner padding so dot content stays aligned. */
+  padding: var(--s-5) var(--s-10);
   border-bottom: 1px solid var(--color-border);
+  box-sizing: border-box;
+}
+
+@media (max-width: 880px) {
+  .checkpoint-bar {
+    /* Mobile: sidebar is hidden (collapsed via CSS), .app-main padding is --s-4. */
+    margin-left: calc(-1 * var(--s-4));
+    margin-right: calc(-1 * var(--s-4));
+    padding: var(--s-4) var(--s-4);
+    margin-bottom: var(--s-5);
+  }
 }
 
 .checkpoint-bar__list {
@@ -3462,5 +3546,751 @@
 @media (max-width: 720px) {
   .leccion-page__body:has(#testEmbed) {
     padding: var(--s-4) var(--s-2);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Página Calendario
+ * ────────────────────────────────────────────────────────────────── */
+
+.proxima-sesion {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-7);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  margin-bottom: var(--s-10);
+  position: relative;
+  overflow: hidden;
+}
+
+.proxima-sesion::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--color-accent-faint) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.proxima-sesion > * { position: relative; z-index: 1; }
+
+.proxima-sesion__date {
+  flex-shrink: 0;
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+}
+
+.proxima-sesion__day-name {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-subtle);
+  font-weight: 500;
+}
+
+.proxima-sesion__day-num {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-accent);
+  font-variation-settings: "opsz" 144;
+  margin: var(--s-1) 0;
+}
+
+.proxima-sesion__month {
+  font-size: 0.875rem;
+  text-transform: capitalize;
+  color: var(--color-text-muted);
+}
+
+.proxima-sesion__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-2);
+}
+
+.proxima-sesion__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.proxima-sesion__title {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 500;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+  letter-spacing: -0.01em;
+}
+
+.proxima-sesion__meta {
+  color: var(--color-text-muted);
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.proxima-sesion__actions {
+  margin-top: var(--s-3);
+  display: flex;
+  gap: var(--s-2);
+}
+
+.proxima-sesion__actions svg { width: 16px; height: 16px; }
+
+@media (max-width: 760px) {
+  .proxima-sesion { flex-direction: column; padding: var(--s-4); gap: var(--s-4); }
+  .proxima-sesion__date { width: 100%; flex-direction: row; gap: var(--s-3); padding: var(--s-3); }
+  .proxima-sesion__day-num { font-size: 2.5rem; }
+}
+
+/* Lista de sesiones */
+
+.cal-list {
+  margin-top: var(--s-8);
+}
+
+.cal-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cal-list__title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.cal-list__count {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.cal-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cal-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.15s ease;
+}
+
+.cal-item:last-child {
+  border-bottom: none;
+}
+
+.cal-item__date {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cal-item__day-name {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-subtle);
+  font-weight: 500;
+}
+
+.cal-item__day-num {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 500;
+  line-height: 1;
+  font-variation-settings: "opsz" 144;
+}
+
+.cal-item__month {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+}
+
+.cal-item__body { flex: 1; min-width: 0; }
+
+.cal-item__num {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-subtle);
+  font-weight: 500;
+  margin-bottom: var(--s-1);
+}
+
+.cal-item__title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0 0 var(--s-1) 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.cal-item__meta {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.cal-item__action { flex-shrink: 0; }
+
+.cal-item__badge {
+  display: inline-block;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.cal-item__badge--past {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-subtle);
+}
+
+.cal-item__badge--today {
+  background: var(--color-accent);
+  color: white;
+}
+
+.cal-item__add {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.cal-item__add:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+}
+
+.cal-item__add svg { width: 16px; height: 16px; }
+
+.cal-item--past {
+  opacity: 0.65;
+}
+
+.cal-item--past .cal-item__day-num { color: var(--color-text-muted); }
+
+.cal-item--today {
+  background: var(--color-accent-faint);
+  border-radius: var(--r-md);
+  margin: 0 calc(-1 * var(--s-3));
+  padding: var(--s-4) var(--s-3);
+}
+
+.cal-item--today .cal-item__day-num {
+  color: var(--color-accent);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Página Mi progreso — stats grid + course rows + rueda section
+ * ────────────────────────────────────────────────────────────────── */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-3);
+  margin-bottom: var(--s-9);
+}
+
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.stat-card--accent {
+  background: linear-gradient(135deg, var(--color-accent-faint) 0%, var(--color-bg-elevated) 100%);
+}
+
+.stat-card__num {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 500;
+  line-height: 1.05;
+  color: var(--color-text);
+  font-variation-settings: "opsz" 144;
+}
+
+.stat-card--accent .stat-card__num {
+  color: var(--color-accent);
+}
+
+.stat-card__num-sub {
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.stat-card__label {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  font-weight: 500;
+  margin-top: var(--s-2);
+}
+
+.stat-card__sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.progreso-rueda {
+  display: flex;
+  align-items: center;
+  gap: var(--s-7);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  margin-bottom: var(--s-9);
+  position: relative;
+  overflow: hidden;
+}
+
+.progreso-rueda::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(at 0% 0%, var(--pillar-spiritual-soft) 0%, transparent 35%),
+    radial-gradient(at 100% 100%, var(--pillar-mental-soft) 0%, transparent 35%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.progreso-rueda > * { position: relative; z-index: 1; }
+
+.progreso-rueda__chart { flex-shrink: 0; }
+
+.progreso-rueda__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.progreso-rueda__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.progreso-rueda__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.progreso-rueda__lead {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--s-3) 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .progreso-rueda { flex-direction: column; padding: var(--s-4); }
+}
+
+/* Lista de cursos en progreso */
+
+.progreso-cursos__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--s-4);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.progreso-cursos__header h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.progreso-cursos__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.curso-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+
+.curso-row:last-child { border-bottom: none; }
+
+.curso-row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.curso-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.curso-row__title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0 0 var(--s-1) 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.curso-row__meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.curso-row__progress {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 200px;
+}
+
+.curso-row__bar {
+  flex: 1;
+  height: 6px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.curso-row__bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--r-full);
+  transition: width 0.5s ease;
+}
+
+.curso-row__pct {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
+}
+
+.curso-row__chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.curso-row__chevron svg { width: 16px; height: 16px; }
+
+@media (max-width: 760px) {
+  .curso-row { flex-wrap: wrap; }
+  .curso-row__progress { width: 100%; order: 99; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Página Anuncios
+ * ────────────────────────────────────────────────────────────────── */
+
+.anuncios-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.anuncio {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  position: relative;
+}
+
+.anuncio--importante {
+  border-left: 4px solid var(--color-accent);
+}
+
+.anuncio__badge {
+  position: absolute;
+  top: var(--s-4);
+  right: var(--s-4);
+  background: var(--color-accent);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-full);
+}
+
+.anuncio__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.anuncio__curso {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  display: block;
+  margin-bottom: var(--s-1);
+}
+
+.anuncio__title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+  line-height: 1.3;
+}
+
+.anuncio__fecha {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding-top: var(--s-3);
+}
+
+.anuncio__cuerpo {
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.anuncio__cuerpo p { margin: 0; }
+
+.anuncio__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.anuncio__footer svg { width: 16px; height: 16px; }
+
+.anuncios-info {
+  margin-top: var(--s-9);
+  padding: var(--s-5);
+  background: var(--color-bg-subtle);
+  border-radius: var(--r-md);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.anuncios-info p { margin: 0; }
+
+/* ──────────────────────────────────────────────────────────────────
+ * Coming soon (Biblioteca, Certificados)
+ * ────────────────────────────────────────────────────────────────── */
+
+.coming-soon {
+  text-align: center;
+  padding: var(--s-12) var(--s-6);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  max-width: 560px;
+  margin: var(--s-7) auto 0 auto;
+}
+
+.coming-soon__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-full);
+  background: var(--color-accent-faint);
+  display: grid;
+  place-items: center;
+  margin: 0 auto var(--s-5) auto;
+  color: var(--color-accent);
+}
+
+.coming-soon__icon svg { width: 32px; height: 32px; }
+
+.coming-soon__title {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 500;
+  margin: 0 0 var(--s-3) 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.coming-soon__lead {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 var(--s-4) 0;
+}
+
+.coming-soon__note {
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Claustro grid — cards de ponentes en lecciones
+ * Uso: en HTML de la lección Claustro (Airtable rich text). Las clases
+ * son single-dash (no BEM __) porque Airtable rich text interpreta
+ * dobles underscores como markdown italic y los rompe.
+ * ────────────────────────────────────────────────────────────────── */
+
+.leccion-html .claustro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-5);
+  margin: var(--s-7) 0;
+}
+
+@media (max-width: 720px) {
+  .leccion-html .claustro-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.leccion-html .claustro-card {
+  display: flex;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  align-items: flex-start;
+}
+
+.leccion-html .claustro-photo {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--r-full);
+  object-fit: cover;
+  background: var(--color-bg-subtle);
+  display: block;
+}
+
+.leccion-html .claustro-photo-placeholder {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--color-accent-soft), var(--color-bg-subtle));
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  font-variation-settings: "opsz" 144;
+}
+
+.leccion-html .claustro-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.leccion-html .claustro-name {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 144;
+  color: var(--color-text);
+}
+
+.leccion-html .claustro-role {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-accent);
+  font-weight: 500;
+  margin: 0 0 var(--s-2) 0;
+}
+
+.leccion-html .claustro-bio {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .leccion-html .claustro-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 }

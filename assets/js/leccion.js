@@ -373,37 +373,54 @@ function renderVideoEmbed(url) {
  * Fixes common Airtable HTML issues:
  *  - Image URLs without leading slash (assets/foo.png → /assets/foo.png)
  *  - Image URLs with spaces (URI-encode them)
- *  - Old domain references (sophiamx.org/old/... → /assets/...)  // best effort
+ *  - Old/relocated paths (e.g. when files moved between folders)
  *  - Adds onerror fallback so a broken image becomes a graceful caption
  */
 function sanitizeLessonContent() {
   const root = document.querySelector(".leccion-html");
   if (!root) return;
 
-  // Fix images
+  // Known asset relocations: when an old path no longer exists, map it
+  // to its current location. Add entries here as legacy URLs surface.
+  // Each entry: pattern (RegExp) → replacement string ($n captures supported).
+  const PATH_REWRITES = [
+    // Claustro images: were referenced from /assets/img/happiness-workshop/
+    // but actually live in /assets/img/brand/
+    [/^\/?assets\/img\/happiness-workshop\/(claustro[^"\s]*)$/i, "/assets/img/brand/$1"],
+    // Brand-specific assets sometimes referenced bare ("claustro-1.jpg")
+    [/^(claustro[^"\s]*)$/i, "/assets/img/brand/$1"],
+    [/^(mariana-riojas[^"\s]*)$/i, "/assets/img/brand/$1"],
+    [/^(aristoteles[^"\s]*)$/i, "/assets/img/brand/$1"],
+    // Workshop images sometimes referenced bare
+    [/^(intro-hw[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
+    [/^(modelo-felicidad-[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
+    [/^(portada[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
+  ];
+
   const imgs = root.querySelectorAll("img");
   imgs.forEach((img) => {
     let src = img.getAttribute("src") || "";
     if (!src) return;
 
-    // Already absolute? (data:, http:, https://) — leave alone
-    if (/^(data:|https?:)/i.test(src)) {
-      // Fix legacy wix references that happen to be on the right CDN
-      // — no-op for now, just leave them.
-    } else {
-      // Relative path. Common fixes:
-      // 1. Missing leading slash: "assets/foo.png" → "/assets/foo.png"
+    if (!/^(data:|https?:)/i.test(src)) {
+      // Apply known rewrites first (catches both bare and absolute paths
+      // pointing at moved files).
+      for (const [pattern, replacement] of PATH_REWRITES) {
+        if (pattern.test(src)) {
+          src = src.replace(pattern, replacement);
+          break;
+        }
+      }
+      // Missing leading slash: "assets/foo.png" → "/assets/foo.png"
       if (/^assets\//.test(src)) {
         src = "/" + src;
       }
-      // 2. Apple/iOS Photos export style with spaces: encode them
+      // Encode spaces in path segments (preserves slashes and existing encoding)
       if (/\s/.test(src)) {
-        src = src
-          .split("/")
-          .map((seg) => encodeURIComponent(decodeURIComponent(seg.replace(/\+/g, " "))))
-          .join("/")
-          // We're going to reassemble — but want to keep root slash
-          .replace(/^%2F/, "/");
+        src = src.split("/").map((seg) => {
+          // Don't double-encode already-encoded segments; just fix raw spaces
+          return seg.includes("%") ? seg : seg.replace(/\s+/g, "%20");
+        }).join("/");
       }
     }
 

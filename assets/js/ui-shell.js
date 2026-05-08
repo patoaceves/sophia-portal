@@ -65,7 +65,7 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
   document.body.innerHTML = `
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <img src="https://static.wixstatic.com/media/6bf1ef_d0efb91350e04315be1fe1a9982e69c8~mv2.png" alt="SOPHIA" class="sidebar__logo">
+        <img src="/assets/img/brand/logo-horizontal-rojo.png" alt="SOPHIA" class="sidebar__logo">
       </div>
       <nav class="sidebar__nav">
         ${groups.map(g => renderGroup(g, path)).join("")}
