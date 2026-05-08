@@ -356,12 +356,13 @@ html:hover {
  *     the loader doesn't visually shift.
  * ────────────────────────────────────────────────────────────────── */
 .page-loader {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  /* Generous min-height so the card sits in the visible area
-     (not stuck to the top of the document flow). */
-  min-height: 60vh;
+  /* Fill available height between header and bottom of main, so the
+     card sits visually centered in the content area, not stuck to the top. */
+  min-height: calc(100vh - var(--header-h) - var(--s-8) * 2);
   padding: var(--s-6) var(--s-4);
 }
 

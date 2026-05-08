@@ -40,7 +40,7 @@
 }
 
 .login-hero__logo {
-  height: 44px;
+  height: clamp(120px, 14vh, 176px);
   width: auto;
   display: block;
 }

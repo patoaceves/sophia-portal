@@ -60,9 +60,14 @@ const MESSAGES = {
 export function loaderHtml({ context = "generic", firstMessage, fullPage = false } = {}) {
   const messages = MESSAGES[context] || MESSAGES.generic;
   const initial = firstMessage || messages[0];
-  const minHeight = fullPage ? "calc(100vh - var(--header-h, 64px))" : "min(60vh, 480px)";
+  // Inline min-height is only needed for fullPage variant (pre-shell loaders).
+  // The default in-shell loader gets its centering from the .page-loader CSS,
+  // which fills the available main area and centers the card visually.
+  const inlineStyle = fullPage
+    ? ` style="min-height: calc(100vh - var(--header-h, 64px));"`
+    : "";
   return `
-    <div class="page-loader" data-context="${context}" style="min-height:${minHeight};">
+    <div class="page-loader" data-context="${context}"${inlineStyle}>
       <div class="page-loader__inner">
         <div class="spinner spinner--wheel" role="status" aria-live="polite">
           <span></span><span></span><span></span><span></span>

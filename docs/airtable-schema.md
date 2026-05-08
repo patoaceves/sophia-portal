@@ -73,7 +73,7 @@ Cada generación específica de un curso. Una cohorte = 1 curso template + 1 fec
 
 | Field | ID | Tipo | Notas |
 |---|---|---|---|
-| Nombre | `fldbp3zZdJr03jCVD` | singleLineText | primary. Formato: `<Curso título> <DD.MM.YYYY>`, ej. `Happiness Workshop 12.05.2026` |
+| Nombre | `fldbp3zZdJr03jCVD` | singleLineText | primary. Formato: `<Curso> - <DD.MM.YYYY>`, ej. `Happiness Workshop - 12.05.2026` |
 | Curso | `fldj0pnwgY14VNtqI` | multipleRecordLinks → Cursos | |
 | Fecha inicio | `fldoqWrG9zEdeKWGt` | date | |
 | Fecha fin | `fldnm9B7nvIjyKZre` | date | |

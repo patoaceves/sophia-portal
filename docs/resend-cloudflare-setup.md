@@ -1,104 +1,175 @@
-# Resend + Cloudflare · setup guide
+# Migración Wix → Cloudflare + setup Resend
 
-Este doc cubre dos cosas separadas pero relacionadas:
+## Antes de empezar, lee esto
 
-1. **Resend**, para mandar el email de bienvenida con buen branding y deliverability.
-2. **DNS migration de Wix a Cloudflare**, recomendado pero opcional.
+**Wix tiene un comportamiento molesto:** si compraste el dominio `sophiamx.org` *a través de Wix* (Wix es tu registrar), Wix **bloquea el cambio de nameservers**. No te deja apuntarlo a Cloudflare directamente. Es política de ellos.
 
----
+Antes de tocar nada, identifica en cuál de estos 3 casos estás:
 
-## Parte 1 · ¿Vale la pena migrar el dominio de Wix a Cloudflare?
+### Caso A. Dominio registrado en Wix (lo más común)
 
-**Recomendación corta: sí, migra a Cloudflare.**
+Compraste el dominio en Wix, va incluido en tu plan o lo pagas anual con ellos. **Tienes que transferir el dominio a otro registrar** (proceso de 7 a 14 días) para poder cambiar nameservers.
 
-### Por qué
+### Caso B. Dominio registrado en otro lado, sólo conectado a Wix
 
-| Cosa | Wix DNS | Cloudflare DNS |
-|---|---|---|
-| Costo | gratis (incluido en plan Wix) | gratis |
-| Velocidad propagación | minutos a horas | segundos |
-| Editor de DNS | limitado, lento, esconde algunos tipos de records | completo, todos los tipos, instantáneo |
-| TXT records (SPF, DKIM, DMARC, verificaciones) | a veces te limita el largo | sin límites prácticos |
-| Wildcards y SRV | varía | sin restricción |
-| API para automatizar DNS | no | sí (Terraform, scripts) |
-| Soporte CNAME flattening en raíz | no | sí (clave si quieres usar `sophiamx.org` como CNAME) |
-| Email forwarding gratis | sí pero limitado | sí, hasta 200 reglas, robusto |
-| Analytics, WAF, page rules | no | sí, gratis |
+Compraste el dominio en GoDaddy, Namecheap, Google Domains, etc. y lo conectaste a Wix. **Sólo cambias nameservers en tu registrar real**, no tocas Wix.
 
-### Por qué te conviene específicamente a ti
+### Caso C. No estoy seguro
 
-1. **Resend, Stripe, Supabase y otros SaaS te van a pedir agregar TXT y CNAME records con frecuencia.** En Cloudflare es 30 segundos. En Wix es un dolor.
+Ve a [whois.com](https://www.whois.com/whois/) y busca `sophiamx.org`. Mira el campo "Registrar":
+- Si dice **"Wix.com Ltd."** o **"Wix.com"** → Caso A
+- Si dice cualquier otra cosa (GoDaddy, Namecheap, MarkMonitor, etc.) → Caso B
 
-2. **Eventualmente vas a querer subdominios:** `app.sophiamx.org`, `landing.sophiamx.org`, `cdn.sophiamx.org`. En Cloudflare cada uno es un click y propaga al instante.
-
-3. **Si algún día migras el sitio principal de Wix a otro lado** (Webflow, Framer, Astro en Vercel), Cloudflare ya está listo. Sólo cambias el A/CNAME al nuevo host.
-
-4. **Email forwarding gratis con Cloudflare Email Routing.** Si quieres `hola@sophiamx.org` que reenvíe a tu Gmail, Cloudflare lo hace mejor que Wix.
-
-### Qué NO cambia con la migración
-
-- El sitio principal `sophiamx.org` (hosteado en Wix) sigue funcionando idéntico. Sólo cambia *quién resuelve el DNS*, no *quién sirve el contenido*.
-- Tu correo `@sophiamx.org` (si lo tienes con Wix Email o Google Workspace) sigue funcionando idéntico. Los registros MX se replican en Cloudflare al migrar.
-
-### Pasos para migrar (30 minutos, hazlo en horario tranquilo)
-
-1. **Crea cuenta en Cloudflare** (gratis): [cloudflare.com](https://www.cloudflare.com/)
-2. **Add site**, escribe `sophiamx.org`, selecciona plan Free.
-3. **Cloudflare escanea tu DNS actual de Wix** y replica todos los records que encuentra (A, CNAME, MX, TXT). Revisa que estén todos. Si falta alguno, agrégalo manualmente. Records críticos a verificar:
-   - `A` o `CNAME` apuntando al sitio de Wix (algo tipo `sophiamx-site.wixsite.com` o IP de Wix)
-   - `MX` records si tienes correo con Google Workspace o Zoho (`*.google.com`, etc.)
-   - `TXT` con `v=spf1 include:_spf.google.com ~all` o equivalente
-   - Cualquier TXT de verificación de dominio (Google Search Console, Stripe, etc.)
-4. **Cloudflare te da 2 nameservers nuevos**, algo tipo `clara.ns.cloudflare.com` y `lars.ns.cloudflare.com`.
-5. **En Wix**, ve a tu dominio, sección DNS / Nameservers, cambia los nameservers a los de Cloudflare. Esto es lo único que tocas en Wix.
-6. **Espera la propagación.** Suele ser 5 a 30 minutos pero puede tardar hasta 24h en raros casos.
-7. **Cloudflare te avisa por email** cuando ya está activo.
-8. **Prueba:** entra a `sophiamx.org`, debe verse igual. Manda un correo a `hola@sophiamx.org`, debe llegar igual.
-
-> **Si tienes el correo `@sophiamx.org` con Wix Mail directamente** (no Google Workspace ni Zoho), revisa primero qué tan crítico es y considera si quieres aprovechar para migrarlo a Google Workspace o a Cloudflare Email Routing antes de hacer este cambio.
-
-### ¿Y si rompo algo?
-
-- En Wix, los nameservers originales siguen disponibles. Cualquier momento puedes regresar el cambio (5 min más de propagación).
-- Lleva un screenshot de los DNS records de Wix antes de migrar, por si acaso.
+Comprueba esto antes de seguir leyendo.
 
 ---
 
-## Parte 2 · Resend, mandar el email de bienvenida
+## Caso A · Transferir dominio de Wix a Cloudflare (camino realista)
 
-Resend es el servicio que vas a usar para mandar el email automático cuando se crea una invitación. Es la mejor opción para apps modernas (React Email, dashboard limpio, API simple, generoso free tier de 3,000 emails/mes).
+### Paso 0. Verificaciones previas
 
-### Por qué Resend en vez de Gmail SMTP o Airtable Send Email
+- [ ] Tu dominio tiene >60 días desde la última transferencia o registro (regla ICANN, no se puede saltar).
+- [ ] El correo asociado al dominio en Wix (admin contact) es uno al que tienes acceso. Si no, actualízalo PRIMERO en Wix.
+- [ ] Tienes 1 hora libre para arrancar y luego tolerancia de 1 semana para que se complete la transferencia.
 
-| | Resend | Gmail SMTP | Airtable Send Email |
-|---|---|---|---|
-| Deliverability | excelente, IPs dedicadas | malo, Google bloquea por bulk | aceptable |
-| HTML completo (el template que aprobaste) | sí, sin restricciones | sí, pero limitado | sí, pero el editor de Airtable es feo |
-| Tracking (abrió, hizo click) | sí | no | no |
-| Logs históricos | sí, con replay | no | no |
-| API limpia | sí, JSON simple | requiere OAuth complicado | no, sólo desde automation |
-| Costo | gratis hasta 3,000/mes | gratis pero con cap silencioso | "gratis" si tienes Pro |
+### Paso 1. En Wix, desbloquear el dominio y pedir el código de autorización (EPP)
 
-### Pasos
+1. Wix → Dashboard → **Settings** → **Domains** → click en `sophiamx.org` → **Advanced**.
+2. Busca la sección **"Transfer Away from Wix"** o **"Transfer to another registrar"**.
+3. **Unlock the domain.** Si Wix te pide confirmar por email, hazlo.
+4. **Request authorization code (EPP code).** Wix te lo manda al email del admin contact. Suele tardar de minutos a un día.
 
-#### 1. Crear cuenta y verificar dominio
+> **Si Wix Customer Support te friega:** algunos usuarios reportan que Wix CS no quiere desbloquear o tarda en mandar el EPP code. Insiste por chat con esto: *"I want to transfer my domain to another registrar. Please unlock the domain and send me the EPP authorization code to my admin email."* Si te dan vueltas, escala con un supervisor. Es tu derecho como dueño del dominio.
+
+### Paso 2. Decide tu camino, dos opciones
+
+#### Opción 1. Transferir directo a Cloudflare Registrar (más barato, ~$10/año)
+
+**Esto puede tener un catch 22:** Cloudflare a veces requiere que el zone esté activo (con sus nameservers ya apuntados) antes de aceptar la transferencia, pero Wix bloquea cambiar nameservers. Si te pasa, ve a la Opción 2.
+
+1. Cloudflare → [cloudflare.com](https://www.cloudflare.com/) → crear cuenta gratis.
+2. **Add a site** → escribe `sophiamx.org` → plan Free.
+3. Cloudflare escanea el DNS actual y replica records.
+4. Cloudflare → **Domain Registration** → **Transfer Domains** → escribe `sophiamx.org`.
+5. Pega el EPP code de Wix → paga ~$10 USD/año + ICANN fee → confirma.
+6. Esperar 5 a 7 días para que Wix libere y Cloudflare reciba.
+
+#### Opción 2. Transferir primero a Namecheap, después a Cloudflare (camino seguro)
+
+**Recomendado.** Namecheap te deja cambiar nameservers libremente, sin restricciones.
+
+1. Crea cuenta en [namecheap.com](https://www.namecheap.com/).
+2. Namecheap dashboard → **Transfers** → escribe `sophiamx.org` → ingresa el EPP code de Wix → paga ~$10 USD por 1 año + ICANN fee.
+3. Espera 5 a 7 días. Te llegan emails de Wix y Namecheap, autoriza los que pidan confirmación.
+4. Una vez en Namecheap, en su dashboard verás `sophiamx.org`. Continúa al Paso 3.
+5. (Opcional, en 60 días) puedes transferir DE Namecheap a Cloudflare Registrar para ahorrar el markup. Pero no urge, Namecheap funciona perfecto.
+
+### Paso 3. En Cloudflare, agregar el sitio (si no lo hiciste)
+
+1. [cloudflare.com](https://www.cloudflare.com/) → cuenta nueva o existente.
+2. **Add a site** → `sophiamx.org` → plan Free.
+3. Cloudflare escanea el DNS actual de Wix y replica los records que encuentra. Verifica:
+   - `A` o `CNAME` apuntando al sitio Wix (algo tipo `sophiamx-site.wixsite.com` o IP de Wix)
+   - `MX` records si tienes correo (`*.googlemail.com`, `aspmx.l.google.com`, etc.)
+   - Cualquier `TXT` (verificación Google, SPF, etc.)
+4. Si te falta alguno, agrégalo manualmente.
+5. Cloudflare te muestra los **2 nameservers** que tienes que apuntar, algo tipo `clara.ns.cloudflare.com` y `lars.ns.cloudflare.com`. Copia los exactos que te dan a ti.
+
+### Paso 4. Apuntar nameservers a Cloudflare desde Namecheap (o tu nuevo registrar)
+
+En Namecheap:
+1. Dashboard → tu dominio → **Manage**.
+2. Sección **Nameservers** → cambia de "Namecheap BasicDNS" a **"Custom DNS"**.
+3. Pega los 2 nameservers de Cloudflare.
+4. Guarda. Propaga en minutos a horas.
+5. Cloudflare detecta que ya apuntan, te manda email "Your zone is now active".
+
+### Paso 5. Verificar que todo sigue funcionando
+
+- [ ] `sophiamx.org` carga el sitio Wix igual que antes.
+- [ ] Tu correo `@sophiamx.org` (si tienes Google Workspace o Zoho) sigue recibiendo.
+- [ ] Stripe / cualquier verificación TXT que tenías sigue activa.
+
+Si algo se rompe, los DNS records están en Cloudflare → DNS → puedes editarlos al instante.
+
+### ¿Cuánto tiempo total?
+
+- Pedir EPP code en Wix: 1 día
+- Transferencia Wix → Namecheap: 5 a 7 días
+- Cambiar nameservers a Cloudflare: 1 hora
+- **Total real: ~1 semana end-to-end**
+
+---
+
+## Caso B · Dominio en otro registrar (no en Wix)
+
+Aquí es trivial. Wix sólo tiene el sitio, no el dominio.
+
+1. Cloudflare → **Add a site** → `sophiamx.org` → plan Free.
+2. Cloudflare escanea, replica los DNS records que encuentra de Wix.
+3. Cloudflare te da 2 nameservers.
+4. Entra a tu registrar real (GoDaddy, Namecheap, Google Domains, etc.) → DNS → Nameservers → "Custom" → pega los de Cloudflare.
+5. Espera 5 a 30 minutos.
+6. Listo.
+
+Tu sitio Wix sigue cargando (los DNS records ya replicados apuntan a Wix). Tu correo sigue funcionando. Sólo cambia QUIÉN responde las consultas DNS.
+
+**Total: 1 hora.**
+
+---
+
+## Plan B si no quieres pelearte con Wix · "Pointing method"
+
+Si el caso A te parece mucho rollo, hay una alternativa: **mantener Wix como registrar y DNS, pero agregar los records de Resend directamente en Wix**.
+
+Es la opción "no migro a Cloudflare, pero sí mando emails con Resend". Pierdes los beneficios de Cloudflare DNS (velocidad, editor moderno, automation), pero te ahorras la transferencia.
+
+Pasos:
+1. Crear cuenta Resend, agregar dominio (Parte 2 abajo).
+2. Resend te da 4 records DNS.
+3. Wix → Settings → Domains → tu dominio → **Manage DNS Records** → Add Record.
+4. Agregar uno por uno los TXT, MX, etc. de Resend.
+5. Verificar en Resend.
+
+Funciona. Es menos elegante pero llegas al mismo resultado para mandar emails.
+
+> Nota importante: Wix oficialmente no soporta DNSSEC ni "DNS Proxies como Cloudflare". Lo del proxy aplica si quisieras enrutar tráfico HTTP por Cloudflare (cosa que no necesitas para Wix). Sólo cuida que en Cloudflare uses los records con la nube **gris (DNS only)**, no la naranja (proxy), para los records que apuntan al sitio Wix.
+
+**Mi recomendación:** si planeas crecer SOPHIA y vas a agregar más subdominios (app.sophiamx.org, landing.sophiamx.org, etc.) con frecuencia, vale la pena el caso A. Si sólo quieres mandar emails con Resend ya, el plan B te resuelve hoy.
+
+---
+
+## Parte 2 · Setup de Resend (después de tener DNS resuelto)
+
+Independiente de si migraste a Cloudflare o no, los pasos de Resend son los mismos.
+
+### 1. Verificar dominio en Resend
 
 1. [resend.com](https://resend.com), sign up con tu Google.
 2. **Add domain** → `sophiamx.org`.
-3. Resend te da 4 records DNS para agregar:
-   - 1 `MX` record (para reply handling)
-   - 2 `TXT` records (SPF + DKIM)
-   - 1 `TXT` record DMARC (opcional pero recomendado)
+3. Resend te muestra 4 records DNS para agregar. Algo así:
 
-   **Si ya migraste a Cloudflare**, los agregas en 2 minutos. Si aún estás en Wix, también funciona pero más tedioso.
+   ```
+   Type   Name                            Value
+   MX     send.sophiamx.org               feedback-smtp.us-east-1.amazonses.com  (priority 10)
+   TXT    send.sophiamx.org               v=spf1 include:amazonses.com ~all
+   TXT    resend._domainkey.sophiamx.org  p=MIIBIj... (DKIM, larga)
+   TXT    _dmarc.sophiamx.org             v=DMARC1; p=none;
+   ```
 
-4. En Resend, click **Verify**. Tarda de segundos a 10 minutos.
+4. **Si ya estás en Cloudflare:** entra a Cloudflare → DNS → Add record. Pegas los 4. 30 segundos por record. Importante: marca "DNS only" (nube gris) en cada uno, NO el proxy naranja.
+5. **Si sigues en Wix:** Settings → Domains → Manage DNS Records → Add. Va más lento porque la UI de Wix es torpe pero funciona.
+6. Vuelve a Resend, click **Verify**. Si todo está bien, en menos de 5 min te marca "Verified".
 
-#### 2. Crear API key
+### 2. Crear API key
 
-Resend dashboard → API Keys → Create API Key → permission `Sending access`, restricted to domain `sophiamx.org`. Copia la key, empieza con `re_xxxxxxxxxxxx`.
+Resend Dashboard → **API Keys** → **Create API Key**.
+- Permission: `Sending access`
+- Domain: `sophiamx.org`
 
-#### 3. Probar mandando un correo
+Copia la key (empieza con `re_xxxxx...`). Sólo la ves una vez. Guárdala en tu password manager.
+
+### 3. Test rápido de envío
 
 ```bash
 curl -X POST 'https://api.resend.com/emails' \
@@ -106,112 +177,73 @@ curl -X POST 'https://api.resend.com/emails' \
   -H 'Content-Type: application/json' \
   -d '{
     "from": "SOPHIA <hola@sophiamx.org>",
-    "to": ["tu_email_personal@gmail.com"],
+    "to": ["TU_EMAIL_PERSONAL@gmail.com"],
     "subject": "Test desde Resend",
-    "html": "<p>¡Funciona!</p>"
+    "html": "<p>Llegó. Funciona.</p>"
   }'
 ```
 
-Si te llega, todo bien.
+Si te llega al inbox (no spam), perfecto. Si cae en spam, revisa que SPF y DKIM estén verdes en Resend.
 
-#### 4. Hook con Airtable: 2 opciones
+### 4. Conectar Resend con Airtable, dos opciones
 
-##### Opción A · Más simple: Airtable Automation con script
+#### Opción A. Airtable Automation (rápido, lo armas hoy)
 
-En la base PORTAL → Automations → "+ Create automation":
+Airtable PORTAL → Automations → **+ Create**.
 
-- **Trigger:** "When record matches conditions"
-  - Tabla: Invitaciones
-  - Conditions: `Estatus = activa` AND `Email destinatario` is not empty AND `Persona` is empty (o sea, no se ha canjeado todavía)
+**Trigger:** "When record matches conditions"
+- Tabla: Invitaciones
+- Conditions: `Estatus = activa` AND `Email destinatario` is not empty AND `Persona` is empty
 
-- **Action 1: "Find records"** (para enriquecer los datos)
-  - Tabla: Cohortes
-  - Condition: `Cohorte` matches the invitation's Cohorte field
+**Action 1:** "Find records" en Cohortes (para sacar fecha de primera sesión, directora, foto, etc.)
 
-- **Action 2: "Run a script"** (la mandas a Resend)
+**Action 2:** "Find records" en Cursos (para sacar el título, ej. "Happiness Workshop")
 
-  Pegar este script (reemplaza `RESEND_API_KEY` con la tuya):
+**Action 3:** "Run a script". El script interpola las variables del template `bienvenida.html` y manda a Resend. Yo te lo armo completo cuando ya tengas la API key, son ~80 líneas.
 
-  ```js
-  const apiKey = 'RESEND_API_KEY_AQUI';
+#### Opción B. Edge function en Supabase (más limpio)
 
-  // Inputs from previous steps
-  const invitation = input.config().invitation;
-  const cohorte = input.config().cohorte;
-  const cursoTitulo = input.config().cursoTitulo;
-
-  const portalUrl = 'https://portal.sophiamx.org';
-  const ctaUrl = `${portalUrl}/?invite=${invitation.token}`;
-
-  // Format date in Spanish: "12 de mayo de 2026"
-  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const d = new Date(cohorte.fechaInicio + 'T12:00:00');
-  const fechaFmt = `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
-
-  const html = `<!-- pega aquí el contenido de email-templates/bienvenida.html
-                    con las variables ya interpoladas -->`;
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'SOPHIA <hola@sophiamx.org>',
-      to: [invitation.emailDestinatario],
-      subject: `Tu lugar en ${cursoTitulo} está confirmado · SOPHIA`,
-      html,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Resend failed: ${res.status} ${await res.text()}`);
-  }
-
-  const data = await res.json();
-  output.set('emailId', data.id);
-  ```
-
-  El problema: meter el HTML completo (el template) embebido en un script de Airtable es feo. Para esto está la opción B.
-
-##### Opción B · Más limpio: Supabase Edge Function `send-invitation-email`
-
-Una función dedicada en Supabase que:
-- Recibe `{ invitationId }` (o `{ token }`)
+Una Supabase function dedicada `send-invitation-email` que:
+- Recibe `{ invitationId }`
 - Lee la invitación + cohorte + curso de Airtable
-- Renderiza el template (lee `bienvenida.html` desde el código)
+- Renderiza `bienvenida.html` con las variables
 - Manda vía Resend
 
-**Pros:** versionado en git, fácil de testear, el HTML vive en archivo limpio.
-**Cons:** más setup que la opción A.
+Pros: el HTML del email vive en archivo en git (no embebido en script de Airtable), versionado, fácil de testear.
+Cons: 1 deployment más en Supabase.
 
-Esto puedo armártelo cuando quieras, son ~150 líneas. Avísame y lo agrego como `supabase/functions/send-invitation-email/index.ts`.
-
-##### Opción A simplificado · Airtable nativo (sin Resend)
-
-Si quieres salir hoy sin meter Resend todavía, usa "Send email" nativo de Airtable. Limitaciones:
-- HTML simple, vas a perder los estilos finos del template aprobado
-- Mandado desde un dominio genérico de Airtable, no `@sophiamx.org`
-- Sin tracking
-- Pero funciona y arranca
-
-Yo iría con Resend desde el principio porque ese email es la primera impresión de un alumno con SOPHIA, no querrás que vaya a spam.
+**Esto te lo armo cuando ya tengas Resend funcionando.** Avísame y lo agrego al repo.
 
 ---
 
-## Recomendación para ti, en orden
+## Mi recomendación específica para ti
 
-1. **Hoy:** Migra DNS de Wix a Cloudflare (30 min, low risk).
-2. **Esta semana:** Configura Resend con `sophiamx.org` ya en Cloudflare. Manda un test a tu correo para verificar que llega bien.
-3. **Cuando tengas Resend listo:** Pídeme la edge function `send-invitation-email`. Te la armo en una sesión.
-4. **Mientras tanto:** Si quieres testear el flow completo HOY, usa la opción A de Airtable Automation o mándale el link de invitación a la persona por WhatsApp manualmente (el flow del frontend funciona igual, sólo no automatizas el email).
+1. **Hoy:** confirma en whois.com en qué caso estás. Si Caso B, migra a Cloudflare hoy mismo (1 hora). Si Caso A, decide:
+   - ¿Tienes urgencia de mandar emails YA? → Plan B (agregar records de Resend en Wix), te resuelve hoy.
+   - ¿Puedes esperar 1 semana? → Caso A bien hecho (Wix → Namecheap → Cloudflare).
+
+2. **Mañana o cuando tengas DNS listo:** verifica `sophiamx.org` en Resend, crea API key, test curl.
+
+3. **Cuando me digas "Resend listo":** te armo la edge function `send-invitation-email` y el script de Airtable Automation. La Automation queda activa, mandas tu primera invitación de prueba.
+
+4. **Mientras tanto:** puedes seguir testeando el flow del portal a mano (creando invitación en Airtable, mandándole el link por WhatsApp). El frontend funciona igual sin el email automatizado.
 
 ---
 
-## Cosas que NO te recomiendo
+## Resumen visual
 
-- **No uses la integración de email built-in de Wix Studio para esto.** Está diseñada para boletines/newsletters, no para emails transaccionales 1-a-1.
-- **No mandes desde Gmail (con SMTP o nodemailer) para volúmenes >50/día.** Google empieza a marcar como bulk y los emails caen en promociones o spam.
-- **No uses SendGrid si puedes evitarlo.** Es la opción "antigua" y su free tier es más restrictivo. Resend es mejor para tu caso.
-- **No uses Postmark a menos que ya lo tengas.** Es excelente pero más caro y para tu volumen Resend cubre todo.
+```
+Caso A (registrado en Wix):
+  Wix unlock + EPP → Namecheap (5-7 días) → Cloudflare nameservers → Resend
+                                                                        ↑
+                                                            por aquí empieza
+                                                            el dolor
+
+Caso B (registrado en otro lado):
+  Cloudflare add site → cambiar nameservers en tu registrar → Resend
+  (1 hora total)
+
+Plan B (no migrar, agregar records en Wix):
+  Quedarte en Wix → agregar 4 records DNS de Resend en Wix → Resend funciona
+  (30 min total, pero sin beneficios de Cloudflare)
+```

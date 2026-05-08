@@ -58,13 +58,18 @@ function renderResultados(persona, data) {
   const avgPct = Math.round(((avg - 2) / 8) * 100);
 
   document.querySelector(".app-main").innerHTML = `
-    <header class="page-header">
-      <span class="page-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
-      <h2 class="page-title">Tu rueda de la felicidad</h2>
-      <p class="page-subtitle">
-        Cada pilar refleja un área de tu vida. No hay puntajes "buenos" o "malos" ,
-        son señales de dónde estás hoy y dónde puedes nutrir más.
-      </p>
+    <header class="page-header page-header--with-action">
+      <div class="page-header__main">
+        <span class="page-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
+        <h2 class="page-title">Tu rueda de la felicidad</h2>
+        <p class="page-subtitle">
+          Cada pilar refleja un área de tu vida. No hay puntajes "buenos" o "malos" ,
+          son señales de dónde estás hoy y dónde puedes nutrir más.
+        </p>
+      </div>
+      <a class="btn btn-secondary page-header__action" href="/app/cursos">
+        Volver a mis cursos
+      </a>
     </header>
 
     <section class="resultados-overview">

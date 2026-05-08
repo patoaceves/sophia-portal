@@ -18,7 +18,7 @@
 5. **Cursos**, agregado campo inverso `Cohortes` (`flddYCyaYUFnuSysI`).
 
 **Datos sembrados:**
-- 1 cohorte: **Happiness Workshop 12.05.2026** (`recAtCr3VWNfpzmyh`), estatus `abierta`.
+- 1 cohorte: **Happiness Workshop - 12.05.2026** (`recAtCr3VWNfpzmyh`), estatus `abierta`.
 - Las 4 inscripciones existentes (Mary, Mateo, Patricio + 1) ya migradas a esta cohorte.
 - 0 invitaciones, listas para crearse cuando quieras testear el flow.
 
@@ -120,7 +120,7 @@ Action: Send email
 
 1. En Airtable → Invitaciones → "+ New record".
    - Token: `inv_test001`
-   - Cohorte: Happiness Workshop 12.05.2026
+   - Cohorte: Happiness Workshop - 12.05.2026
    - Email destinatario: tu correo de prueba (uno que NO esté ya en CRM)
    - Origen: `manual`
    - Estatus: `activa`

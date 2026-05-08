@@ -12,7 +12,7 @@ PAGA / RECIBE CORTESÍA
   ▼
 [1] CREAR INVITACIÓN  (manual o automation)
   │   token: inv_xxxxxxxx
-  │   cohorte: Happiness Workshop 12.05.2026
+  │   cohorte: Happiness Workshop - 12.05.2026
   │   email destinatario: usuario@gmail.com (opcional)
   │
   ▼
@@ -54,7 +54,7 @@ PAGA / RECIBE CORTESÍA
 ### Caso 1 · Pato vende vía transferencia
 1. Recibe comprobante por WhatsApp.
 2. Va a Airtable → tabla **Invitaciones** → "+ New record".
-3. Escoge cohorte = "Happiness Workshop 12.05.2026", pone email destinatario, Origen = "transferencia", Notas = "Pagó $X el día Y, comprobante en Drive".
+3. Escoge cohorte = "Happiness Workshop - 12.05.2026", pone email destinatario, Origen = "transferencia", Notas = "Pagó $X el día Y, comprobante en Drive".
 4. La automation manda el email automáticamente.
 5. La persona hace click → entra → ya está adentro.
 

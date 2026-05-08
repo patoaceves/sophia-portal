@@ -84,7 +84,7 @@ Para futuras cohortes con otra coordinadora, sube su foto al mismo folder y actu
 1. Crea una invitación manualmente en Airtable:
    - Tabla: Invitaciones
    - Token: `inv_test001` (cualquier cosa que empiece con `inv_`)
-   - Cohorte: linkea a "Happiness Workshop 12.05.2026"
+   - Cohorte: linkea a "Happiness Workshop - 12.05.2026"
    - Email destinatario: tu cuenta de Google de prueba (una que NO esté ya en CRM)
    - Origen: `manual`
    - Estatus: `activa`
@@ -94,7 +94,7 @@ Para futuras cohortes con otra coordinadora, sube su foto al mismo folder y actu
 4. Deberías acabar en `/app/curso?slug=happiness-workshop&welcome=1`.
 5. Verifica en Airtable:
    - La invitación ahora tiene Estatus = `canjeada`, Persona linkeada, Fecha canje.
-   - Hay una nueva Inscripción con Cohorte = "Happiness Workshop 12.05.2026".
+   - Hay una nueva Inscripción con Cohorte = "Happiness Workshop - 12.05.2026".
 
 ---
 

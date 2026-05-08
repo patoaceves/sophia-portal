@@ -150,7 +150,7 @@ function renderLeccion(persona, payload, cursoContext) {
             <div>
               ${prevId
                 ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
-                     ${icon("arrowLeft")}<span>Lección anterior</span>
+                     ${icon("arrowLeft")}<span>Anterior</span>
                    </a>`
                 : ""}
             </div>
