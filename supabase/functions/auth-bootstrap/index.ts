@@ -239,45 +239,61 @@ Deno.serve(async (req) => {
 
     if (personas.length > 0) {
       const p = personas[0];
+
+      // Backfill any missing fields so Airtable stays complete
+      const missing: Record<string, unknown> = {};
+      if (!p.fields[FIELDS.PERSONAS_CRM.ROL])      missing[FIELDS.PERSONAS_CRM.ROL]      = DEFAULT_ROL;
+      if (!p.fields[FIELDS.PERSONAS_CRM.PRODUCTOS]) missing[FIELDS.PERSONAS_CRM.PRODUCTOS] = ["portal"];
+      if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    missing[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
+      if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   missing[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
+      if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) missing[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
+      if (Object.keys(missing).length > 0) {
+        await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, missing).catch((e) =>
+          console.warn("Backfill (auth_id) failed:", e),
+        );
+      }
+
       return jsonResponse(req, {
         personaId: p.id,
-        rol: p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL,
-        nombre: p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? "",
-        apellidos: p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? "",
+        rol: (p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL) as string,
+        nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? "") as string,
+        apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? "") as string,
         isNew: false,
       });
     }
 
     // 2. Lookup by email
     personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
+      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\'")}'`,
       maxRecords: 1,
     });
 
     if (personas.length > 0) {
       const p = personas[0];
+
+      // Backfill: always write AUTH_USER_ID + any missing fields
       const updateFields: Record<string, unknown> = {
         [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
       };
-      if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) {
-        updateFields[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
-      }
-      try {
-        await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, updateFields);
-      } catch (e) {
-        console.warn("Backfill failed but continuing:", e);
-      }
+      if (!p.fields[FIELDS.PERSONAS_CRM.ROL])      updateFields[FIELDS.PERSONAS_CRM.ROL]      = DEFAULT_ROL;
+      if (!p.fields[FIELDS.PERSONAS_CRM.PRODUCTOS]) updateFields[FIELDS.PERSONAS_CRM.PRODUCTOS] = ["portal"];
+      if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    updateFields[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
+      if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   updateFields[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
+      if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) updateFields[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
+      await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, updateFields).catch((e) =>
+        console.warn("Backfill (email) failed:", e),
+      );
 
       return jsonResponse(req, {
         personaId: p.id,
-        rol: p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL,
-        nombre: p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? nombre,
-        apellidos: p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? apellidos,
+        rol: (p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL) as string,
+        nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? nombre) as string,
+        apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? apellidos) as string,
         isNew: false,
       });
     }
 
-    // 3. Create new Persona · defensive: try full, fall back to essentials
+        // 3. Create new Persona · defensive: try full, fall back to essentials
     const fullFields: Record<string, unknown> = {
       [FIELDS.PERSONAS_CRM.NOMBRE]: nombre || "Sin nombre",
       [FIELDS.PERSONAS_CRM.APELLIDOS]: apellidos,
