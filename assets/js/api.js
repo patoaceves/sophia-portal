@@ -130,7 +130,11 @@ export const api = {
 
   /** GET /get-leccion?id= → { leccion, capituloId, cursoId, inscripcionId, prevId, nextId } */
   async leccion(id) {
+    const key = `api:leccion:${id}`;
+    const hit = cacheGet(key);
+    if (hit) return hit;
     const { data } = await callEdge("get-leccion", { query: { id } });
+    cacheSet(key, data);
     return data;
   },
 
@@ -144,6 +148,7 @@ export const api = {
     // Invalida cache para que progreso se refleje de inmediato
     cacheClear("api:curso:");
     cacheDel("api:mis-cursos");
+    cacheDel(`api:leccion:${leccionId}`);
     return data;
   },
 

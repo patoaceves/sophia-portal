@@ -136,6 +136,14 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
       mountRueda({ svg, tooltip: tip, scores: resultadoTest.scores, animate: true, compact: true });
     }
   }
+
+  // Prefetch en background: lección siguiente + todas las del primer capítulo
+  // Esto hace que la primera navegacion sea instantanea (sin cold start)
+  setTimeout(() => {
+    if (ctx.next?.id) api.leccion(ctx.next.id).catch(() => {});
+    const primerasLecciones = (ctx.capitulos[0]?.lecciones ?? []).slice(0, 4);
+    primerasLecciones.forEach(l => api.leccion(l.id).catch(() => {}));
+  }, 1200);
 }
 
 // ────────────────────────────────────────────────────────────────────

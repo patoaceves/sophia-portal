@@ -190,10 +190,16 @@ function renderLeccion(persona, payload, cursoContext) {
       onComplete: (result) => {
         // After submitting, navigate to results within the same UX feel.
         // The lesson is already marked completed by the wizard.
-        location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}`;
+        location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
       },
     });
   }
+
+  // Prefetch adyacentes en background para que la navegacion sea instantanea
+  setTimeout(() => {
+    if (nextId) api.leccion(nextId).catch(() => {});
+    if (prevId) api.leccion(prevId).catch(() => {});
+  }, 800);
 }
 
 // ────────────────────────────────────────────────────────────────────
