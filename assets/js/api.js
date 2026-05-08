@@ -1,4 +1,4 @@
-// SOPHIA Portal — API wrapper for Edge Function calls
+// SOPHIA Portal · API wrapper for Edge Function calls
 // Automatically attaches JWT, parses JSON, throws ApiError on errors.
 
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "./supabase-client.js";
@@ -63,7 +63,7 @@ export async function callEdge(fnName, opts = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Named API methods — uno por cada Edge Function deployada.
+// Named API methods · uno por cada Edge Function deployada.
 // Cada uno devuelve directamente el `data` (no envuelto en {data,status})
 // para que las páginas no tengan que desempacar.
 // ────────────────────────────────────────────────────────────────────
@@ -123,6 +123,23 @@ export const api = {
   async resultadosTest(respuestaId) {
     const query = respuestaId ? { id: respuestaId } : undefined;
     const { data } = await callEdge("get-resultados-test", { query });
+    return data;
+  },
+
+  /**
+   * POST /claim-invitation, devuelve
+   *   { ok, isNew, cohorteId, cursoSlug, inscripcionId, alreadyClaimed }
+   *
+   * Códigos de error útiles (en err.payload.code):
+   *   invalid_token, not_found, already_claimed, expired, revoked,
+   *   email_mismatch, cohort_closed, no_cohort, no_course,
+   *   sync_pending  (el frontend debe reintentar más tarde)
+   */
+  async claimInvitation(token) {
+    const { data } = await callEdge("claim-invitation", {
+      method: "POST",
+      body: { token },
+    });
     return data;
   },
 };

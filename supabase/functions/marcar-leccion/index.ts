@@ -1,4 +1,4 @@
-// SOPHIA Portal — marcar-leccion (inlined for dashboard deploy)
+// SOPHIA Portal · marcar-leccion (inlined for dashboard deploy)
 // Marks a lesson as completed for the authenticated user. Idempotent:
 // preserves the original completion timestamp on repeat calls.
 //

@@ -1,4 +1,4 @@
-// SOPHIA Portal — Biblioteca (coming soon)
+// SOPHIA Portal · Biblioteca (coming soon)
 import { requireAuth } from "./auth.js";
 import { renderShell } from "./ui-shell.js";
 import { icon } from "./icons.js";

@@ -1,4 +1,4 @@
-// SOPHIA Portal — Panel admin (gated by rol === "admin")
+// SOPHIA Portal · Panel admin (gated by rol === "admin")
 
 import { requireAuth } from "./auth.js";
 import { isAdmin } from "./auth.js";
@@ -31,7 +31,7 @@ import { renderShell } from "./ui-shell.js";
       <header class="page-header">
         <span class="page-eyebrow">Administración</span>
         <h2 class="page-title">Panel de control</h2>
-        <p class="page-subtitle">Esta sección se construirá conforme se necesite — gestión de inscripciones, cursos, autoevaluaciones, etc.</p>
+        <p class="page-subtitle">Esta sección se construirá conforme se necesite, gestión de inscripciones, cursos, autoevaluaciones, etc.</p>
       </header>
       <div class="empty-state">
         <div class="empty-state__title">En construcción</div>

@@ -1,4 +1,4 @@
-// SOPHIA Portal — submit-test-felicidad (inlined for dashboard deploy)
+// SOPHIA Portal · submit-test-felicidad (inlined for dashboard deploy)
 // Receives the 16 Likert (1-5) answers, computes per-pillar scores
 // (range 2-10), bands them (Alto/Medio/Bajo) → 24 hardcoded analysis
 // blurbs, packs everything into RespuestasAutoeval.respuestasJSON.
@@ -361,38 +361,38 @@ const ANALISIS: Record<Pilar, { Alto: string; Medio: string; Bajo: string }> = {
   },
   bienestar_emocional: {
     Alto: "Tu vida emocional está bien orquestada. Identificas, regulas y expresas lo que sientes con flexibilidad. Sigue cultivando lo positivo: gratitud diaria, conversaciones significativas y micro-celebraciones de tus logros.",
-    Medio: "Reconoces tus emociones la mayor parte del tiempo, pero a veces las dejas dictar tus decisiones. Practica la pausa de tres respiraciones antes de reaccionar y nombra la emoción en voz alta — eso baja su intensidad de inmediato.",
-    Bajo: "Ahora cuesta diferenciar entre lo que sientes, piensas y haces — y eso desgasta. No es debilidad, es falta de entrenamiento. Empieza por algo simple: un check-in emocional dos veces al día (mañana/noche) usando una rueda de emociones.",
+    Medio: "Reconoces tus emociones la mayor parte del tiempo, pero a veces las dejas dictar tus decisiones. Practica la pausa de tres respiraciones antes de reaccionar y nombra la emoción en voz alta, eso baja su intensidad de inmediato.",
+    Bajo: "Ahora cuesta diferenciar entre lo que sientes, piensas y haces, y eso desgasta. No es debilidad, es falta de entrenamiento. Empieza por algo simple: un check-in emocional dos veces al día (mañana/noche) usando una rueda de emociones.",
   },
   bienestar_fisico: {
     Alto: "Tu cuerpo está al servicio de tu vida. Te mueves, descansas y comes con sentido. Mantén la consistencia: pequeños hábitos sostenidos vencen a la disciplina extrema y al heroísmo de fin de semana.",
     Medio: "Sabes lo que deberías hacer y a veces lo haces. La brecha entre intención y acción es lo que toca cerrar. Elige UN hábito ancla (ej. caminar 30 min diarios) y sostenlo 8 semanas antes de añadir otro.",
-    Bajo: "Tu cuerpo te está pidiendo atención. No es necesario un plan ambicioso — basta con dormir 30 min más, beber un vaso de agua al despertar, y caminar 10 min al día. Lo simple, sostenido, transforma.",
+    Bajo: "Tu cuerpo te está pidiendo atención. No es necesario un plan ambicioso, basta con dormir 30 min más, beber un vaso de agua al despertar, y caminar 10 min al día. Lo simple, sostenido, transforma.",
   },
   presencia_consciente: {
     Alto: "Habitas el presente con cierta naturalidad. Ese es un activo valioso en un mundo distraído. Profundiza con prácticas formales (5–10 min de meditación al día) y momentos de silencio sin pantallas.",
     Medio: "Tienes destellos de presencia, pero la mente se va al futuro o al pasado con frecuencia. Empieza con anclajes cotidianos: respirar antes de cada comida, sentir los pies al caminar, escuchar sin pensar la respuesta.",
-    Bajo: "El piloto automático domina muchos de tus días. No es problema mientras sea consciente — el reto es cuando ni te das cuenta. Prueba 3 minutos de atención plena al día durante 21 días y observa qué cambia.",
+    Bajo: "El piloto automático domina muchos de tus días. No es problema mientras sea consciente, el reto es cuando ni te das cuenta. Prueba 3 minutos de atención plena al día durante 21 días y observa qué cambia.",
   },
   vinculos_vitales: {
     Alto: "Tus vínculos te nutren y tú los nutres. Eso es uno de los predictores más sólidos de una vida feliz. Cuida la calidad sobre la cantidad: una llamada larga vale más que diez likes.",
-    Medio: "Tienes relaciones importantes, pero hay áreas para profundizar. Identifica una persona con quien quieras estar más cerca este mes y agenda algo concreto — la intencionalidad es el ingrediente que falta.",
+    Medio: "Tienes relaciones importantes, pero hay áreas para profundizar. Identifica una persona con quien quieras estar más cerca este mes y agenda algo concreto, la intencionalidad es el ingrediente que falta.",
     Bajo: "La soledad o los vínculos rotos pesan más de lo que admites. Reconectar empieza con un mensaje, no con una conversación entera. Escribe a alguien hoy sin esperar respuesta inmediata. Lo importante es abrir la puerta.",
   },
   trabajo_proposito: {
     Alto: "Tu trabajo se siente como expresión de quién eres, no como peso. Cuídalo: integra descanso, varía retos, y comparte el conocimiento que has acumulado con quienes empiezan.",
-    Medio: "Hay días en que tu trabajo conecta con algo más grande y otros en que es solo obligación. Intenta articular en una frase qué impacto tiene tu trabajo en otros — esa claridad cambia la experiencia diaria.",
+    Medio: "Hay días en que tu trabajo conecta con algo más grande y otros en que es solo obligación. Intenta articular en una frase qué impacto tiene tu trabajo en otros, esa claridad cambia la experiencia diaria.",
     Bajo: "Hoy tu trabajo se siente más como un trámite que como un camino. No tiene que ser un cambio drástico: encuentra un proyecto chico, voluntario o personal, donde tus habilidades sirvan a algo que te importe genuinamente.",
   },
   estetica_existencial: {
-    Alto: "Vives con estética: cultivas la belleza, la creatividad y el detalle en lo cotidiano. Eso es vivir con dignidad humana plena. Comparte tu mirada — el mundo necesita más personas que vean belleza donde otros ven solo función.",
+    Alto: "Vives con estética: cultivas la belleza, la creatividad y el detalle en lo cotidiano. Eso es vivir con dignidad humana plena. Comparte tu mirada, el mundo necesita más personas que vean belleza donde otros ven solo función.",
     Medio: "Aprecias lo bello cuando aparece, pero podrías invitarlo más a tu vida. Escucha música con atención plena, camina por un jardín sin teléfono, lee poesía 10 minutos. La belleza alimenta capas del alma que la productividad no toca.",
-    Bajo: "La belleza está en pausa en tu vida — quizá por urgencia, quizá por hábito. Empieza pequeño: un objeto bello en tu escritorio, una canción que te conmueva al iniciar el día. La belleza no es lujo, es nutrición existencial.",
+    Bajo: "La belleza está en pausa en tu vida, quizá por urgencia, quizá por hábito. Empieza pequeño: un objeto bello en tu escritorio, una canción que te conmueva al iniciar el día. La belleza no es lujo, es nutrición existencial.",
   },
   fe_filosofia: {
-    Alto: "Tienes un marco que da sentido a tu vida — espiritual, filosófico, o ambos. Eso te ancla cuando las circunstancias se mueven. Sigue alimentándolo: lectura contemplativa, conversaciones profundas, prácticas regulares.",
-    Medio: 'Tienes algunas convicciones, pero no del todo articuladas. Reservar tiempo para preguntas grandes — escribir 20 min sobre "qué creo realmente sobre X" — te ayudará a clarificar y comprometerte.',
-    Bajo: "Las preguntas últimas — sentido, muerte, trascendencia — están aplazadas. No es defecto, es invitación. Lecturas, conversaciones o tradiciones contemplativas pueden abrir camino. No tienes que tener todas las respuestas; basta empezar a hacerte mejores preguntas.",
+    Alto: "Tienes un marco que da sentido a tu vida, espiritual, filosófico, o ambos. Eso te ancla cuando las circunstancias se mueven. Sigue alimentándolo: lectura contemplativa, conversaciones profundas, prácticas regulares.",
+    Medio: 'Tienes algunas convicciones, pero no del todo articuladas. Reservar tiempo para preguntas grandes, escribir 20 min sobre "qué creo realmente sobre X", te ayudará a clarificar y comprometerte.',
+    Bajo: "Las preguntas últimas, sentido, muerte, trascendencia, están aplazadas. No es defecto, es invitación. Lecturas, conversaciones o tradiciones contemplativas pueden abrir camino. No tienes que tener todas las respuestas; basta empezar a hacerte mejores preguntas.",
   },
 };
 

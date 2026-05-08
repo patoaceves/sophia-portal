@@ -1,4 +1,4 @@
-// SOPHIA Portal — get-curso (inlined for dashboard deploy)
+// SOPHIA Portal · get-curso (inlined for dashboard deploy)
 // Returns full course detail (by slug) including chapters, lessons,
 // the user's enrollment, and per-lesson completion state.
 //

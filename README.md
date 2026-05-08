@@ -121,7 +121,7 @@ git clone <repo> sophia-portal && cd sophia-portal
 npx serve .       # o python3 -m http.server 8080
 ```
 
-No hay variables de entorno locales — la URL y anon key viven hardcoded en `assets/js/supabase-client.js` (la anon key es pública por diseño).
+No hay variables de entorno locales, la URL y anon key viven hardcoded en `assets/js/supabase-client.js` (la anon key es pública por diseño).
 
 ---
 
@@ -158,16 +158,16 @@ supabase secrets set AIRTABLE_PAT=patXXXXX...
 **Google Cloud Console → OAuth Client → Authorized redirect URIs:**
 - `https://ajvjyisplqsrjsessayo.supabase.co/auth/v1/callback`
 
-(El redirect en Google apunta a Supabase, no al portal — Supabase es el intermediario.)
+(El redirect en Google apunta a Supabase, no al portal, Supabase es el intermediario.)
 
 ---
 
 ## Roles
 
 Definidos en `Personas.Rol` (Airtable, base CRM):
-- `participante` — default, acceso a `/app/*` excepto `/app/admin`
-- `admin` — acceso completo, ve la sección "Administración" en sidebar
-- `instructor` — futuro, no implementado
+- `participante`, default, acceso a `/app/*` excepto `/app/admin`
+- `admin`, acceso completo, ve la sección "Administración" en sidebar
+- `instructor`, futuro, no implementado
 
 ---
 
@@ -179,7 +179,7 @@ Definidos en `Personas.Rol` (Airtable, base CRM):
 4. **PAT de Airtable SOLO en Edge Functions** (Supabase secrets), nunca expuesta al cliente.
 5. **Anon key sí va en cliente** (es pública por diseño).
 6. **Cada Edge Function es auto-contenida** (sin imports a `_shared/`). Si actualizas el patrón de auth o CORS, hay que sincronizarlo en las 7.
-7. **Páginas HTML son mínimas** — toda la lógica vive en `assets/js/<página>.js`. Para agregar una página nueva, copia este patrón.
+7. **Páginas HTML son mínimas**, toda la lógica vive en `assets/js/<página>.js`. Para agregar una página nueva, copia este patrón.
 
 ---
 

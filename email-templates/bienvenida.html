@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Bienvenida a SOPHIA</title>
+</head>
+<!--
+  Email template for SOPHIA Portal.
+  Sent when a new Invitación is created in Airtable (Estatus = activa).
+  Designed for email clients (Gmail, Outlook, Apple Mail), uses tables
+  and inline styles, no external CSS, no flexbox, no grid.
+
+  Variables to interpolate from the backend (Airtable Automation or Resend):
+    {{nombre}}             Persona's first name (optional, fallback to "")
+    {{curso}}              Course title (e.g. "Happiness Workshop")
+    {{portalUrl}}          https://portal.sophiamx.org
+    {{primeraSesionFecha}} "12 de mayo de 2026"
+    {{primeraSesionHora}}  "7:30 P.M."
+    {{directora}}          "Natalia Arriaga"
+    {{directoraEmail}}     "natalia.arriaga@sophiamx.org"
+    {{directoraFoto}}      "https://portal.sophiamx.org/assets/img/brand/natalia-arriaga.jpg"
+    {{ctaUrl}}             URL field from the Invitación record
+                           (e.g. "https://portal.sophiamx.org/?invite=inv_abc123")
+-->
+<body style="margin:0; padding:0; background-color:#f6f0e7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#1f1a14; line-height:1.55;">
+
+  <!-- Preheader (hidden, shown by clients next to subject) -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+    Tu lugar en {{curso}} está confirmado. Comenzamos el {{primeraSesionFecha}}.
+  </div>
+
+  <!-- Outer wrapper -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f6f0e7;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <!-- Container -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+
+          <!-- Brand bar -->
+          <tr>
+            <td style="background-color:#c1122f; padding:24px 32px; text-align:center;">
+              <img src="https://portal.sophiamx.org/assets/img/brand/logo-horizontal-blanco.png"
+                   alt="SOPHIA"
+                   width="200"
+                   style="display:inline-block; max-width:200px; height:auto;">
+            </td>
+          </tr>
+
+          <!-- Hero -->
+          <tr>
+            <td style="padding:40px 32px 24px 32px; text-align:center;">
+              <p style="margin:0 0 12px 0; font-size:13px; letter-spacing:0.16em; text-transform:uppercase; color:#a78b66; font-weight:500;">
+                Bienvenida
+              </p>
+              <h1 style="margin:0 0 16px 0; font-family: Georgia, 'Times New Roman', serif; font-size:32px; font-weight:500; line-height:1.2; color:#1f1a14;">
+                Hola {{nombre}}, qué gusto tenerte aquí
+              </h1>
+              <p style="margin:0; font-size:16px; color:#5c554a; max-width:440px; margin-left:auto; margin-right:auto;">
+                Tu lugar en <strong style="color:#1f1a14;">{{curso}}</strong> está confirmado.
+                Estos próximos meses son para ti, para detenerte, mirarte y encontrarte.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 32px;">
+              <hr style="border:none; border-top:1px solid #e8dec9; margin:8px 0;">
+            </td>
+          </tr>
+
+          <!-- First session highlight -->
+          <tr>
+            <td style="padding:32px 32px 16px 32px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="background-color:#fdf6ec; border-left:4px solid #c1122f; border-radius:6px; padding:20px 24px;">
+                    <p style="margin:0 0 6px 0; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#c1122f; font-weight:600;">
+                      Tu primera sesión
+                    </p>
+                    <p style="margin:0 0 4px 0; font-family: Georgia, serif; font-size:20px; font-weight:500; color:#1f1a14;">
+                      {{primeraSesionFecha}}
+                    </p>
+                    <p style="margin:0; font-size:14px; color:#5c554a;">
+                      {{primeraSesionHora}}, hora de la Ciudad de México
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Steps -->
+          <tr>
+            <td style="padding:24px 32px;">
+              <h2 style="margin:0 0 20px 0; font-family: Georgia, serif; font-size:20px; font-weight:500; color:#1f1a14;">
+                Antes del primer encuentro
+              </h2>
+
+              <!-- Step 1 -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:16px;">
+                <tr>
+                  <td width="36" valign="top" style="padding-right:14px;">
+                    <div style="width:32px; height:32px; line-height:32px; border-radius:50%; background-color:#c1122f; color:#ffffff; font-weight:600; font-size:14px; text-align:center;">1</div>
+                  </td>
+                  <td valign="top" style="padding-top:4px;">
+                    <p style="margin:0 0 4px 0; font-size:15px; font-weight:600; color:#1f1a14;">Entra al portal</p>
+                    <p style="margin:0; font-size:14px; color:#5c554a; line-height:1.5;">
+                      Tu acceso ya está listo con la cuenta de Google con la que te registraste.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Step 2 -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:16px;">
+                <tr>
+                  <td width="36" valign="top" style="padding-right:14px;">
+                    <div style="width:32px; height:32px; line-height:32px; border-radius:50%; background-color:#c1122f; color:#ffffff; font-weight:600; font-size:14px; text-align:center;">2</div>
+                  </td>
+                  <td valign="top" style="padding-top:4px;">
+                    <p style="margin:0 0 4px 0; font-size:15px; font-weight:600; color:#1f1a14;">Lee el Capítulo 1</p>
+                    <p style="margin:0; font-size:14px; color:#5c554a; line-height:1.5;">
+                      Bienvenida, Claustro y Nota técnica. Te toma cerca de 25 minutos.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Step 3 -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:16px;">
+                <tr>
+                  <td width="36" valign="top" style="padding-right:14px;">
+                    <div style="width:32px; height:32px; line-height:32px; border-radius:50%; background-color:#c1122f; color:#ffffff; font-weight:600; font-size:14px; text-align:center;">3</div>
+                  </td>
+                  <td valign="top" style="padding-top:4px;">
+                    <p style="margin:0 0 4px 0; font-size:15px; font-weight:600; color:#1f1a14;">Toma el Test de Felicidad</p>
+                    <p style="margin:0; font-size:14px; color:#5c554a; line-height:1.5;">
+                      16 preguntas, 5 minutos. Tu rueda de bienestar al inicio del programa.
+                      La volverás a tomar al final para ver tu evolución.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td align="center" style="padding:8px 32px 32px 32px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="background-color:#c1122f; border-radius:6px;">
+                    <a href="{{ctaUrl}}"
+                       style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; letter-spacing:0.02em;">
+                      Entrar al portal
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:14px 0 0 0; font-size:13px; color:#8a8175;">
+                portal.sophiamx.org
+              </p>
+            </td>
+          </tr>
+
+          <!-- Director's note with photo -->
+          <tr>
+            <td style="padding:0 32px 32px 32px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#fdf6ec; border-radius:6px;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 16px 0; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#a78b66; font-weight:600;">
+                      Una nota de tu coordinadora
+                    </p>
+
+                    <!-- Photo + name row -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 14px 0;">
+                      <tr>
+                        <td width="64" valign="middle" style="padding-right:14px;">
+                          <img src="{{directoraFoto}}"
+                               alt="{{directora}}"
+                               width="56"
+                               height="56"
+                               style="display:block; width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                        </td>
+                        <td valign="middle">
+                          <p style="margin:0 0 2px 0; font-size:15px; font-weight:600; color:#1f1a14;">{{directora}}</p>
+                          <p style="margin:0; font-size:13px; color:#8a8175;">Coordinadora del programa</p>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:0 0 12px 0; font-size:15px; color:#1f1a14; font-style:italic; line-height:1.6;">
+                      "Hola, soy {{directora}}. Voy a coordinar el programa contigo durante estas semanas. Si surge cualquier pregunta sobre el material, las sesiones o la logística, escríbeme y te respondo el mismo día."
+                    </p>
+                    <p style="margin:0; font-size:14px; color:#5c554a;">
+                      <a href="mailto:{{directoraEmail}}" style="color:#c1122f; text-decoration:none; font-weight:500;">{{directoraEmail}}</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#fdf6ec; padding:24px 32px; text-align:center; border-top:1px solid #e8dec9;">
+              <p style="margin:0 0 6px 0; font-family: Georgia, serif; font-size:14px; color:#1f1a14; font-weight:500;">
+                SOPHIA · Centro de Formación en Humanidades
+              </p>
+              <p style="margin:0; font-size:12px; color:#8a8175; letter-spacing:0.04em;">
+                Learn. Connect. Grow.
+              </p>
+              <p style="margin:14px 0 0 0; font-size:11px; color:#a8a095;">
+                Recibiste este correo porque te registraste en portal.sophiamx.org.<br>
+                Si crees que es un error, escribe a <a href="mailto:hola@sophiamx.org" style="color:#a8a095;">hola@sophiamx.org</a>.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Container -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

@@ -1,6 +1,6 @@
-// SOPHIA Portal — Mis Cursos page logic
+// SOPHIA Portal · Mis Cursos page logic
 
-import { requireAuth } from "./auth.js";
+import { requireAuth, tryClaimPendingInvite, getPendingInvite } from "./auth.js";
 import { callEdge } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 
@@ -28,9 +28,34 @@ const LOCAL_COVERS = new Set(["happiness-workshop"]);
     `,
   });
 
+  // Si quedó una invitación sin canjear (ej. sync pendiente desde callback),
+  // intentar canjearla AHORA antes de cargar la lista de cursos.
+  if (getPendingInvite()) {
+    const result = await tryClaimPendingInvite();
+    if (result.kind === "claimed" || result.kind === "already") {
+      const slug = result.data?.cursoSlug;
+      if (slug && result.kind === "claimed") {
+        // Si recién acabamos de canjear, mandarlo al curso
+        location.replace(`/app/curso?slug=${encodeURIComponent(slug)}&welcome=1`);
+        return;
+      }
+    } else if (result.kind === "retry") {
+      console.warn("[cursos] sync still pending, will retry next visit");
+    } else if (result.kind === "fatal") {
+      console.error("[cursos] claim failed:", result.error);
+    }
+  }
+
+  // Mostrar error de canje guardado en sessionStorage (si lo hay)
+  let inviteErrorMsg = null;
+  try {
+    inviteErrorMsg = sessionStorage.getItem("sophia_invite_error");
+    if (inviteErrorMsg) sessionStorage.removeItem("sophia_invite_error");
+  } catch {}
+
   try {
     const { data } = await callEdge("get-mis-cursos");
-    renderCursos(data.cursos || []);
+    renderCursos(data.cursos || [], { inviteErrorMsg });
   } catch (e) {
     console.error("get-mis-cursos failed:", e);
     document.getElementById("cursosGrid").innerHTML = `
@@ -42,15 +67,29 @@ const LOCAL_COVERS = new Set(["happiness-workshop"]);
   }
 })();
 
-function renderCursos(cursos) {
+function renderCursos(cursos, opts = {}) {
   const grid = document.getElementById("cursosGrid");
   if (!grid) return;
 
   if (cursos.length === 0) {
+    const errorBlock = opts.inviteErrorMsg
+      ? `<div style="background:#fdecec;border:1px solid #f3c0c0;color:#9a2424;padding:12px 14px;border-radius:8px;margin-bottom:16px;font-size:0.9rem;">
+           <strong>Hubo un problema con tu invitación:</strong> ${escapeHtml(opts.inviteErrorMsg)}
+         </div>`
+      : "";
     grid.innerHTML = `
       <div class="empty-state" style="grid-column: 1/-1">
-        <div class="empty-state__title">Aún no estás inscrito en ningún curso</div>
-        <p class="empty-state__desc">Cuando te inscribas a un workshop, aparecerá aquí. Si crees que esto es un error, contacta al equipo de SOPHIA.</p>
+        ${errorBlock}
+        <div class="empty-state__title">Todavía no tienes cursos activos</div>
+        <p class="empty-state__desc">
+          Si pagaste recientemente, tu invitación llegará pronto al correo
+          con el que te registraste. Busca un mensaje de SOPHIA.
+          Si tienes el link de invitación, ábrelo desde este mismo navegador.
+        </p>
+        <p class="empty-state__desc" style="margin-top:8px;">
+          ¿Algo raro? Escribe a
+          <a href="mailto:hola@sophiamx.org" style="color:var(--color-accent);">hola@sophiamx.org</a>.
+        </p>
       </div>
     `;
     return;

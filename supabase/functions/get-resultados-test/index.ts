@@ -1,4 +1,4 @@
-// SOPHIA Portal — get-resultados-test (inlined for dashboard deploy)
+// SOPHIA Portal · get-resultados-test (inlined for dashboard deploy)
 // Returns Test de Felicidad results. Three modes:
 //   GET /get-resultados-test?id=<respuestaRecordId>      (specific attempt)
 //   GET /get-resultados-test?inscripcion=<respuestaId>   (legacy alias from frontend)

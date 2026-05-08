@@ -1,4 +1,4 @@
-// SOPHIA Portal — Auth helpers
+// SOPHIA Portal · Auth helpers
 // Wraps Supabase auth + bootstraps Persona record on first signin.
 
 import { supabase } from "./supabase-client.js";
@@ -6,6 +6,71 @@ import { api } from "./api.js";
 
 const PERSONA_CACHE_KEY = "sophia_persona";
 const POST_LOGIN_REDIRECT_KEY = "sophia_post_login_redirect";
+const PENDING_INVITE_KEY = "sophia_pending_invite";
+
+// ────────────────────────────────────────────────────────────────────
+// Pending invite token
+// ────────────────────────────────────────────────────────────────────
+//
+// Flow:
+// 1. Landing page (index.html) sees `?invite=inv_xxx` in URL, stashes it.
+// 2. User logs in with Google, callback.html runs, claims the token.
+// 3. If claim returns 425 (sync pending), the token stays stashed and
+//    cursos.html will retry on its next page load.
+
+export function captureInviteFromUrl() {
+  try {
+    const url = new URL(location.href);
+    const t = url.searchParams.get("invite");
+    if (t && /^inv_[A-Za-z0-9_-]{4,40}$/.test(t)) {
+      sessionStorage.setItem(PENDING_INVITE_KEY, t);
+      // Limpiar la URL para que el token no quede visible
+      url.searchParams.delete("invite");
+      history.replaceState({}, "", url.pathname + url.search + url.hash);
+      return t;
+    }
+  } catch {}
+  return null;
+}
+
+export function getPendingInvite() {
+  try { return sessionStorage.getItem(PENDING_INVITE_KEY); } catch { return null; }
+}
+
+export function clearPendingInvite() {
+  try { sessionStorage.removeItem(PENDING_INVITE_KEY); } catch {}
+}
+
+/**
+ * Intenta canjear la invitación pendiente (si existe).
+ * Devuelve:
+ *   { kind: "none" }                    no había token
+ *   { kind: "claimed", data }           canje exitoso
+ *   { kind: "already", data }           ya había sido canjeada por este usuario
+ *   { kind: "retry", error }            sync pendiente, reintentar después (token NO se borra)
+ *   { kind: "fatal", error }            error fatal, token se borra
+ */
+export async function tryClaimPendingInvite() {
+  const token = getPendingInvite();
+  if (!token) return { kind: "none" };
+
+  try {
+    const data = await api.claimInvitation(token);
+    clearPendingInvite();
+    // Limpiar cache de Persona para que cursos.html refresque
+    clearCachedPersona();
+    return { kind: data.alreadyClaimed ? "already" : "claimed", data };
+  } catch (err) {
+    const code = err?.payload?.code;
+    if (code === "sync_pending") {
+      // Mantener el token, reintentaremos
+      return { kind: "retry", error: err };
+    }
+    // Cualquier otro error: borrar token (evita loops infinitos)
+    clearPendingInvite();
+    return { kind: "fatal", error: err };
+  }
+}
 
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
@@ -78,7 +143,7 @@ export async function requireAuth() {
 
 function showFatalError(err) {
   const msg = err?.message || "Unknown error";
-  const status = err?.status || "—";
+  const status = err?.status || "-";
   const payload = err?.payload ? JSON.stringify(err.payload, null, 2) : "";
 
   document.body.style.cssText =

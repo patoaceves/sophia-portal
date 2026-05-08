@@ -1,4 +1,4 @@
-// SOPHIA Portal — get-leccion (inlined for dashboard deploy)
+// SOPHIA Portal · get-leccion (inlined for dashboard deploy)
 // Returns full lesson content + prev/next IDs within the same chapter.
 // Validates that the user is enrolled in the parent course.
 //

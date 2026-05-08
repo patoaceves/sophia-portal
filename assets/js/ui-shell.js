@@ -1,4 +1,4 @@
-// SOPHIA Portal — UI shell renderer (sidebar + header).
+// SOPHIA Portal · UI shell renderer (sidebar + header).
 // Mounts into <body class="shell">…</body> on authenticated pages.
 
 import { logout, isAdmin } from "./auth.js";
@@ -45,11 +45,20 @@ const ADMIN_GROUP = {
 /**
  * Renders the app shell into <body>. Call after requireAuth resolves.
  *
+ * If a static shell skeleton already exists (mounted by shell-skeleton.js
+ * before bootstrap), this function only updates the dynamic parts:
+ *   - sidebar user (avatar + name + role)
+ *   - active sidebar link
+ *   - header title
+ *   - main content
+ * The sidebar layout never disappears between page navigations, so
+ * the user perceives a smooth transition rather than a flash.
+ *
  * @param {object} opts
- * @param {object} opts.persona — { personaId, rol, nombre, apellidos }
- * @param {string} opts.title — header title
- * @param {string} [opts.activePath] — sidebar active link match (defaults to location.pathname)
- * @param {string} opts.contentHtml — main content HTML
+ * @param {object} opts.persona, { personaId, rol, nombre, apellidos }
+ * @param {string} opts.title · header title
+ * @param {string} [opts.activePath] · sidebar active link match (defaults to location.pathname)
+ * @param {string} opts.contentHtml · main content HTML
  */
 export function renderShell({ persona, title, activePath, contentHtml }) {
   const path = activePath ?? location.pathname;
@@ -61,39 +70,86 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
   const fullName =
     [persona.nombre, persona.apellidos].filter(Boolean).join(" ") || "Alumno";
 
-  document.body.className = "shell";
-  document.body.innerHTML = `
-    <aside class="sidebar">
-      <div class="sidebar__brand">
-        <img src="/assets/img/brand/logo-horizontal-rojo.png" alt="SOPHIA" class="sidebar__logo">
-      </div>
-      <nav class="sidebar__nav">
-        ${groups.map(g => renderGroup(g, path)).join("")}
-      </nav>
-      <div class="sidebar__footer">
-        <button class="sidebar__user" id="userMenuBtn" type="button">
-          <div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>
-          <div class="sidebar__user-info">
-            <div class="sidebar__user-name">${escapeHtml(fullName)}</div>
-            <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>
-          </div>
-        </button>
-      </div>
-    </aside>
-    <header class="app-header">
-      <h1 class="app-header__title">${escapeHtml(title)}</h1>
-      <div class="app-header__actions">
-        <button class="btn btn-ghost" id="logoutBtn" type="button">
-          ${sidebarIcon("logout")}
-          <span>Salir</span>
-        </button>
-      </div>
-    </header>
-    <main class="app-main">
-      ${contentHtml}
-    </main>
-  `;
+  // Detect if the static skeleton is in place (set by shell-skeleton.js).
+  const hasSkeleton = document.body.classList.contains("shell--skeleton");
 
+  if (hasSkeleton) {
+    // FAST PATH: only update what changed. Sidebar stays mounted.
+    document.body.classList.remove("shell--skeleton");
+
+    // 1. Update user info in sidebar footer
+    const userBtn = document.getElementById("userMenuBtn");
+    if (userBtn) {
+      userBtn.disabled = false;
+      userBtn.innerHTML = `
+        <div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name">${escapeHtml(fullName)}</div>
+          <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>
+        </div>
+      `;
+    }
+
+    // 2. Mark active sidebar link
+    document.querySelectorAll(".sidebar__link").forEach((a) => {
+      const href = a.getAttribute("href");
+      const active = path === href || path.startsWith(href + "/");
+      a.classList.toggle("is-active", active);
+    });
+
+    // 3. If admin, ensure the admin nav group is rendered (skeleton doesn't include it)
+    if (isAdmin(persona) && !document.querySelector('.sidebar__link[href="/app/admin"]')) {
+      const navEl = document.querySelector(".sidebar__nav");
+      if (navEl) {
+        navEl.insertAdjacentHTML("beforeend", renderGroup(ADMIN_GROUP, path));
+      }
+    }
+
+    // 4. Update header title
+    const titleEl = document.querySelector(".app-header__title");
+    if (titleEl) titleEl.textContent = title;
+
+    // 5. Replace main content
+    const mainEl = document.querySelector(".app-main");
+    if (mainEl) mainEl.innerHTML = contentHtml;
+  } else {
+    // FALLBACK: full mount (used when navigating to a page that doesn't
+    // include shell-skeleton.js, or in tests).
+    document.body.className = "shell";
+    document.body.innerHTML = `
+      <aside class="sidebar">
+        <div class="sidebar__brand">
+          <img src="/assets/img/brand/logo-horizontal-rojo.png" alt="SOPHIA" class="sidebar__logo">
+        </div>
+        <nav class="sidebar__nav">
+          ${groups.map(g => renderGroup(g, path)).join("")}
+        </nav>
+        <div class="sidebar__footer">
+          <button class="sidebar__user" id="userMenuBtn" type="button">
+            <div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>
+            <div class="sidebar__user-info">
+              <div class="sidebar__user-name">${escapeHtml(fullName)}</div>
+              <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>
+            </div>
+          </button>
+        </div>
+      </aside>
+      <header class="app-header">
+        <h1 class="app-header__title">${escapeHtml(title)}</h1>
+        <div class="app-header__actions">
+          <button class="btn btn-ghost" id="logoutBtn" type="button">
+            ${sidebarIcon("logout")}
+            <span>Salir</span>
+          </button>
+        </div>
+      </header>
+      <main class="app-main">
+        ${contentHtml}
+      </main>
+    `;
+  }
+
+  // Wire events (re-bound on every renderShell call regardless of path)
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
     if (confirm("¿Cerrar sesión?")) logout();
   });

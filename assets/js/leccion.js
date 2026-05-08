@@ -1,4 +1,4 @@
-// SOPHIA Portal — Lección (player de contenido).
+// SOPHIA Portal · Lección (player de contenido).
 //
 // Cambios clave en esta iteración:
 //   - El Test de Felicidad ya NO redirige a /app/test-felicidad. Se monta
@@ -145,7 +145,18 @@ function renderLeccion(persona, payload, cursoContext) {
           ${isTest ? `<div id="testEmbed"></div>` : renderContent(leccion)}
         </div>
 
-        ${isTest ? "" : `
+        ${isTest ? `
+          <footer class="leccion-page__footer leccion-page__footer--test">
+            <div>
+              ${prevId
+                ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
+                     ${icon("arrowLeft")}<span>Lección anterior</span>
+                   </a>`
+                : ""}
+            </div>
+            <div></div>
+          </footer>
+        ` : `
           <footer class="leccion-page__footer">
             <div>
               ${prevId
@@ -229,7 +240,7 @@ function shortenTitle(t) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// CTA button — single button with internal checkbox
+// CTA button · single button with internal checkbox
 //
 // State 1 (not completed): a button labeled "Marcar como completada"
 //   with a [☐] checkbox glyph on the left. Click triggers marcarLeccion.
@@ -277,9 +288,9 @@ function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
 
     if (!completedNow) {
       // Click on the checkbox area OR the label both mark as completed.
-      // After marking, the button transforms but doesn't auto-navigate —
+      // After marking, the button transforms but doesn't auto-navigate ,
       // user explicitly clicks again to advance (or clicks the box again
-      // to uncheck — but uncheck isn't supported by the API yet, so the
+      // to uncheck · but uncheck isn't supported by the API yet, so the
       // second click is what advances).
       const targetIsCheckbox = e.target.closest(".leccion-cta__check");
       // Either way: marcar.
@@ -306,7 +317,7 @@ function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
 
         // If the user clicked the checkbox, stay (let them admire the change).
         // If they clicked the wider button area when it was uncompleted,
-        // also stay — they need to click again to advance. This matches the
+        // also stay · they need to click again to advance. This matches the
         // "checkbox toggles, button advances" mental model.
         if (!targetIsCheckbox) {
           // Subtle hint: a small pulse animation

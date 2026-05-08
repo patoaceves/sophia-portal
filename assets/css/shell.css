@@ -1,4 +1,4 @@
-/* SOPHIA Portal — App shell (sidebar + header + content)
+/* SOPHIA Portal, App shell (sidebar + header + content)
  * Editorial layout: warm cream background, bone-white content panels,
  * cohesive with login page.
  */
@@ -191,7 +191,7 @@
 .app-header__title {
   font-family: var(--font-display);
   /* Boosted from 1.125rem (~18px) to 1.5rem (~24px) for stronger
-     hierarchy — the lesson title in header was visually too quiet. */
+     hierarchy, the lesson title in header was visually too quiet. */
   font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -444,7 +444,7 @@
   }
 }
 
-/* Page entrance — fade-in only (no residual transform: residual transforms
+/* Page entrance, fade-in only (no residual transform: residual transforms
    create a new containing block and break position:fixed children like the
    rueda tooltip). */
 .app-main > * {
@@ -749,7 +749,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Test de Felicidad — formulario
+ * Test de Felicidad · formulario
  * ────────────────────────────────────────────────────────────────── */
 
 .test-form {
@@ -869,7 +869,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Test resultados — rueda + análisis
+ * Test resultados · rueda + análisis
  * Diseño portado del HTML legacy (sophia-test-felicidad).
  * ────────────────────────────────────────────────────────────────── */
 
@@ -933,7 +933,7 @@
 
 .rueda-icon-img.visible { opacity: 1; }
 
-/* Wheel tooltip — tight to cursor (200px width matches the JS positioning) */
+/* Wheel tooltip, tight to cursor (200px width matches the JS positioning) */
 .rueda-tooltip {
   position: fixed;
   background: white;
@@ -1121,7 +1121,7 @@
  * Course Dashboard (curso.html)
  * ────────────────────────────────────────────────────────────────── */
 
-/* Curso hero — see definition below at ~line 1789 (post-refactor) */
+/* Curso hero, see definition below at ~line 1789 (post-refactor) */
 
 /* Progress strip + bar */
 
@@ -1390,7 +1390,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Lesson CTA button — single button with internal checkbox.
+ * Lesson CTA button · single button with internal checkbox.
  *
  * State 1 (not completed):
  *   ┌─────────────────────────────────────────┐
@@ -1525,7 +1525,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Lesson list — tipo icons (replace old emoji-based meta)
+ * Lesson list · tipo icons (replace old emoji-based meta)
  * ────────────────────────────────────────────────────────────────── */
 
 .leccion-item__tipo {
@@ -1597,7 +1597,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Test progress — slim bar + counter shown above the question card
+ * Test progress · slim bar + counter shown above the question card
  * (both embedded and standalone modes).
  * ────────────────────────────────────────────────────────────────── */
 .test-progress {
@@ -1948,13 +1948,13 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Dashboard del curso v2 — wheel-centric, visual, dashboard-style
+ * Dashboard del curso v2 · wheel-centric, visual, dashboard-style
  * ────────────────────────────────────────────────────────────────── */
 
-/* Hero minimalista — solo back link + chip de modalidad. La portada
+/* Hero minimalista, solo back link + chip de modalidad. La portada
    habla por sí sola; el título del curso vive en el continue-panel. */
 /* ──────────────────────────────────────────────────────────────────
- * Curso hero — horizontal layout. Image on the left at native 5:4
+ * Curso hero · horizontal layout. Image on the left at native 5:4
  * ratio (capped width), title + chip on the right. Back button floats
  * above the whole card. Image is shown intact, not stretched into a band.
  * ────────────────────────────────────────────────────────────────── */
@@ -2074,7 +2074,7 @@
   overflow: hidden;
 }
 
-/* Hero metadata — directora + capítulo en curso, displayed as definition list */
+/* Hero metadata, directora + capítulo en curso, displayed as definition list */
 .curso-hero__meta {
   display: flex;
   flex-wrap: wrap;
@@ -2115,7 +2115,7 @@
   }
   .curso-hero__cover {
     width: 100%;
-    /* No max-width cap on mobile — let the horizontal cover use the
+    /* No max-width cap on mobile, let the horizontal cover use the
        full row width and stay at 2:1 ratio. */
   }
   .curso-hero__body { text-align: center; align-items: center; }
@@ -2126,7 +2126,7 @@
   }
 }
 
-/* Legacy class — keep for back-compat */
+/* Legacy class, keep for back-compat */
 .curso-hero--minimal { /* compat */ }
 
 /* Dashboard rows grid layout */
@@ -2705,7 +2705,7 @@
 
 .tab-panel.is-active { display: block; }
 
-/* tab-panel-header — sits at the top of every tab body. Generous margin-top
+/* tab-panel-header, sits at the top of every tab body. Generous margin-top
    to separate it from the tab-nav line, and consistent typography across
    tabs (replaces the old .resumen-section-header which doubled as both a
    tab-level header and a sub-section header). */
@@ -2846,10 +2846,10 @@
   transform: translateY(-1px);
 }
 
-/* Pillar icon visual — image source determines the look:
+/* Pillar icon visual, image source determines the look:
    - todo / in-progress / locked: PNG already gray (no filter)
    - done: SVG full color (no filter)
-   No CSS filters applied — what you see is what's in the file. */
+   No CSS filters applied, what you see is what's in the file. */
 .pillar-icon__visual {
   position: relative;
   width: 64px;
@@ -2916,7 +2916,7 @@
   color: var(--color-text-muted);
 }
 
-/* States — slight container styling, no image filters */
+/* States, slight container styling, no image filters */
 
 .pillar-icon--todo {
   /* default look, gray icon already shows the muted state */
@@ -3055,7 +3055,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Test cajita (Resumen tab — Tu rueda de la felicidad).
+ * Test cajita (Resumen tab · Tu rueda de la felicidad).
  * Two states: CTA (no results yet) or RESULTS (full rueda preview with
  * icons + hover, plus link to full results page).
  *
@@ -3165,7 +3165,7 @@
 /* Legacy class names (kept for back-compat with other places) */
 
 /* ──────────────────────────────────────────────────────────────────
- * Resumen — Material adicional (own delimited section).
+ * Resumen · Material adicional (own delimited section).
  * Treated like pillar-grid: top-border separator + own header eyebrow.
  * Visually distinct from the pillars section above so the reader sees
  * three distinct zones in the dashboard:
@@ -3278,7 +3278,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Capítulo cards — ponente line + capítulos-list spacing
+ * Capítulo cards · ponente line + capítulos-list spacing
  * ────────────────────────────────────────────────────────────────── */
 
 .capitulos-list {
@@ -3308,13 +3308,13 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Lesson page — checkpoint progress bar (replaces simple bar)
+ * Lesson page · checkpoint progress bar (replaces simple bar)
  * ────────────────────────────────────────────────────────────────── */
 
 .checkpoint-bar {
   /* FIXED to the viewport, anchored between the sidebar's right edge
      and the viewport's right edge. Independent of .app-main's
-     max-width so it always reaches both edges identically — same
+     max-width so it always reaches both edges identically, same
      dimensions with or without page scroll. */
   position: fixed;
   top: var(--header-h, 56px);
@@ -3516,7 +3516,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Lesson page — broken image graceful fallback
+ * Lesson page · broken image graceful fallback
  * Replaces an <img> that failed to load with a soft caption + icon.
  * ────────────────────────────────────────────────────────────────── */
 
@@ -3548,7 +3548,7 @@
 }
 
 /* When the lesson body contains the embedded test (id=testEmbed), let the
-   wizard breathe — remove the body's own padding so the wizard's centered
+   wizard breathe, remove the body's own padding so the wizard's centered
    layout works as expected. */
 .leccion-page__body:has(#testEmbed) {
   padding: var(--s-5) var(--s-4);
@@ -3836,7 +3836,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Página Mi progreso — stats grid + course rows + rueda section
+ * Página Mi progreso · stats grid + course rows + rueda section
  * ────────────────────────────────────────────────────────────────── */
 
 .stats-grid {
@@ -4087,9 +4087,9 @@
 }
 
 .anuncio__badge {
-  position: absolute;
-  top: var(--s-4);
-  right: var(--s-4);
+  /* In-flow chip displayed inside the header (alongside fecha), not
+     absolutely positioned. Avoids overlap with the date. */
+  display: inline-block;
   background: var(--color-accent);
   color: white;
   font-size: 0.6875rem;
@@ -4098,6 +4098,8 @@
   letter-spacing: 0.14em;
   padding: var(--s-1) var(--s-3);
   border-radius: var(--r-full);
+  white-space: nowrap;
+  align-self: flex-start;
 }
 
 .anuncio__header {
@@ -4106,6 +4108,14 @@
   align-items: flex-start;
   gap: var(--s-3);
   margin-bottom: var(--s-3);
+}
+
+.anuncio__header-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-2);
+  flex-shrink: 0;
 }
 
 .anuncio__curso {
@@ -4130,9 +4140,7 @@
 .anuncio__fecha {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
-  flex-shrink: 0;
   white-space: nowrap;
-  padding-top: var(--s-3);
 }
 
 .anuncio__cuerpo {
@@ -4216,23 +4224,17 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Claustro grid — cards de ponentes en lecciones
+ * Claustro grid · cards de ponentes en lecciones
  * Uso: en HTML de la lección Claustro (Airtable rich text). Las clases
  * son single-dash (no BEM __) porque Airtable rich text interpreta
  * dobles underscores como markdown italic y los rompe.
  * ────────────────────────────────────────────────────────────────── */
 
 .leccion-html .claustro-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
   margin: var(--s-7) 0;
-}
-
-@media (max-width: 720px) {
-  .leccion-html .claustro-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .leccion-html .claustro-card {
@@ -4304,4 +4306,66 @@
     align-items: center;
     text-align: center;
   }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Shell skeleton placeholders (shown by shell-skeleton.js before
+ * authentication completes; replaced by renderShell once persona is
+ * available).
+ * ────────────────────────────────────────────────────────────────── */
+
+.sidebar__avatar--placeholder {
+  background: var(--color-bg-subtle);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+}
+
+.sidebar__user-name--placeholder {
+  width: 110px;
+  height: 12px;
+  border-radius: var(--r-sm);
+  background: var(--color-bg-subtle);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+}
+
+.sidebar__user-role--placeholder {
+  width: 70px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: var(--r-sm);
+  background: var(--color-bg-subtle);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+}
+
+.shell--skeleton .sidebar__user {
+  cursor: default;
+  pointer-events: none;
+}
+
+@keyframes skel-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+
+/* Test error flash, shown when user tries to submit with missing answers */
+.test-error-flash {
+  background: var(--color-accent-faint);
+  color: var(--color-accent);
+  border-left: 3px solid var(--color-accent);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-sm);
+  margin-bottom: var(--s-5);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  animation: flash-in 0.3s ease;
+}
+
+@keyframes flash-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Test footer (lesson-level), link to previous lesson sits below the
+   test wizard card, not inside it. */
+.leccion-page__footer--test {
+  margin-top: var(--s-6);
 }

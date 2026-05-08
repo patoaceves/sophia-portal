@@ -11,28 +11,10 @@
   <link rel="stylesheet" href="/assets/css/shell.css">
 </head>
 <body>
-  <div class="full-page-loader">
-    <div class="page-loader__inner">
-      <div class="spinner" role="status" aria-live="polite"></div>
-      <div class="page-loader__text">
-        <span class="page-loader__msg" id="bootMsg">Cargando tu progreso</span><span class="page-loader__dots"><span>.</span><span>.</span><span>.</span></span>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function() {
-      var msgs = ["Cargando tu progreso", "Sumando tus avances", "Midiendo tu camino"];
-      var i = 0;
-      var el = document.getElementById("bootMsg");
-      var iv = setInterval(function() {
-        if (!el || !document.body.contains(el)) { clearInterval(iv); return; }
-        i = (i + 1) % msgs.length;
-        el.style.transition = "opacity 0.22s ease";
-        el.style.opacity = "0";
-        setTimeout(function() { if (el) { el.textContent = msgs[i]; el.style.opacity = "1"; } }, 220);
-      }, 2200);
-    })();
-  </script>
+  <script src="/assets/js/shell-skeleton.js"
+          data-title="Mi progreso"
+          data-active="/app/progreso"
+          data-loader-context="progreso"></script>
   <script type="module" src="/assets/js/progreso.js"></script>
 </body>
 </html>

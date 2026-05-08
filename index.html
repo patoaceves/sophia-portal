@@ -30,7 +30,7 @@
       </div>
 
       <footer class="login-hero__footer">
-        <span class="login-hero__quote">"Una golondrina no hace verano, ni un solo día; así tampoco un solo día ni un breve tiempo hace feliz a nadie." — Aristóteles</span>
+        <span class="login-hero__quote">"Una golondrina no hace verano, ni un solo día; así tampoco un solo día ni un breve tiempo hace feliz a nadie.", Aristóteles</span>
         <span>© SOPHIA</span>
       </footer>
     </section>
@@ -74,7 +74,7 @@
         </form>
 
         <p class="login-footer-note">
-          Te enviaremos un correo con un enlace seguro para entrar — sin contraseñas.
+          Te enviaremos un correo con un enlace seguro para entrar, sin contraseñas.
         </p>
       </div>
     </section>
@@ -85,12 +85,25 @@
       redirectIfAuthed,
       loginWithGoogle,
       loginWithMagicLink,
+      captureInviteFromUrl,
+      getPendingInvite,
     } from "/assets/js/auth.js";
+
+    // ─── 0. Capturar ?invite=... lo más temprano posible ─────────────
+    // Lo guardamos en sessionStorage y limpiamos la URL. Después del
+    // login (callback.html) intentaremos canjearlo.
+    captureInviteFromUrl();
 
     const flash = document.getElementById("flash");
     function showFlash(msg, kind = "success") {
       flash.textContent = msg;
       flash.className = `flash is-visible is-${kind}`;
+    }
+
+    // Si tenemos token pendiente, mostrar mensaje sutil
+    const pendingToken = getPendingInvite();
+    if (pendingToken) {
+      showFlash("Tienes una invitación pendiente. Inicia sesión para activarla.", "success");
     }
 
     // ─── 1. Registrar handlers PRIMERO (antes de cualquier await) ──────

@@ -1,4 +1,4 @@
-// SOPHIA Portal — Mi progreso
+// SOPHIA Portal · Mi progreso
 //
 // Vista panorámica del avance del alumno. Combina datos de get-mis-cursos
 // (cursos inscritos + progreso por curso) con la respuesta del Test de
@@ -83,7 +83,7 @@ function renderProgreso(persona, cursos, resultadoTest) {
         <div class="stat-card__sub">${cursosCompletos} completado${cursosCompletos === 1 ? "" : "s"}</div>
       </article>
       <article class="stat-card stat-card--accent">
-        <div class="stat-card__num">${testTomado ? "✓" : "—"}</div>
+        <div class="stat-card__num">${testTomado ? "✓" : ","}</div>
         <div class="stat-card__label">Test de Felicidad</div>
         <div class="stat-card__sub">${testTomado ? "Tomado" : "Pendiente"}</div>
       </article>

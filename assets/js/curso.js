@@ -1,4 +1,4 @@
-// SOPHIA Portal — Dashboard del curso
+// SOPHIA Portal · Dashboard del curso
 //
 // Cambios v2:
 //   - Pestaña "Test de Felicidad" eliminada. El acceso al test es vía:
@@ -194,7 +194,7 @@ function activateTab(tab, slug, updateHistory = true) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Hero — horizontal layout: image (5:4) on the left, content on the right
+// Hero · horizontal layout: image (5:4) on the left, content on the right
 //
 // Right side now includes additional metadata: directora del programa
 // and current chapter ("Vas en el capítulo X de N").

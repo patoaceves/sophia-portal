@@ -1,4 +1,4 @@
-// SOPHIA Portal — central icon registry.
+// SOPHIA Portal · central icon registry.
 // All icons are 24x24 line-based SVGs, stroke-width 1.5, currentColor.
 // Use as raw HTML strings.
 

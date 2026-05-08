@@ -1,10 +1,10 @@
-// SOPHIA Portal — Supabase client singleton
+// SOPHIA Portal · Supabase client singleton
 //
 // La anon key es PÚBLICA por diseño (la seguridad real vive en RLS de
-// la base de datos). Por eso se hardcodea aquí y se commitea — exactamente
+// la base de datos). Por eso se hardcodea aquí y se commitea · exactamente
 // como recomienda la doc oficial de Supabase para sitios estáticos.
 //
-// La service_role key (NUNCA aquí) sí es secreta — vive en Supabase Secrets
+// La service_role key (NUNCA aquí) sí es secreta · vive en Supabase Secrets
 // de las Edge Functions.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";

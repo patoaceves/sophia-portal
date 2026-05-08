@@ -1,4 +1,4 @@
-// SOPHIA Portal — get-mis-cursos (inlined for dashboard deploy)
+// SOPHIA Portal · get-mis-cursos (inlined for dashboard deploy)
 // Returns the list of courses the authenticated user is enrolled in,
 // with computed progress %.
 //

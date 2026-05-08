@@ -1,4 +1,4 @@
-// SOPHIA Portal — Rueda de la Felicidad (módulo compartido).
+// SOPHIA Portal · Rueda de la Felicidad (módulo compartido).
 //
 // Renderiza el SVG de la rueda con la geometría legacy:
 //   - 8 ejes con ángulos asimétricos (60°/30°)
@@ -37,11 +37,11 @@ export const RUEDA_AXES = AXES;
 /**
  * Monta la rueda en un elemento SVG existente.
  * @param {object} opts
- * @param {SVGElement} opts.svg — el elemento <svg> donde montar
- * @param {HTMLElement} opts.tooltip — el div del tooltip
- * @param {object|null} opts.scores — objeto con scores por key, o null para vista vacía
- * @param {boolean} [opts.animate=true] — animar con stagger al cargar
- * @param {boolean} [opts.compact=false] — versión chica (preview en dashboard)
+ * @param {SVGElement} opts.svg · el elemento <svg> donde montar
+ * @param {HTMLElement} opts.tooltip · el div del tooltip
+ * @param {object|null} opts.scores · objeto con scores por key, o null para vista vacía
+ * @param {boolean} [opts.animate=true] · animar con stagger al cargar
+ * @param {boolean} [opts.compact=false] · versión chica (preview en dashboard)
  */
 export function mountRueda({ svg, tooltip, scores, animate = true, compact = false }) {
   if (!svg) return;
@@ -209,7 +209,7 @@ function animateSegments(svg, scores) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Hover tooltips — tight to the cursor (small offset, narrow width)
+// Hover tooltips · tight to the cursor (small offset, narrow width)
 // ────────────────────────────────────────────────────────────────────
 
 function setupTooltips(svg, tooltip, scores) {

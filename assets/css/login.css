@@ -1,4 +1,4 @@
-/* Login page — editorial, two-column hero with subtle texture
+/* Login page, editorial, two-column hero with subtle texture
  * Left: brand & invitation. Right: auth methods.
  */
 
@@ -11,7 +11,7 @@
   overflow: hidden;
 }
 
-/* Decorative dots/grain — adds paper texture without external asset */
+/* Decorative dots/grain, adds paper texture without external asset */
 .login-page::before {
   content: "";
   position: absolute;
@@ -103,7 +103,7 @@
   color: var(--color-text-muted);
 }
 
-/* Right column — form */
+/* Right column, form */
 .login-form-wrap {
   display: grid;
   place-items: center;

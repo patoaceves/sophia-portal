@@ -1,4 +1,4 @@
-// SOPHIA Portal — Anuncios
+// SOPHIA Portal · Anuncios
 //
 // Lista de mensajes del instructor / coordinación del programa al alumno.
 // Por ahora muestra anuncios mockeados; el siguiente paso (cuando estés
@@ -12,7 +12,7 @@ import { requireAuth } from "./auth.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon } from "./icons.js";
 
-// Mock data — replace with Airtable fetch when the table is created.
+// Mock data · replace with Airtable fetch when the table is created.
 const ANUNCIOS_MOCK = [
   {
     id: "anu-001",
@@ -92,13 +92,15 @@ function renderAnuncio(a) {
 
   return `
     <li class="anuncio ${a.importante ? "anuncio--importante" : ""}">
-      ${a.importante ? `<span class="anuncio__badge">Importante</span>` : ""}
       <header class="anuncio__header">
         <div>
           <span class="anuncio__curso">${escapeHtml(a.curso)}</span>
           <h3 class="anuncio__title">${escapeHtml(a.titulo)}</h3>
         </div>
-        <time class="anuncio__fecha">${escapeHtml(fecha)}</time>
+        <div class="anuncio__header-meta">
+          ${a.importante ? `<span class="anuncio__badge">Importante</span>` : ""}
+          <time class="anuncio__fecha">${escapeHtml(fecha)}</time>
+        </div>
       </header>
       <div class="anuncio__cuerpo">
         <p>${escapeHtml(a.cuerpo)}</p>

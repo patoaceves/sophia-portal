@@ -1,4 +1,4 @@
-// SOPHIA Portal — Smart loader con texto rotativo
+// SOPHIA Portal · Smart loader con texto rotativo
 //
 // Uso:
 //   import { loaderHtml, startLoaderRotation, stopLoaderRotation } from "./loader.js";
@@ -54,8 +54,8 @@ const MESSAGES = {
  *
  * @param {object} opts
  * @param {string} [opts.context="generic"]
- * @param {string} [opts.firstMessage] — override del primer mensaje
- * @param {boolean} [opts.fullPage=false] — si true, ocupa toda la pantalla
+ * @param {string} [opts.firstMessage] · override del primer mensaje
+ * @param {boolean} [opts.fullPage=false] · si true, ocupa toda la pantalla
  */
 export function loaderHtml({ context = "generic", firstMessage, fullPage = false } = {}) {
   const messages = MESSAGES[context] || MESSAGES.generic;

@@ -1,7 +1,7 @@
-/* SOPHIA Portal — Base styles & design tokens
+/* SOPHIA Portal, Base styles & design tokens
  *
  * Aesthetic direction: editorial / contemplative / warm-classical
- * Inspired by the etymology of "Sophia" (σοφία, wisdom) — Mediterranean,
+ * Inspired by the etymology of "Sophia" (σοφία, wisdom) · Mediterranean,
  * scholarly, slightly literary. Cream paper background, deep walnut text,
  * terracotta accent. Fraunces (variable serif) for display + Source Sans 3
  * for body, matching SOPHIA's existing brand usage on Thinkific.
@@ -10,7 +10,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap");
 
 :root {
-  /* Color palette — warm classical */
+  /* Color palette, warm classical */
   --color-bg: #faf6ee;
   --color-bg-elevated: #ffffff;
   --color-bg-subtle: #f3ede0;
@@ -72,7 +72,7 @@
   --r-xl: 20px;
   --r-full: 999px;
 
-  /* Shadows — soft, paper-like */
+  /* Shadows, soft, paper-like */
   --shadow-sm: 0 1px 2px rgba(31, 26, 20, 0.04), 0 1px 3px rgba(31, 26, 20, 0.06);
   --shadow-md: 0 4px 6px rgba(31, 26, 20, 0.04), 0 10px 24px -6px rgba(31, 26, 20, 0.08);
   --shadow-lg: 0 12px 32px -8px rgba(31, 26, 20, 0.16);
@@ -160,7 +160,7 @@ img {
   display: block;
 }
 
-/* Utility — visually-hidden for a11y */
+/* Utility, visually-hidden for a11y */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -231,11 +231,11 @@ img {
   background: var(--color-bg-subtle);
 }
 
-/* Spinner — 8 dots arranged in a circle, pulsing in sequence in the
+/* Spinner, 8 dots arranged in a circle, pulsing in sequence in the
    dimensional colors of the rueda de felicidad (Espiritual / Afectivo /
    Físico / Mental). Brand-aligned, custom SOPHIA loader. */
 /* ──────────────────────────────────────────────────────────────────
- * Spinner — modern minimal arc rotation. A single ring with a
+ * Spinner · modern minimal arc rotation. A single ring with a
  * gradient stroke (faint at the back, full color at the leading edge),
  * spins smoothly. Replaces the multi-color-dot spinner.
  * ────────────────────────────────────────────────────────────────── */
@@ -258,7 +258,7 @@ img {
 }
 
 .spinner::after {
-  /* Foreground arc — three transparent borders + one accent border
+  /* Foreground arc, three transparent borders + one accent border
      gives the look of a rotating quarter-arc without complex SVG. */
   content: "";
   position: absolute;
@@ -293,7 +293,7 @@ img {
   display: block;
 }
 
-/* Sizing variants — match the modern arc spinner */
+/* Sizing variants, match the modern arc spinner */
 .spinner--sm { width: 32px; height: 32px; border-width: 2px; }
 .spinner--sm::before, .spinner--sm::after { border-width: 2px; }
 
@@ -301,7 +301,7 @@ img {
   to { transform: rotate(360deg); }
 }
 
-/* Scrollbars (webkit only) — slim, paper-toned, only visible on hover */
+/* Scrollbars (webkit only), slim, paper-toned, only visible on hover */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -344,7 +344,7 @@ html:hover {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* ──────────────────────────────────────────────────────────────────
- * Page loader — contained card with rotating message.
+ * Page loader · contained card with rotating message.
  * 
  * Two variants:
  *   - .page-loader (default, in-shell): vertically centered within the
@@ -417,20 +417,15 @@ html:hover {
 }
 
 /* Full-screen variant (used in pre-shell HTMLs at /app/curso.html etc.).
-   On desktop, offset by sidebar width so the loader appears centered
-   in the main area (matching the post-shell position). */
+   The sidebar doesn't exist yet at this stage (JS hasn't bootstrapped),
+   so we DON'T offset by sidebar width, that would visually shift the
+   spinner once the shell renders. Instead, center against the full
+   viewport. The post-shell .page-loader inside .app-main handles
+   centering against the main area when the sidebar is present. */
 .full-page-loader {
   display: grid;
   place-items: center;
   min-height: 100vh;
   width: 100%;
   padding: var(--s-6);
-}
-
-@media (min-width: 881px) {
-  /* Desktop: account for the sidebar that will appear after JS bootstrap.
-     Matches the shell breakpoint at max-width: 880px where sidebar collapses. */
-  .full-page-loader {
-    padding-left: var(--sidebar-w, 264px);
-  }
 }

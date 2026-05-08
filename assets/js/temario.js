@@ -1,4 +1,4 @@
-// SOPHIA Portal — Temario del curso (lista de capítulos y lecciones)
+// SOPHIA Portal · Temario del curso (lista de capítulos y lecciones)
 
 import { requireAuth } from "./auth.js";
 import { api, ApiError } from "./api.js";

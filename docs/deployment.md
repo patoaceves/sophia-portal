@@ -9,7 +9,7 @@ Antes del primer deploy, asegúrate de tener:
 - [ ] Personal Access Token de Airtable con scopes correctos
 - [ ] Field IDs reales pegados en `supabase/functions/_shared/airtable.ts`
 
-## Paso 1 — Configurar variables de entorno
+## Paso 1 · Configurar variables de entorno
 
 ### En el frontend (`assets/js/config.js`, gitignored)
 
@@ -32,7 +32,7 @@ supabase secrets set AIRTABLE_BASE_ID=app0S6GrJQ8YatvCc
 # SUPABASE_URL y SUPABASE_ANON_KEY se inyectan automáticamente
 ```
 
-## Paso 2 — Deploy frontend a Vercel
+## Paso 2 · Deploy frontend a Vercel
 
 ```bash
 vercel --prod
@@ -44,7 +44,7 @@ Vercel detecta automáticamente la `vercel.json` y deploya como sitio estático.
 - Production Domain: `portal.sophiamx.org`
 - Edit Domain → DNS records (apunta a Vercel)
 
-## Paso 3 — Deploy Edge Functions
+## Paso 3 · Deploy Edge Functions
 
 ```bash
 supabase functions deploy auth-bootstrap
@@ -63,7 +63,7 @@ for fn in auth-bootstrap get-mis-cursos get-curso get-leccion marcar-leccion sub
 done
 ```
 
-## Paso 4 — Configurar Auth providers
+## Paso 4 · Configurar Auth providers
 
 En Supabase Dashboard → Authentication → Providers:
 
@@ -82,7 +82,7 @@ En Supabase Dashboard → Authentication → Providers:
 
 ### Magic Link
 1. Authentication → Providers → Email → enable
-2. **IMPORTANTE — Confirm email**: si esta opción está activada, los magic links no funcionarán correctamente porque Supabase espera el flujo de confirmación.
+2. **IMPORTANTE, Confirm email**: si esta opción está activada, los magic links no funcionarán correctamente porque Supabase espera el flujo de confirmación.
    **Desactiva "Confirm email" para que el magic link funcione directamente.**
 
 ### URL Configuration
@@ -92,7 +92,7 @@ En Supabase Dashboard → Authentication → Providers:
   - `http://localhost:3000/auth/callback` (para dev)
   - `http://localhost:8080/auth/callback`
 
-## Paso 5 — Crear el Test de Felicidad en Airtable
+## Paso 5 · Crear el Test de Felicidad en Airtable
 
 En la tabla `Autoevaluaciones`, crear un registro:
 - Título: `Test de Felicidad`
@@ -100,12 +100,12 @@ En la tabla `Autoevaluaciones`, crear un registro:
 
 Después, en la lección 5 del Capítulo 1 de Happiness Workshop, linkearla a este registro.
 
-## Paso 6 — Cargar contenido del Capítulo 1
+## Paso 6 · Cargar contenido del Capítulo 1
 
 Abre los archivos en `docs/contenido-capitulo-1/` y copia el HTML al campo `Contenido_HTML`
 de cada lección. Ver el README de esa carpeta para los detalles.
 
-## Paso 7 — Crear inscripción de prueba (Pato)
+## Paso 7 · Crear inscripción de prueba (Pato)
 
 En la tabla `Inscripciones`, crear un registro:
 - Persona: link a tu Persona del CRM (la que tiene `pato@sophiamx.org`)

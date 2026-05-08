@@ -11,14 +11,10 @@
   <link rel="stylesheet" href="/assets/css/shell.css">
 </head>
 <body>
-  <div class="full-page-loader">
-    <div class="page-loader__inner">
-      <div class="spinner" role="status" aria-live="polite"></div>
-      <div class="page-loader__text">
-        <span class="page-loader__msg">Cargando anuncios</span><span class="page-loader__dots"><span>.</span><span>.</span><span>.</span></span>
-      </div>
-    </div>
-  </div>
+  <script src="/assets/js/shell-skeleton.js"
+          data-title="Anuncios"
+          data-active="/app/anuncios"
+          data-loader-context="generic"></script>
   <script type="module" src="/assets/js/anuncios.js"></script>
 </body>
 </html>

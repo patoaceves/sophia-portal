@@ -1,4 +1,4 @@
-// SOPHIA Portal — Certificados (coming soon)
+// SOPHIA Portal · Certificados (coming soon)
 import { requireAuth } from "./auth.js";
 import { renderShell } from "./ui-shell.js";
 import { icon } from "./icons.js";

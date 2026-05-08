@@ -1,4 +1,4 @@
-// SOPHIA Portal — auth-bootstrap (defensive version)
+// SOPHIA Portal · auth-bootstrap (defensive version)
 // Creates a Persona in CRM. If Airtable rejects optional fields,
 // retries with only essential fields.
 
@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Create new Persona — defensive: try full, fall back to essentials
+    // 3. Create new Persona · defensive: try full, fall back to essentials
     const fullFields: Record<string, unknown> = {
       [FIELDS.PERSONAS_CRM.NOMBRE]: nombre || "Sin nombre",
       [FIELDS.PERSONAS_CRM.APELLIDOS]: apellidos,

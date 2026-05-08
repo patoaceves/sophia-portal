@@ -1,4 +1,4 @@
-// SOPHIA Portal — Calendario
+// SOPHIA Portal · Calendario
 //
 // Vista de las próximas sesiones de los cursos en los que el alumno está
 // inscrito. Por ahora hardcodeamos las sesiones del Happiness Workshop;

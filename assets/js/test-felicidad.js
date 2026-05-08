@@ -1,4 +1,4 @@
-// SOPHIA Portal — Test de Felicidad (wizard de 16 preguntas).
+// SOPHIA Portal · Test de Felicidad (wizard de 16 preguntas).
 //
 // Modos de uso:
 //   1. Standalone (`/app/test-felicidad?inscripcion=X[&leccion=Y]`):
@@ -44,18 +44,18 @@ const ESCALA_LABELS = {
 };
 
 // ────────────────────────────────────────────────────────────────────
-// Public API: mountWizard — used by leccion.js for embedded mode
+// Public API: mountWizard · used by leccion.js for embedded mode
 // ────────────────────────────────────────────────────────────────────
 
 /**
  * Monta el wizard del test dentro de un contenedor.
  * @param {object} opts
- * @param {HTMLElement} opts.container — donde montar el wizard
+ * @param {HTMLElement} opts.container · donde montar el wizard
  * @param {string} opts.inscripcionId
- * @param {string} [opts.leccionId] — para marcar la lección como completada al enviar
- * @param {function(result):void} [opts.onComplete] — callback con el resultado del submit
- * @param {string} [opts.cursoSlug] — para el botón "salir"
- * @param {boolean} [opts.embedded=false] — si true, no muestra header propio (lección lo hace)
+ * @param {string} [opts.leccionId] · para marcar la lección como completada al enviar
+ * @param {function(result):void} [opts.onComplete] · callback con el resultado del submit
+ * @param {string} [opts.cursoSlug] · para el botón "salir"
+ * @param {boolean} [opts.embedded=false] · si true, no muestra header propio (lección lo hace)
  */
 export function mountWizard(opts) {
   const state = {
@@ -235,14 +235,14 @@ async function clickHandler(state, e) {
       btn.classList.add("is-active");
     }
 
-    // Enable the next/submit button (it was disabled until an answer existed)
-    const nextBtn = state.container.querySelector('[data-test-action="next"]');
-    if (nextBtn) nextBtn.disabled = false;
-
     // Auto-advance after short delay (feels snappier).
-    // Last question: don't auto-advance; let user confirm with the next button.
+    // Last question: re-render so the submit button is properly enabled
+    //                and reflects the selected state in markup.
     const isLast = state.currentIndex === PREGUNTAS.length - 1;
-    if (!isLast) {
+    if (isLast) {
+      // Re-render after a brief delay so the visual feedback is seen
+      setTimeout(() => renderInto(state), 200);
+    } else {
       setTimeout(() => {
         state.currentIndex += 1;
         renderInto(state);
@@ -274,22 +274,39 @@ async function clickHandler(state, e) {
 async function submitTest(state, submitBtn) {
   if (state.submitting) return;
 
-  // Validate all answered
+  // Validate all answered. If something missing, give CLEAR feedback
+  // (jump to the missing question + flash the page-level error).
   const missing = PREGUNTAS.find((p) => !state.respuestas[p.id]);
   if (missing) {
-    state.currentIndex = PREGUNTAS.indexOf(missing);
+    const missingIdx = PREGUNTAS.indexOf(missing);
+    console.warn("[test] Missing answer for question", missingIdx + 1, missing.id);
+    state.currentIndex = missingIdx;
     renderInto(state);
+    // Flash a brief inline error so the user understands why the test
+    // didn't submit (silent jump was confusing).
+    const card = state.container.querySelector(".test-question");
+    if (card) {
+      const note = document.createElement("div");
+      note.className = "test-error-flash";
+      note.textContent = `Faltan respuestas (esta es la pregunta ${missingIdx + 1}). Termínala para enviar el test.`;
+      card.prepend(note);
+      setTimeout(() => note.remove(), 5000);
+    }
     return;
   }
 
+  console.log("[test] Submitting", Object.keys(state.respuestas).length, "answers");
   state.submitting = true;
   submitBtn.disabled = true;
   submitBtn.innerHTML = `<span>Enviando…</span>`;
 
   try {
     const result = await api.submitTest(state.inscripcionId, state.respuestas);
+    console.log("[test] Submit succeeded:", result);
     if (state.leccionId) {
-      try { await api.marcarLeccion(state.leccionId, state.inscripcionId); } catch {}
+      try { await api.marcarLeccion(state.leccionId, state.inscripcionId); } catch (e) {
+        console.warn("[test] marcarLeccion failed (non-fatal):", e);
+      }
     }
     if (state.onComplete) {
       state.onComplete(result);
@@ -300,7 +317,7 @@ async function submitTest(state, submitBtn) {
       );
     }
   } catch (err) {
-    console.error("submit-test failed:", err);
+    console.error("[test] Submit failed:", err);
     state.submitting = false;
     submitBtn.disabled = false;
     submitBtn.innerHTML = `<span>Reintentar</span> ${icon("arrowRight")}`;
