@@ -497,6 +497,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-6);
+  padding-bottom: var(--s-16);
 }
 
 .capitulo-card {
@@ -3215,6 +3216,7 @@
 
 .resumen-extras {
   margin-top: var(--s-10);
+  margin-bottom: var(--s-16);
   padding-top: var(--s-10);
   border-top: 1px solid var(--color-border);
 }
@@ -4408,4 +4410,144 @@
 .leccion-page__footer--test {
   margin-top: var(--s-6);
   padding-bottom: var(--s-12);
+}
+
+/* ============================================================
+   Ayuda / Soporte page
+   ============================================================ */
+
+.ayuda-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--s-8);
+  align-items: start;
+  margin-top: var(--s-8);
+  padding-bottom: var(--s-16);
+}
+
+@media (max-width: 800px) {
+  .ayuda-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ayuda-form-card {
+  padding: var(--s-8);
+}
+
+.ayuda-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.form-input {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 140px;
+  line-height: 1.6;
+}
+
+.form-error {
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  border-radius: var(--r-md);
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  padding: var(--s-3) var(--s-4);
+}
+
+.ayuda-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-4);
+  padding: var(--s-10) var(--s-8);
+  color: var(--color-text);
+}
+
+.ayuda-success__icon {
+  color: var(--color-success, #2d7a4f);
+}
+
+.ayuda-success__title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.ayuda-success__desc {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+.ayuda-success__desc a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.ayuda-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.ayuda-info-card {
+  padding: var(--s-5) var(--s-6);
+}
+
+.ayuda-info-card__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--s-2);
+}
+
+.ayuda-info-card__text {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.ayuda-info-card__link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.ayuda-info-card__link:hover {
+  text-decoration: underline;
 }

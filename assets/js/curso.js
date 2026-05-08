@@ -344,10 +344,11 @@ function renderResumenTab(ctx) {
         </a>
       </div>
     </section>
+  </div>
   `;
 }
 
-function renderContinuePanel(next, capitulos, total, completadas, pct) {
+function renderContinuePanel
   if (!next) {
     return `
       <section class="continue-card continue-card--done">
@@ -411,7 +412,7 @@ function renderTestCajita(ctx) {
           <span class="test-cajita__eyebrow">Tu evaluación inicial</span>
           <h3 class="test-cajita__title">Test de Felicidad</h3>
         </div>
-        <p class="test-cajita__lead">16 preguntas · 5 min · análisis personalizado en 8 pilares.</p>
+        <p class="test-cajita__lead">16 preguntas · 5 min · Análisis personalizado en 8 pilares.</p>
         <a class="btn btn-accent btn-sm test-cajita__cta" href="${href}">
           <span>Tomar el test</span>
           ${icon("arrowRight")}
@@ -425,7 +426,7 @@ function renderTestCajita(ctx) {
     <section class="test-cajita test-cajita--results">
       <div class="test-cajita__header">
         <span class="test-cajita__eyebrow">Tu evaluación · ${escapeHtml(fecha)}</span>
-        <h3 class="test-cajita__title">Tu rueda de la felicidad</h3>
+        <h3 class="test-cajita__title">Tu diagrama de felicidad</h3>
       </div>
       <div class="test-cajita__chart">
         <svg id="dashboard-rueda-svg" class="rueda-svg-preview"></svg>
@@ -434,7 +435,7 @@ function renderTestCajita(ctx) {
           <div class="rueda-tooltip__score"></div>
         </div>
       </div>
-      <a class="test-cajita__link" href="/app/test-felicidad/resultados?id=${encodeURIComponent(resultadoTest.respuestaId)}">
+      <a class="test-cajita__link" href="/app/test-felicidad/resultados?id=${encodeURIComponent(resultadoTest.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}">
         <span>Ver mis resultados</span>
         ${icon("arrowRight")}
       </a>

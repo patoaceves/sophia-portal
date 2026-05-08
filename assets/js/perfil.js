@@ -43,7 +43,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
           </div>
         </dl>
         <p class="profile-card__note">
-          Para editar tus datos, escríbenos a <a href="mailto:hola@sophiamx.org">hola@sophiamx.org</a>.
+          Para editar tus datos, escríbenos a <a href="mailto:contacto@sophiamx.org">contacto@sophiamx.org</a>.
         </p>
       </section>
 

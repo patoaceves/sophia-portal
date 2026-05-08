@@ -312,8 +312,9 @@ async function submitTest(state, submitBtn) {
       state.onComplete(result);
     } else {
       // Standalone: redirect to results
+      const slugParam = state.cursoSlug ? `&slug=${encodeURIComponent(state.cursoSlug)}` : "";
       location.replace(
-        `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}`,
+        `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}${slugParam}`,
       );
     }
   } catch (err) {

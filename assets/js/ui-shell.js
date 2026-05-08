@@ -15,14 +15,13 @@ const NAV_GROUPS = [
     links: [
       { href: "/app/cursos", icon: "cursos", label: "Mis cursos" },
       { href: "/app/calendario", icon: "calendario", label: "Calendario" },
-      { href: "/app/progreso", icon: "progreso", label: "Mi progreso" },
     ],
   },
   {
     label: "Recursos",
     links: [
       { href: "/app/anuncios", icon: "anuncios", label: "Anuncios" },
-      { href: "/app/recursos", icon: "recursos", label: "Biblioteca" },
+      { href: "/app/recursos", icon: "biblioteca", label: "Biblioteca" },
       { href: "/app/certificados", icon: "certificados", label: "Certificados" },
     ],
   },

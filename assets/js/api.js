@@ -78,15 +78,55 @@ export const api = {
     return data;
   },
 
+// ── Caché en sessionStorage ──────────────────────────────────────────────────
+// Guarda respuestas por tab-session (se limpia al cerrar la pestaña).
+// TTL: 5 minutos. Se invalida al marcar una lección como completada.
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+function cacheGet(key) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const { ts, value } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL_MS) { sessionStorage.removeItem(key); return null; }
+    return value;
+  } catch { return null; }
+}
+
+function cacheSet(key, value) {
+  try { sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), value })); } catch {}
+}
+
+function cacheDel(key) {
+  try { sessionStorage.removeItem(key); } catch {}
+}
+
+function cacheClear(prefix) {
+  try {
+    Object.keys(sessionStorage)
+      .filter(k => k.startsWith(prefix))
+      .forEach(k => sessionStorage.removeItem(k));
+  } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
   /** GET /get-mis-cursos → { cursos: [...] } */
   async misCursos() {
+    const hit = cacheGet("api:mis-cursos");
+    if (hit) return hit;
     const { data } = await callEdge("get-mis-cursos");
+    cacheSet("api:mis-cursos", data);
     return data;
   },
 
   /** GET /get-curso?slug= → { curso, inscripcion, capitulos } */
   async curso(slug) {
+    const key = `api:curso:${slug}`;
+    const hit = cacheGet(key);
+    if (hit) return hit;
     const { data } = await callEdge("get-curso", { query: { slug } });
+    cacheSet(key, data);
     return data;
   },
 
@@ -103,6 +143,9 @@ export const api = {
       body.videoPctCompletado = videoPctCompletado;
     }
     const { data } = await callEdge("marcar-leccion", { method: "POST", body });
+    // Invalida cache para que progreso se refleje de inmediato
+    cacheClear("api:curso:");
+    cacheDel("api:mis-cursos");
     return data;
   },
 

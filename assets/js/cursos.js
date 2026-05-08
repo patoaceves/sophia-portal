@@ -88,7 +88,7 @@ function renderCursos(cursos, opts = {}) {
         </p>
         <p class="empty-state__desc" style="margin-top:8px;">
           ¿Algo raro? Escribe a
-          <a href="mailto:hola@sophiamx.org" style="color:var(--color-accent);">hola@sophiamx.org</a>.
+          <a href="mailto:contacto@sophiamx.org" style="color:var(--color-accent);">contacto@sophiamx.org</a>.
         </p>
       </div>
     `;
@@ -112,7 +112,6 @@ function renderCursoCard(c) {
     <a class="curso-card" href="/app/curso?slug=${encodeURIComponent(slug)}">
       <div class="curso-card__cover">${cover}</div>
       <div class="curso-card__body">
-        ${c.instructor ? `<div class="curso-card__instructor">${escapeHtml(c.instructor)}</div>` : ""}
         <h3 class="curso-card__title">${escapeHtml(c.titulo)}</h3>
         ${c.descripcionCorta ? `<p class="curso-card__desc">${escapeHtml(c.descripcionCorta)}</p>` : ""}
         <div class="curso-card__progress">

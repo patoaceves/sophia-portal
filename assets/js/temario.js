@@ -68,20 +68,25 @@ function renderTemario(persona, slug, payload) {
     title: `Temario · ${curso.titulo}`,
     activePath: "/app/cursos",
     contentHtml: `
-      <header class="page-header page-header--with-back">
-        <a href="/app/curso?slug=${encodeURIComponent(slug)}" class="page-back">
-          ${icon("chevronLeft")}
-          <span>${escapeHtml(curso.titulo)}</span>
-        </a>
-        <h2 class="page-title">Temario</h2>
-        <p class="page-subtitle">
-          ${capitulos.length} ${capitulos.length === 1 ? "capítulo" : "capítulos"} ·
-          ${totalLecciones} ${totalLecciones === 1 ? "lección" : "lecciones"} ·
-          ${progresoPct}% completado
-        </p>
-        <div class="curso-progress-bar" style="margin-top: var(--s-4);">
-          <div class="curso-progress-bar__fill" style="width: ${progresoPct}%;"></div>
+      <header class="page-header page-header--with-action">
+        <div class="page-header__main">
+          <a href="/app/curso?slug=${encodeURIComponent(slug)}" class="page-back">
+            ${icon("chevronLeft")}
+            <span>${escapeHtml(curso.titulo)}</span>
+          </a>
+          <h2 class="page-title">Temario</h2>
+          <p class="page-subtitle">
+            ${capitulos.length} ${capitulos.length === 1 ? "capítulo" : "capítulos"} ·
+            ${totalLecciones} ${totalLecciones === 1 ? "lección" : "lecciones"} ·
+            ${progresoPct}% completado
+          </p>
+          <div class="curso-progress-bar" style="margin-top: var(--s-4);">
+            <div class="curso-progress-bar__fill" style="width: ${progresoPct}%;"></div>
+          </div>
         </div>
+        <a class="btn btn-secondary page-header__action" href="/app/curso?slug=${encodeURIComponent(slug)}">
+          Volver a Mi Curso
+        </a>
       </header>
 
       <div class="curso-capitulos">

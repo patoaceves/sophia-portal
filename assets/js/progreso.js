@@ -129,7 +129,7 @@ function renderRuedaSection(resultadoTest) {
       </div>
       <div class="progreso-rueda__body">
         <span class="progreso-rueda__eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
-        <h3 class="progreso-rueda__title">Tu rueda de la felicidad</h3>
+        <h3 class="progreso-rueda__title">Tu diagrama de felicidad</h3>
         <p class="progreso-rueda__lead">
           La fotografía de tu bienestar al inicio del programa. Vuélvela a tomar
           al cerrar el Workshop para ver cuánto cambió.

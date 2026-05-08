@@ -99,9 +99,9 @@ function renderLeccion(persona, payload, cursoContext) {
   const ponente = capInfo?.ponente || capCompleto?.ponente || "";
 
   const backHref = cursoSlug
-    ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}&tab=temario`
+    ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}`
     : "/app/cursos";
-  const backLabel = cursoTitulo ? `${cursoTitulo} · Temario` : "Volver";
+  const backLabel = cursoTitulo ? `Volver a Mi Curso` : "Volver";
 
   const isTest = leccion.tipo === "test" || leccion.tipo === "autoeval";
 

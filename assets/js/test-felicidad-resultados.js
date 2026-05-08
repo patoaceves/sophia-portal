@@ -12,6 +12,7 @@ import { mountRueda, RUEDA_AXES } from "./rueda.js";
 
   const params = new URLSearchParams(location.search);
   const respuestaId = params.get("id");
+  const cursoSlug = params.get("slug") || "";
 
   renderShell({
     persona,
@@ -34,7 +35,7 @@ import { mountRueda, RUEDA_AXES } from "./rueda.js";
       `;
       return;
     }
-    renderResultados(persona, data);
+    renderResultados(persona, data, cursoSlug);
   } catch (e) {
     stopLoader();
     console.error("get-resultados-test failed:", e);
@@ -47,8 +48,10 @@ import { mountRueda, RUEDA_AXES } from "./rueda.js";
   }
 })();
 
-function renderResultados(persona, data) {
+function renderResultados(persona, data, cursoSlug) {
   const { scores, analisis, pilarNombres, completedAt } = data;
+  const backHref = cursoSlug ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}` : "/app/cursos";
+  const backLabel = cursoSlug ? "Volver a Mi Curso" : "Volver a mis cursos";
   const fecha = completedAt
     ? new Date(completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
@@ -61,14 +64,14 @@ function renderResultados(persona, data) {
     <header class="page-header page-header--with-action">
       <div class="page-header__main">
         <span class="page-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
-        <h2 class="page-title">Tu rueda de la felicidad</h2>
+        <h2 class="page-title">Tu diagrama de felicidad</h2>
         <p class="page-subtitle">
           Cada pilar refleja un área de tu vida. No hay puntajes "buenos" o "malos" ,
           son señales de dónde estás hoy y dónde puedes nutrir más.
         </p>
       </div>
-      <a class="btn btn-secondary page-header__action" href="/app/cursos">
-        Volver a mis cursos
+      <a class="btn btn-secondary page-header__action" href="${backHref}">
+        ${backLabel}
       </a>
     </header>
 
@@ -97,7 +100,7 @@ function renderResultados(persona, data) {
     </section>
 
     <footer class="resultados-footer">
-      <a class="btn btn-secondary" href="/app/cursos">Volver a mis cursos</a>
+      <a class="btn btn-secondary" href="${backHref}">${backLabel}</a>
     </footer>
   `;
 
