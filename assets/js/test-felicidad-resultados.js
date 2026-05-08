@@ -71,7 +71,7 @@ function renderResultados(persona, data, cursoSlug) {
         </p>
       </div>
       <a class="btn btn-secondary page-header__action" href="${backHref}">
-        ${backLabel}
+        ${icon("arrowLeft")}<span>${backLabel}</span>
       </a>
     </header>
 
@@ -100,7 +100,7 @@ function renderResultados(persona, data, cursoSlug) {
     </section>
 
     <footer class="resultados-footer">
-      <a class="btn btn-secondary" href="${backHref}">${backLabel}</a>
+      <a class="btn btn-secondary" href="${backHref}">${icon("arrowLeft")}<span>${backLabel}</span></a>
     </footer>
   `;
 

@@ -85,7 +85,7 @@ function renderTemario(persona, slug, payload) {
           </div>
         </div>
         <a class="btn btn-secondary page-header__action" href="/app/curso?slug=${encodeURIComponent(slug)}">
-          Volver a Mi Curso
+          ${icon("arrowLeft")}<span>Volver a Mi Curso</span>
         </a>
       </header>
 
