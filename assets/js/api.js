@@ -68,16 +68,6 @@ export async function callEdge(fnName, opts = {}) {
 // para que las páginas no tengan que desempacar.
 // ────────────────────────────────────────────────────────────────────
 
-export const api = {
-  /** POST /auth-bootstrap → { personaId, rol, nombre, apellidos, isNew } */
-  async bootstrap(payload = {}) {
-    const { data } = await callEdge("auth-bootstrap", {
-      method: "POST",
-      body: payload,
-    });
-    return data;
-  },
-
 // ── Caché en sessionStorage ──────────────────────────────────────────────────
 // Guarda respuestas por tab-session (se limpia al cerrar la pestaña).
 // TTL: 5 minutos. Se invalida al marcar una lección como completada.
@@ -111,7 +101,15 @@ function cacheClear(prefix) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-  /** GET /get-mis-cursos → { cursos: [...] } */
+export const api = {
+  /** POST /auth-bootstrap → { personaId, rol, nombre, apellidos, isNew } */
+  async bootstrap(payload = {}) {
+    const { data } = await callEdge("auth-bootstrap", {
+      method: "POST",
+      body: payload,
+    });
+    return data;
+  },
   async misCursos() {
     const hit = cacheGet("api:mis-cursos");
     if (hit) return hit;
