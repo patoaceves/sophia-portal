@@ -348,7 +348,7 @@ function renderResumenTab(ctx) {
   `;
 }
 
-function renderContinuePanel
+function renderContinuePanel(next, capitulos, total, completadas, pct) {
   if (!next) {
     return `
       <section class="continue-card continue-card--done">

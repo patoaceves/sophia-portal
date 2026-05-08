@@ -30,7 +30,6 @@
       links: [
         { href: "/app/cursos", icon: "cursos", label: "Mis cursos" },
         { href: "/app/calendario", icon: "calendario", label: "Calendario" },
-        { href: "/app/progreso", icon: "progreso", label: "Mi progreso" },
       ],
     },
     {
