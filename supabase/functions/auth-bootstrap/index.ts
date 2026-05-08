@@ -76,17 +76,17 @@ async function createRecord(
   fields: Record<string, unknown>,
 ): Promise<AirtableRecord> {
   const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
+  const res = await fetch(
+    `${AIRTABLE_API}/${baseId}/${tableId}?returnFieldsByFieldId=true`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${pat}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ records: [{ fields }] }),
     },
-    body: JSON.stringify({
-      records: [{ fields }],
-      returnFieldsByFieldId: true,
-    }),
-  });
+  );
   if (!res.ok) {
     throw new Error(`Airtable create failed (${res.status}): ${await res.text()}`);
   }
@@ -313,6 +313,20 @@ Deno.serve(async (req) => {
           500,
           { firstError: String(firstErr), secondError: msg },
         );
+      }
+
+      // Rescue PATCH: set rol + productos that were missing from essentials
+      try {
+        await updateRecord(BASES.CRM, TABLES.PERSONAS, newPersona.id, {
+          [FIELDS.PERSONAS_CRM.ROL]: DEFAULT_ROL,
+          [FIELDS.PERSONAS_CRM.PRODUCTOS]: ["portal"],
+          [FIELDS.PERSONAS_CRM.ORIGEN]: "signup",
+          [FIELDS.PERSONAS_CRM.ESTATUS]: "activo",
+          ...(avatarUrl ? { [FIELDS.PERSONAS_CRM.AVATAR_URL]: avatarUrl } : {}),
+        });
+      } catch (patchErr) {
+        // Non-fatal: log and continue, persona already exists
+        console.warn("Rescue PATCH failed:", patchErr);
       }
     }
 
