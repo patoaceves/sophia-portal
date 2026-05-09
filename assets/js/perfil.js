@@ -8,9 +8,9 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
   if (!persona) return;
 
   const session = await getSession();
-  const email = session?.user?.email || ",";
+  const email = session?.user?.email || "—";
   const fullName =
-    [persona.nombre, persona.apellidos].filter(Boolean).join(" ") || ",";
+    [persona.nombre, persona.apellidos].filter(Boolean).join(" ") || "—";
 
   renderShell({
     persona,
@@ -27,11 +27,11 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
         <dl class="profile-list">
           <div class="profile-list__row">
             <dt>Nombre</dt>
-            <dd>${escapeHtml(persona.nombre || ",")}</dd>
+            <dd>${escapeHtml(persona.nombre || "—")}</dd>
           </div>
           <div class="profile-list__row">
             <dt>Apellidos</dt>
-            <dd>${escapeHtml(persona.apellidos || ",")}</dd>
+            <dd>${escapeHtml(persona.apellidos || "—")}</dd>
           </div>
           <div class="profile-list__row">
             <dt>Correo</dt>

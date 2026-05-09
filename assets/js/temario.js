@@ -44,7 +44,7 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
         <div class="empty-state__title">No pudimos cargar el temario</div>
         <p class="empty-state__desc">${escapeHtml(e.message || "Intenta recargar.")}</p>
         ${e instanceof ApiError && e.status === 403
-          ? `<a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">Volver a mis cursos</a>`
+          ? `<a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">${icon("arrowLeft")}<span>Volver a mis cursos</span></a>`
           : ""}
       </div>
     `;

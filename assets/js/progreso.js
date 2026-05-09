@@ -25,12 +25,13 @@ import { mountRueda } from "./rueda.js";
   const stopLoader = startLoaderRotation();
 
   try {
-    const [misCursos, resultadoTest] = await Promise.all([
+    const [misCursosResp, resultadoTest] = await Promise.all([
       api.misCursos(),
       api.resultadosTest().catch(() => null),
     ]);
     stopLoader();
-    renderProgreso(persona, misCursos, resultadoTest);
+    const cursos = misCursosResp?.cursos ?? [];
+    renderProgreso(persona, cursos, resultadoTest);
   } catch (e) {
     stopLoader();
     document.querySelector(".app-main").innerHTML = `
@@ -83,7 +84,7 @@ function renderProgreso(persona, cursos, resultadoTest) {
         <div class="stat-card__sub">${cursosCompletos} completado${cursosCompletos === 1 ? "" : "s"}</div>
       </article>
       <article class="stat-card stat-card--accent">
-        <div class="stat-card__num">${testTomado ? "✓" : ","}</div>
+        <div class="stat-card__num">${testTomado ? "✓" : "—"}</div>
         <div class="stat-card__label">Test de Felicidad</div>
         <div class="stat-card__sub">${testTomado ? "Tomado" : "Pendiente"}</div>
       </article>

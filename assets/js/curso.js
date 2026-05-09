@@ -18,6 +18,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda } from "./rueda.js";
+import { mountForo } from "./foro.js";
 
 const LOCAL_COVERS = new Set(["happiness-workshop"]);
 
@@ -33,7 +34,8 @@ const PILARES = [
 ];
 
 // "test" REMOVED from valid tabs.
-const VALID_TABS = ["resumen", "temario", "recursos", "mensajes"];
+// "mensajes" → renamed to "foro" (mensajes redirige a foro por compat).
+const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
 
 // ────────────────────────────────────────────────────────────────────
 (async () => {
@@ -45,6 +47,8 @@ const VALID_TABS = ["resumen", "temario", "recursos", "mensajes"];
   let tab = params.get("tab") || "resumen";
   // Backwards-compat: if URL still has tab=test, redirect intent to resumen.
   if (tab === "test") tab = "resumen";
+  // Backwards-compat: tab=mensajes ahora es foro
+  if (tab === "mensajes") tab = "foro";
   if (!VALID_TABS.includes(tab)) tab = "resumen";
 
   if (!slug) {
@@ -79,7 +83,7 @@ const VALID_TABS = ["resumen", "temario", "recursos", "mensajes"];
       "No pudimos cargar este curso",
       escapeHtml(e.message || "Intenta recargar."),
       e instanceof ApiError && e.status === 403
-        ? `<a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">Volver a mis cursos</a>`
+        ? `<a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">${icon("arrowLeft")}<span>Volver a mis cursos</span></a>`
         : ""
     );
   }
@@ -106,7 +110,7 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
     resumen:  renderResumenTab(ctx),
     temario:  renderTemarioTab(ctx),
     recursos: renderRecursosTab(ctx),
-    mensajes: renderMensajesTab(ctx),
+    foro:     renderForoTab(ctx),
   };
 
   renderShell({
@@ -127,6 +131,12 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
   });
 
   wireTabsClientSide(slug);
+
+  // Si la URL llegó con tab=foro, montar el foro inmediatamente
+  // (los activateTab futuros lo manejan vía ensureForoMounted).
+  if (initialTab === "foro") {
+    ensureForoMounted();
+  }
 
   // Mount the preview rueda inside the test card (only if user has results)
   if (resultadoTest?.tieneResultados && resultadoTest.scores) {
@@ -175,6 +185,7 @@ function wireTabsClientSide(slug) {
     const params = new URLSearchParams(location.search);
     let tab = params.get("tab") || "resumen";
     if (tab === "test") tab = "resumen";
+    if (tab === "mensajes") tab = "foro";
     activateTab(tab, slug, /* updateHistory */ false);
   });
 }
@@ -199,6 +210,22 @@ function activateTab(tab, slug, updateHistory = true) {
   }
 
   document.querySelector(`#tab-${tab}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Lazy-mount del foro: solo cuando el usuario activa el tab por primera vez.
+  if (tab === "foro") {
+    ensureForoMounted();
+  }
+}
+
+/** Monta el módulo foro.js dentro del placeholder, una sola vez. */
+function ensureForoMounted() {
+  const mount = document.querySelector('[data-foro-mount]');
+  if (!mount) return;
+  if (mount.dataset.mounted === "true") return;
+  mount.dataset.mounted = "true";
+  const cursoId = mount.dataset.cursoId;
+  if (!cursoId) return;
+  mountForo({ container: mount, cursoId });
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -268,7 +295,7 @@ function renderTabsNav(slug, currentTab) {
     { id: "resumen",  label: "Resumen" },
     { id: "temario",  label: "Temario" },
     { id: "recursos", label: "Recursos" },
-    { id: "mensajes", label: "Mensajes" },
+    { id: "foro",     label: "Foro" },
   ];
   return `
     <nav class="tab-nav" role="tablist" aria-label="Secciones del curso">
@@ -341,18 +368,17 @@ function renderResumenTab(ctx) {
           </div>
           ${icon("arrowRight")}
         </a>
-        <a class="mini-tab-card mini-tab-card--soft" data-tab-jump="mensajes" href="?slug=${encodeURIComponent(ctx.slug)}&tab=mensajes">
+        <a class="mini-tab-card" data-tab-jump="foro" href="?slug=${encodeURIComponent(ctx.slug)}&tab=foro">
           <div class="mini-tab-card__icon">${icon("mensajes")}</div>
           <div class="mini-tab-card__body">
-            <span class="mini-tab-card__eyebrow">Mensajes</span>
-            <h4 class="mini-tab-card__title">Del instructor</h4>
-            <p class="mini-tab-card__lead">Próximamente</p>
+            <span class="mini-tab-card__eyebrow">Foro</span>
+            <h4 class="mini-tab-card__title">Conversación del grupo</h4>
+            <p class="mini-tab-card__lead">Comparte y responde</p>
           </div>
           ${icon("arrowRight")}
         </a>
       </div>
     </section>
-  </div>
   `;
 }
 
@@ -577,16 +603,20 @@ function renderRecursosTab(ctx) {
   `;
 }
 
-function renderMensajesTab(ctx) {
+function renderForoTab(ctx) {
+  // Placeholder visual. El módulo foro.js se monta cuando el usuario
+  // activa el tab por primera vez (ver activateTab más abajo).
   return `
-    <header class="tab-panel-header">
-      <span class="tab-panel-header__eyebrow">Comunicaciones</span>
-      <h3 class="tab-panel-header__title">Mensajes</h3>
-    </header>
-    <div class="placeholder-state">
-      <div class="placeholder-state__icon">${icon("mensajes")}</div>
-      <h4>En construcción</h4>
-      <p>Anuncios y mensajes del instructor aparecerán aquí. También podrás responder.</p>
+    <div class="foro-mount" data-foro-mount data-curso-id="${escapeHtml(ctx.curso.id)}" data-mounted="false">
+      <header class="tab-panel-header">
+        <span class="tab-panel-header__eyebrow">Conversación del grupo</span>
+        <h3 class="tab-panel-header__title">Foro</h3>
+        <p class="tab-panel-header__sub">Cargando…</p>
+      </header>
+      <div class="foro-skeleton">
+        <div class="foro-skeleton__row loading-skeleton" style="height: 120px;"></div>
+        <div class="foro-skeleton__row loading-skeleton" style="height: 80px; margin-top: 16px;"></div>
+      </div>
     </div>
   `;
 }

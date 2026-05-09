@@ -118,6 +118,30 @@ export async function bootstrapPersona() {
 }
 
 /**
+ * Llama a auth-bootstrap pasando nombre/apellidos para que el backend los
+ * grabe en el record de Persona. Limpia el caché para que la próxima
+ * página vea los valores actualizados.
+ */
+export async function updatePersonaProfile({ nombre, apellidos }) {
+  clearCachedPersona();
+  const persona = await api.bootstrap({ nombre, apellidos });
+  setCachedPersona(persona);
+  return persona;
+}
+
+/**
+ * Devuelve true si la Persona aún no ha completado su perfil mínimo
+ * (nombre o apellidos vacíos). Esto pasa típicamente cuando el usuario
+ * entró por magic link, sin proveedor OAuth que rellene esos campos.
+ */
+export function needsOnboarding(persona) {
+  if (!persona) return false;
+  const nombre = (persona.nombre || "").trim();
+  const apellidos = (persona.apellidos || "").trim();
+  return !nombre || !apellidos;
+}
+
+/**
  * Page guard. Si no hay sesión, redirige a login. Si hay, hace bootstrap y
  * devuelve la Persona. Si bootstrap falla, muestra pantalla de error
  * (no loopea de vuelta al login).
@@ -133,7 +157,21 @@ export async function requireAuth() {
     return null;
   }
   try {
-    return await bootstrapPersona();
+    const persona = await bootstrapPersona();
+
+    // Onboarding gate: si falta nombre/apellidos y NO estamos ya en
+    // /app/bienvenida, mandar al usuario a completar su perfil.
+    const onBienvenida = location.pathname.startsWith("/app/bienvenida");
+    if (!onBienvenida && needsOnboarding(persona)) {
+      sessionStorage.setItem(
+        POST_LOGIN_REDIRECT_KEY,
+        location.pathname + location.search,
+      );
+      location.replace("/app/bienvenida");
+      return null;
+    }
+
+    return persona;
   } catch (e) {
     console.error("bootstrapPersona failed:", e);
     showFatalError(e);

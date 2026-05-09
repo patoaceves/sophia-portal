@@ -188,4 +188,42 @@ export const api = {
     });
     return data;
   },
+
+  // ── Foro ────────────────────────────────────────────────────────────────
+
+  /**
+   * GET /get-foro-posts?cursoId=recXXX
+   * → { posts: [...], yo: { personaPortalId, nombre, apellidos, iniciales, esAdmin } }
+   * NO se cachea (el feed cambia constantemente).
+   */
+  async foroPosts(cursoId) {
+    const { data } = await callEdge("get-foro-posts", { query: { cursoId } });
+    return data;
+  },
+
+  /**
+   * POST /create-foro-post
+   * body: { cursoId, contenido, imagenUrl?, parentPostId? }
+   * → { ok, post }
+   */
+  async crearForoPost({ cursoId, contenido, imagenUrl, parentPostId }) {
+    const body = { cursoId, contenido };
+    if (imagenUrl) body.imagenUrl = imagenUrl;
+    if (parentPostId) body.parentPostId = parentPostId;
+    const { data } = await callEdge("create-foro-post", { method: "POST", body });
+    return data;
+  },
+
+  /**
+   * POST /delete-foro-post
+   * body: { postId }
+   * → { ok, postId }
+   */
+  async borrarForoPost(postId) {
+    const { data } = await callEdge("delete-foro-post", {
+      method: "POST",
+      body: { postId },
+    });
+    return data;
+  },
 };

@@ -67,7 +67,7 @@ function renderResultados(persona, data, cursoSlug) {
         <span class="page-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
         <h2 class="page-title">Tu diagrama de felicidad</h2>
         <p class="page-subtitle">
-          Cada pilar refleja un área de tu vida. No hay puntajes "buenos" o "malos" ,
+          Cada pilar refleja un área de tu vida. No hay puntajes "buenos" o "malos" —
           son señales de dónde estás hoy y dónde puedes nutrir más.
         </p>
       </div>
@@ -165,11 +165,11 @@ function renderBloques(scores, analisis) {
 function strongestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   const k = sorted[0]?.[0];
-  return k ? (nombres?.[k] || k) : ",";
+  return k ? (nombres?.[k] || k) : "—";
 }
 
 function weakestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
   const k = sorted[0]?.[0];
-  return k ? (nombres?.[k] || k) : ",";
+  return k ? (nombres?.[k] || k) : "—";
 }

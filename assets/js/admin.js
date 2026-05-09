@@ -3,6 +3,7 @@
 import { requireAuth } from "./auth.js";
 import { isAdmin } from "./auth.js";
 import { renderShell } from "./ui-shell.js";
+import { icon } from "./icons.js";
 
 (async () => {
   const persona = await requireAuth();
@@ -17,7 +18,7 @@ import { renderShell } from "./ui-shell.js";
         <div class="empty-state">
           <div class="empty-state__title">No tienes acceso</div>
           <p class="empty-state__desc">El panel de administración solo es accesible para roles <code>admin</code>.</p>
-          <a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">Volver a mis cursos</a>
+          <a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">${icon("arrowLeft")}<span>Volver a mis cursos</span></a>
         </div>
       `,
     });

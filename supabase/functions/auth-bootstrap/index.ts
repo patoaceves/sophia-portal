@@ -247,10 +247,17 @@ Deno.serve(async (req) => {
       if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    missing[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
       if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   missing[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
       if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) missing[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
+      // Si el body trae nombre/apellidos (caller explícito, ej. onboarding form)
+      // y la persona los tiene vacíos, completarlos.
+      if (body.nombre && !p.fields[FIELDS.PERSONAS_CRM.NOMBRE])     missing[FIELDS.PERSONAS_CRM.NOMBRE]     = body.nombre;
+      if (body.apellidos && !p.fields[FIELDS.PERSONAS_CRM.APELLIDOS]) missing[FIELDS.PERSONAS_CRM.APELLIDOS] = body.apellidos;
       if (Object.keys(missing).length > 0) {
         await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, missing).catch((e) =>
           console.warn("Backfill (auth_id) failed:", e),
         );
+        // Reflejar lo que acabamos de escribir en el record en memoria
+        // para que el response devuelva los valores nuevos.
+        Object.assign(p.fields, missing);
       }
 
       return jsonResponse(req, {
@@ -264,7 +271,7 @@ Deno.serve(async (req) => {
 
     // 2. Lookup by email
     personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\'")}'`,
+      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
       maxRecords: 1,
     });
 
@@ -280,9 +287,12 @@ Deno.serve(async (req) => {
       if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    updateFields[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
       if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   updateFields[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
       if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) updateFields[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
+      if (body.nombre && !p.fields[FIELDS.PERSONAS_CRM.NOMBRE])     updateFields[FIELDS.PERSONAS_CRM.NOMBRE]     = body.nombre;
+      if (body.apellidos && !p.fields[FIELDS.PERSONAS_CRM.APELLIDOS]) updateFields[FIELDS.PERSONAS_CRM.APELLIDOS] = body.apellidos;
       await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, updateFields).catch((e) =>
         console.warn("Backfill (email) failed:", e),
       );
+      Object.assign(p.fields, updateFields);
 
       return jsonResponse(req, {
         personaId: p.id,

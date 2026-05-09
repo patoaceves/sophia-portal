@@ -56,7 +56,7 @@ import { mountWizard as mountTestWizard } from "./test-felicidad.js";
       <div class="empty-state">
         <div class="empty-state__title">No pudimos cargar esta lección</div>
         <p class="empty-state__desc">${escapeHtml(e.message || "Intenta recargar.")}</p>
-        <a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">Volver a mis cursos</a>
+        <a href="/app/cursos" class="btn btn-secondary" style="margin-top:var(--s-4);">${icon("arrowLeft")}<span>Volver a mis cursos</span></a>
       </div>
     `;
     return;
@@ -362,10 +362,7 @@ function renderContent(l) {
         ${l.archivoUrl ? `<a class="btn btn-secondary" href="${escapeHtml(l.archivoUrl)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">${icon("download")}<span>Abrir ${escapeHtml(l.archivoNombre || "documento")}</span></a>` : ""}
       `;
     case "enlace":
-      return `
-        ${html ? `<div class="leccion-html">${html}</div>` : ""}
-        ${l.urlExterna ? `<a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">${icon("external")}<span>Abrir enlace</span></a>` : ""}
-      `;
+      return renderEnlaceContent(l, html);
     case "sesion_live":
     case "sesion-live":
     case "live":
@@ -384,6 +381,68 @@ function renderVideoEmbed(url) {
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
+}
+
+/**
+ * "enlace" lessons: si el URL es un Google Form o un Typeform, los embebemos
+ * inline (iframe) para que el usuario llene la forma sin salir del portal.
+ * Para cualquier otro URL, mostramos el botón de "abrir en otra pestaña".
+ */
+function renderEnlaceContent(l, html) {
+  const intro = html ? `<div class="leccion-html">${html}</div>` : "";
+  if (!l.urlExterna) return intro;
+
+  const embedUrl = getEmbeddableUrl(l.urlExterna);
+  if (embedUrl) {
+    return `
+      ${intro}
+      <div class="leccion-embed">
+        <iframe
+          src="${escapeHtml(embedUrl)}"
+          loading="lazy"
+          allow="fullscreen"
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
+      </div>
+      <p class="leccion-embed__alt">
+        ¿Problemas con el formulario?
+        <a href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener">
+          ${icon("external")}<span>Abrirlo en otra pestaña</span>
+        </a>
+      </p>
+    `;
+  }
+
+  return `
+    ${intro}
+    <a class="btn btn-accent" href="${escapeHtml(l.urlExterna)}" target="_blank" rel="noopener" style="margin-top:var(--s-4);">
+      ${icon("external")}<span>Abrir enlace</span>
+    </a>
+  `;
+}
+
+/**
+ * Devuelve un URL embebible si la URL recibida es de un servicio que
+ * soportamos como iframe. Devuelve null si no se puede embeber.
+ */
+function getEmbeddableUrl(rawUrl) {
+  let u;
+  try { u = new URL(rawUrl); } catch { return null; }
+
+  // Google Forms: docs.google.com/forms/d/e/<id>/viewform o /edit
+  if (u.hostname === "docs.google.com" && /\/forms\//.test(u.pathname)) {
+    // Forzar /viewform y agregar embedded=true
+    const path = u.pathname.replace(/\/edit\/?$/, "/viewform");
+    const finalPath = /\/viewform/.test(path) ? path : path.replace(/\/?$/, "/viewform");
+    return `${u.origin}${finalPath}?embedded=true`;
+  }
+
+  // Typeform: <slug>.typeform.com/to/<id> o form.typeform.com/to/<id>
+  if (/(^|\.)typeform\.com$/.test(u.hostname) && u.pathname.startsWith("/to/")) {
+    return rawUrl;
+  }
+
+  return null;
 }
 
 /**
