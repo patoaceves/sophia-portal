@@ -68,6 +68,10 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
   const nameInitials = getInitials(persona);
   const fullName =
     [persona.nombre, persona.apellidos].filter(Boolean).join(" ") || "Alumno";
+  const avatarUrl = (persona.avatarUrl || "").trim();
+  const avatarHtml = avatarUrl
+    ? `<div class="sidebar__avatar sidebar__avatar--photo"><img src="${escapeHtml(avatarUrl)}" alt="" referrerpolicy="no-referrer"></div>`
+    : `<div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>`;
 
   // Detect if the static skeleton is in place (set by shell-skeleton.js).
   const hasSkeleton = document.body.classList.contains("shell--skeleton");
@@ -81,7 +85,7 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
     if (userBtn) {
       userBtn.disabled = false;
       userBtn.innerHTML = `
-        <div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>
+        ${avatarHtml}
         <div class="sidebar__user-info">
           <div class="sidebar__user-name">${escapeHtml(fullName)}</div>
           <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>
@@ -125,7 +129,7 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
         </nav>
         <div class="sidebar__footer">
           <button class="sidebar__user" id="userMenuBtn" type="button">
-            <div class="sidebar__avatar">${escapeHtml(nameInitials)}</div>
+            ${avatarHtml}
             <div class="sidebar__user-info">
               <div class="sidebar__user-name">${escapeHtml(fullName)}</div>
               <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>

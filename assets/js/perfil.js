@@ -41,7 +41,6 @@ const PAISES = [
   const avatarUrl = persona.avatarUrl || "";
   const telPais = persona.telefonoPais || "+52";
   const telNumero = persona.telefonoNumero || "";
-  const fullName = [nombre, apellidos].filter(Boolean).join(" ") || "—";
 
   const paisOpts = PAISES
     .map((p) => `<option value="${p.code}" ${p.code === telPais ? "selected" : ""}>${p.flag} ${p.name} (${p.code})</option>`)
@@ -51,12 +50,6 @@ const PAISES = [
     persona,
     title: "Mi perfil",
     contentHtml: `
-      <header class="page-header">
-        <span class="page-eyebrow">Cuenta</span>
-        <h2 class="page-title">${escapeHtml(fullName)}</h2>
-        <p class="page-subtitle">${escapeHtml(email)}</p>
-      </header>
-
       <section class="profile-card">
         <h3 class="profile-card__title">Datos de tu cuenta</h3>
 
@@ -67,31 +60,16 @@ const PAISES = [
           <div class="onboarding-avatar-row" style="margin-bottom: var(--s-4);">
             <div class="onboarding-avatar" id="avatarPreview" data-has-image="${avatarUrl ? "true" : "false"}">
               ${avatarUrl
-                ? `<img src="${escapeHtml(avatarUrl)}" alt="">`
+                ? `<img src="${escapeHtml(avatarUrl)}" alt="" referrerpolicy="no-referrer">`
                 : `<span class="onboarding-avatar__initials">${escapeHtml(computeIniciales(nombre, apellidos, email))}</span>`}
             </div>
             <div class="onboarding-avatar-actions" id="avatarActions">
-              <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="change">
-                ${avatarUrl ? "Cambiar foto" : "Agregar foto"}
-              </button>
-              ${avatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger);">Quitar</button>` : ""}
+              ${avatarUrl
+                ? `<p class="onboarding-help" style="margin:0;">Foto sincronizada con tu cuenta de Google.</p>
+                   <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
+                : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Pronto podrás subir una.</p>`}
             </div>
           </div>
-          <div class="onboarding-avatar-input-row" id="avatarInputRow" hidden>
-            <input
-              type="url"
-              class="email-input"
-              id="avatarUrlInput"
-              placeholder="https://… (URL pública de imagen)"
-              value="${escapeHtml(avatarUrl)}"
-              maxlength="1000"
-            >
-            <button type="button" class="btn btn-secondary btn-sm" id="applyAvatarBtn">Aplicar</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="cancelAvatarBtn">Cancelar</button>
-          </div>
-          <p class="onboarding-help" id="avatarHelp" hidden>
-            Pega la URL pública de una foto. v16 incluirá subida directa de archivos.
-          </p>
 
           <!-- Nombre -->
           <label class="onboarding-label" for="nombreInput">Nombre(s) <span class="required">*</span></label>
@@ -152,11 +130,6 @@ function wireProfileForm({ initialPersona, email }) {
 
   const avatarPreview = document.getElementById("avatarPreview");
   const avatarActions = document.getElementById("avatarActions");
-  const avatarInputRow = document.getElementById("avatarInputRow");
-  const avatarUrlInput = document.getElementById("avatarUrlInput");
-  const applyAvatarBtn = document.getElementById("applyAvatarBtn");
-  const cancelAvatarBtn = document.getElementById("cancelAvatarBtn");
-  const avatarHelp = document.getElementById("avatarHelp");
 
   let currentAvatarUrl = initialPersona.avatarUrl || "";
 
@@ -176,7 +149,7 @@ function wireProfileForm({ initialPersona, email }) {
       email,
     );
     if (currentAvatarUrl) {
-      avatarPreview.innerHTML = `<img src="${escapeHtml(currentAvatarUrl)}" alt="">`;
+      avatarPreview.innerHTML = `<img src="${escapeHtml(currentAvatarUrl)}" alt="" referrerpolicy="no-referrer">`;
       avatarPreview.dataset.hasImage = "true";
     } else {
       avatarPreview.innerHTML = `<span class="onboarding-avatar__initials">${escapeHtml(initials)}</span>`;
@@ -186,45 +159,19 @@ function wireProfileForm({ initialPersona, email }) {
   }
 
   function renderAvatarActions() {
-    avatarActions.innerHTML = `
-      <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="change">
-        ${currentAvatarUrl ? "Cambiar foto" : "Agregar foto"}
-      </button>
-      ${currentAvatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger);">Quitar</button>` : ""}
-    `;
+    avatarActions.innerHTML = currentAvatarUrl
+      ? `<p class="onboarding-help" style="margin:0;">Foto sincronizada con tu cuenta de Google.</p>
+         <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
+      : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Pronto podrás subir una.</p>`;
   }
 
   avatarActions.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-avatar-action]");
     if (!btn) return;
-    if (btn.dataset.avatarAction === "change") {
-      avatarInputRow.hidden = false;
-      avatarHelp.hidden = false;
-      avatarUrlInput.focus();
-    } else if (btn.dataset.avatarAction === "remove") {
+    if (btn.dataset.avatarAction === "remove") {
       currentAvatarUrl = "";
-      avatarUrlInput.value = "";
       refreshAvatarPreview();
     }
-  });
-
-  cancelAvatarBtn.addEventListener("click", () => {
-    avatarInputRow.hidden = true;
-    avatarHelp.hidden = true;
-    avatarUrlInput.value = currentAvatarUrl;
-  });
-
-  applyAvatarBtn.addEventListener("click", () => {
-    const u = avatarUrlInput.value.trim();
-    if (u && !isValidHttpsUrl(u)) {
-      showFlash("La URL de imagen no es válida.");
-      return;
-    }
-    currentAvatarUrl = u;
-    avatarInputRow.hidden = true;
-    avatarHelp.hidden = true;
-    clearFlash();
-    refreshAvatarPreview();
   });
 
   const updateInitials = () => { if (!currentAvatarUrl) refreshAvatarPreview(); };
@@ -282,13 +229,4 @@ function computeIniciales(nombre, apellidos, email) {
   if (fromNames) return fromNames;
   const e = (email || "").trim()[0]?.toUpperCase();
   return e || "S";
-}
-
-function isValidHttpsUrl(s) {
-  try {
-    const u = new URL(s);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
 }

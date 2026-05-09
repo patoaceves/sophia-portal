@@ -259,13 +259,18 @@ Deno.serve(async (req) => {
     }
 
     // Helper: aplica updates al record. Si perfilCompletado=true, los body
-    // values OVERRIDEAN los existentes (modo edición). Si no, solo se llenan
-    // campos vacíos (modo backfill).
+    // values OVERRIDEAN los existentes (modo edición, incluyendo "" para
+    // borrar). Si no, solo se llenan campos vacíos (modo backfill).
     function buildUpdates(p: AirtableRecord, opts: { force: boolean }): Record<string, unknown> {
       const updates: Record<string, unknown> = {};
-      const setIfEmpty = (fieldId: string, value: unknown) => {
-        if (value === undefined || value === null || value === "") return;
-        if (opts.force || !p.fields[fieldId]) updates[fieldId] = value;
+      const setProfileField = (fieldId: string, value: unknown) => {
+        if (value === undefined || value === null) return;
+        if (opts.force) {
+          // En modo force, permitimos "" para borrar el campo (ej. quitar foto)
+          updates[fieldId] = value;
+        } else if (!p.fields[fieldId] && value !== "") {
+          updates[fieldId] = value;
+        }
       };
 
       // Sistema (siempre rellenar si vacío, nunca override)
@@ -274,12 +279,12 @@ Deno.serve(async (req) => {
       if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    updates[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
       if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   updates[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
 
-      // Datos de perfil (force=true sobrescribe)
-      setIfEmpty(FIELDS.PERSONAS_CRM.NOMBRE,           body.nombre);
-      setIfEmpty(FIELDS.PERSONAS_CRM.APELLIDOS,        body.apellidos);
-      setIfEmpty(FIELDS.PERSONAS_CRM.AVATAR_URL,       body.avatarUrl ?? avatarUrl);
-      setIfEmpty(FIELDS.PERSONAS_CRM.TELEFONO_PAIS,    body.telefonoPais);
-      setIfEmpty(FIELDS.PERSONAS_CRM.TELEFONO_NUMERO,  body.telefonoNumero);
+      // Datos de perfil (force=true sobrescribe; force=false solo backfill)
+      setProfileField(FIELDS.PERSONAS_CRM.NOMBRE,           body.nombre);
+      setProfileField(FIELDS.PERSONAS_CRM.APELLIDOS,        body.apellidos);
+      setProfileField(FIELDS.PERSONAS_CRM.AVATAR_URL,       body.avatarUrl ?? (opts.force ? undefined : avatarUrl));
+      setProfileField(FIELDS.PERSONAS_CRM.TELEFONO_PAIS,    body.telefonoPais);
+      setProfileField(FIELDS.PERSONAS_CRM.TELEFONO_NUMERO,  body.telefonoNumero);
 
       // Si el caller explicitó perfilCompletado=true, lo seteamos
       if (body.perfilCompletado) {

@@ -24,6 +24,21 @@
   const initialActive = me?.dataset?.active || "";
   const loaderContext = me?.dataset?.loaderContext || "generic";
 
+  // Pre-flight: si ya tenemos cacheada una Persona y le falta perfilCompletado,
+  // redirige a /app/bienvenida ANTES de pintar el shell. Evita el flash de
+  // "mis cursos" que el usuario veía cuando todavía debía completar el onboarding.
+  // Si no hay cache, dejamos que requireAuth() en la página específica maneje
+  // el redirect tras el bootstrap.
+  try {
+    if (!location.pathname.startsWith("/app/bienvenida")) {
+      const cached = JSON.parse(sessionStorage.getItem("sophia_persona") || "null");
+      if (cached && cached.personaId && cached.perfilCompletado === false) {
+        location.replace("/app/bienvenida");
+        return;
+      }
+    }
+  } catch (e) { /* corrupt cache → proceed normally */ }
+
   const NAV_GROUPS = [
     {
       label: "Aprendizaje",
@@ -36,7 +51,7 @@
       label: "Recursos",
       links: [
         { href: "/app/anuncios", icon: "anuncios", label: "Anuncios" },
-        { href: "/app/recursos", icon: "recursos", label: "Biblioteca" },
+        { href: "/app/recursos", icon: "biblioteca", label: "Biblioteca" },
         { href: "/app/certificados", icon: "certificados", label: "Certificados" },
       ],
     },
@@ -56,6 +71,7 @@
     progreso:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>',
     anuncios:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>',
     recursos:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2A6.5 6.5 0 0 1 16 8.5c0 2.06-.96 3.9-2.46 5.1l.46 2.4H10l.46-2.4A6.5 6.5 0 0 1 9.5 2z" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 16h4M9 20h6M12 20v2" stroke-linecap="round"/></svg>',
+    biblioteca:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 6h7M9 10h7"/></svg>',
     certificados:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg>',
     perfil:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
     ayuda:         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',

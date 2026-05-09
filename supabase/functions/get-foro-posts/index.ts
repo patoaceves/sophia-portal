@@ -294,13 +294,21 @@ Deno.serve(async (req) => {
     const me = await authenticate(req);
     await verifyEnrollment(me.personaPortalId, cursoId);
 
-    // 1. Cargar posts del curso (activos + eliminados; los "oculto" se omiten).
-    //    Los "eliminado" los conservamos para mostrar como tombstone si tienen
-    //    comentarios vivos colgando. Si no tienen comentarios, los filtramos
-    //    al final.
-    const allPosts = await listRecords(BASES.PORTAL, TABLES.POSTS, {
-      filterByFormula: `AND(SEARCH('${cursoId}', ARRAYJOIN({${FIELDS.POSTS.CURSO}})), OR({${FIELDS.POSTS.ESTATUS}} = 'activo', {${FIELDS.POSTS.ESTATUS}} = 'eliminado'))`,
+    // 1. Cargar posts del foro (cualquier curso) con estatus activo o eliminado.
+    //    NOTA: filtramos por cursoId en JS, no en formula. ARRAYJOIN({Curso})
+    //    devuelve los display names ("Happiness Workshop"), no los record IDs,
+    //    así que SEARCH(cursoId, ARRAYJOIN(...)) nunca matchea. Mejor cargar
+    //    todos los activos+eliminados y filtrar en memoria. Si el volumen
+    //    crece >1000 records, agregar un lookup field "Curso ID" y filtrar
+    //    por ahí.
+    const allPostsRaw = await listRecords(BASES.PORTAL, TABLES.POSTS, {
+      filterByFormula: `OR({${FIELDS.POSTS.ESTATUS}} = 'activo', {${FIELDS.POSTS.ESTATUS}} = 'eliminado')`,
       sort: [{ field: FIELDS.POSTS.FECHA, direction: "desc" }],
+    });
+
+    const allPosts = allPostsRaw.filter((rec) => {
+      const links = (rec.fields[FIELDS.POSTS.CURSO] as string[]) ?? [];
+      return links.includes(cursoId);
     });
 
     // 2. Obtener IDs de autores únicos (solo de posts activos; en eliminados

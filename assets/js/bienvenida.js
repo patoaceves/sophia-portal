@@ -119,31 +119,17 @@ function renderForm(persona, email) {
             <div class="onboarding-avatar-row">
               <div class="onboarding-avatar" id="avatarPreview" data-has-image="${avatarUrl ? "true" : "false"}">
                 ${avatarUrl
-                  ? `<img src="${avatarUrl}" alt="" id="avatarImg">`
+                  ? `<img src="${avatarUrl}" alt="" id="avatarImg" referrerpolicy="no-referrer">`
                   : `<span class="onboarding-avatar__initials">${escape(iniciales)}</span>`}
               </div>
               <div class="onboarding-avatar-actions" id="avatarActions">
-                <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="change">
-                  ${avatarUrl ? "Cambiar foto" : "Agregar foto"}
-                </button>
-                ${avatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger);">Quitar</button>` : ""}
+                ${avatarUrl
+                  ? `<p class="onboarding-help" style="margin:0;">Foto desde tu cuenta de Google.</p>
+                     <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
+                  : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Podrás cambiarla más tarde.</p>`
+                }
               </div>
             </div>
-            <div class="onboarding-avatar-input-row" id="avatarInputRow" hidden>
-              <input
-                type="url"
-                class="email-input"
-                id="avatarUrlInput"
-                placeholder="https://… (URL pública de imagen)"
-                value="${avatarUrl}"
-                maxlength="1000"
-              >
-              <button type="button" class="btn btn-secondary btn-sm" id="applyAvatarBtn">Aplicar</button>
-              <button type="button" class="btn btn-ghost btn-sm" id="cancelAvatarBtn">Cancelar</button>
-            </div>
-            <p class="onboarding-help" id="avatarHelp" hidden>
-              Pega la URL pública de una foto. v16 incluirá subida directa de archivos.
-            </p>
 
             <!-- Nombre -->
             <label class="onboarding-label" for="nombreInput">Nombre(s) <span class="required">*</span></label>
@@ -228,11 +214,6 @@ function wireForm(persona) {
 
   const avatarPreview = document.getElementById("avatarPreview");
   const avatarActions = document.getElementById("avatarActions");
-  const avatarInputRow = document.getElementById("avatarInputRow");
-  const avatarUrlInput = document.getElementById("avatarUrlInput");
-  const applyAvatarBtn = document.getElementById("applyAvatarBtn");
-  const cancelAvatarBtn = document.getElementById("cancelAvatarBtn");
-  const avatarHelp = document.getElementById("avatarHelp");
 
   let currentAvatarUrl = persona.avatarUrl || "";
 
@@ -248,7 +229,7 @@ function wireForm(persona) {
       document.getElementById("emailInput").value,
     );
     if (currentAvatarUrl) {
-      avatarPreview.innerHTML = `<img src="${escape(currentAvatarUrl)}" alt="">`;
+      avatarPreview.innerHTML = `<img src="${escape(currentAvatarUrl)}" alt="" referrerpolicy="no-referrer">`;
       avatarPreview.dataset.hasImage = "true";
     } else {
       avatarPreview.innerHTML = `<span class="onboarding-avatar__initials">${escape(initials)}</span>`;
@@ -258,47 +239,20 @@ function wireForm(persona) {
   }
 
   function renderAvatarActions() {
-    avatarActions.innerHTML = `
-      <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="change">
-        ${currentAvatarUrl ? "Cambiar foto" : "Agregar foto"}
-      </button>
-      ${currentAvatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger);">Quitar</button>` : ""}
-    `;
+    avatarActions.innerHTML = currentAvatarUrl
+      ? `<p class="onboarding-help" style="margin:0;">Foto desde tu cuenta de Google.</p>
+         <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
+      : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Podrás cambiarla más tarde.</p>`;
   }
 
-  // Delegated handler for change/remove buttons (re-renders on each click)
+  // Delegated remove handler
   avatarActions.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-avatar-action]");
     if (!btn) return;
-    if (btn.dataset.avatarAction === "change") {
-      avatarInputRow.hidden = false;
-      avatarHelp.hidden = false;
-      avatarUrlInput.focus();
-    } else if (btn.dataset.avatarAction === "remove") {
+    if (btn.dataset.avatarAction === "remove") {
       currentAvatarUrl = "";
-      avatarUrlInput.value = "";
       refreshAvatarPreview();
     }
-  });
-
-  cancelAvatarBtn.addEventListener("click", () => {
-    avatarInputRow.hidden = true;
-    avatarHelp.hidden = true;
-    avatarUrlInput.value = currentAvatarUrl;
-  });
-
-  applyAvatarBtn.addEventListener("click", () => {
-    const u = avatarUrlInput.value.trim();
-    if (u && !isValidHttpsUrl(u)) {
-      showFlash("La URL de imagen no es válida.");
-      return;
-    }
-    currentAvatarUrl = u;
-    avatarInputRow.hidden = true;
-    avatarHelp.hidden = true;
-    flash.className = "flash";
-    flash.textContent = "";
-    refreshAvatarPreview();
   });
 
   logoutLink.addEventListener("click", (e) => {
@@ -359,15 +313,6 @@ function computeIniciales(nombre, apellidos, email) {
   if (fromNames) return fromNames;
   const e = (email || "").trim()[0]?.toUpperCase();
   return e || "S";
-}
-
-function isValidHttpsUrl(s) {
-  try {
-    const u = new URL(s);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function escape(s) {
