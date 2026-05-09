@@ -3154,7 +3154,7 @@
   padding: var(--s-5);
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  gap: var(--s-2);
   position: relative;
   overflow: hidden;
   transition: border-color 0.2s ease;
@@ -3211,8 +3211,8 @@
 .test-cajita__chart {
   display: grid;
   place-items: center;
-  flex: 1;
-  padding: var(--s-3) 0;
+  flex: 0 0 auto;
+  padding: 0;
   position: relative;
 }
 
@@ -5062,4 +5062,234 @@
 
 .ayuda-info-card__link:hover {
   text-decoration: underline;
+}
+
+/* ============================================================
+ * v15: Progress strip (debajo del hero, antes de los tabs)
+ * Sustituye al old continue-card que vivía en el resumen-row.
+ * ============================================================ */
+.curso-progress-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-5);
+  margin: var(--s-4) 0 var(--s-5) 0;
+}
+
+.curso-progress-strip__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.curso-progress-strip__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.curso-progress-strip--done .curso-progress-strip__eyebrow {
+  color: var(--color-success);
+}
+
+.curso-progress-strip__meta {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.curso-progress-strip__meta strong {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.curso-progress-strip__bar {
+  width: 100%;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.curso-progress-strip__bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.4s ease;
+  border-radius: var(--r-full);
+}
+
+.curso-progress-strip--done .curso-progress-strip__bar-fill {
+  background: var(--color-success);
+}
+
+.curso-progress-strip__cta {
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .curso-progress-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+  }
+  .curso-progress-strip__cta {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+ * v15: Foro preview card (lado izquierdo del resumen-row).
+ * Sustituye al old continue-card. Muestra los últimos 2-3 posts
+ * con link al foro completo.
+ * ============================================================ */
+.foro-preview-card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.foro-preview-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.foro-preview-card__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.foro-preview-card__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 500;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.foro-preview-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 140px;
+}
+
+.foro-preview-card__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.foro-preview-card__empty p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.foro-preview-card__empty-sub {
+  font-size: 0.8125rem !important;
+  color: var(--color-text-subtle) !important;
+}
+
+.foro-preview-item {
+  display: flex;
+  gap: var(--s-3);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.foro-preview-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.foro-preview-item__avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.foro-preview-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.foro-preview-item__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.foro-preview-item__author {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.foro-preview-item__time {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+.foro-preview-item__excerpt {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.foro-preview-card__link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+  padding: var(--s-1) 0 0 0;
+  margin-top: auto;
+  transition: gap 0.15s ease;
+}
+
+.foro-preview-card__link:hover { gap: var(--s-2); }
+.foro-preview-card__link svg { width: 16px; height: 16px; }
+
+.foro-skeleton__row {
+  border-radius: var(--r-md);
 }

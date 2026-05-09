@@ -262,6 +262,115 @@
   color: var(--color-text-muted);
   font-weight: 500;
   margin-bottom: var(--s-1);
+  margin-top: var(--s-3);
+}
+
+.onboarding-label .required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.onboarding-label .optional {
+  color: var(--color-text-subtle);
+  font-weight: 400;
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+
+.onboarding-help {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  margin: var(--s-1) 0 0 0;
+  line-height: 1.4;
+}
+
+.email-input--readonly {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Onboarding avatar */
+.onboarding-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin-bottom: var(--s-2);
+}
+
+.onboarding-avatar {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--r-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.onboarding-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.onboarding-avatar__initials {
+  user-select: none;
+}
+
+.onboarding-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  align-items: flex-start;
+}
+
+.onboarding-avatar-input-row {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  margin-top: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.onboarding-avatar-input-row input {
+  flex: 1;
+  min-width: 240px;
+  margin-top: 0;
+}
+
+/* Phone row */
+.onboarding-phone-row {
+  display: flex;
+  gap: var(--s-2);
+  align-items: stretch;
+}
+
+.onboarding-phone-pais {
+  flex: 0 0 200px;
+  margin-top: 0 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6660' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--s-3) center;
+  padding-right: var(--s-7);
+  appearance: none;
+}
+
+.onboarding-phone-numero {
+  flex: 1;
+  margin-top: 0 !important;
+}
+
+@media (max-width: 480px) {
+  .onboarding-phone-row { flex-direction: column; }
+  .onboarding-phone-pais { flex: 1 1 auto; }
 }
 
 /* Responsive */

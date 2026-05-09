@@ -118,27 +118,34 @@ export async function bootstrapPersona() {
 }
 
 /**
- * Llama a auth-bootstrap pasando nombre/apellidos para que el backend los
- * grabe en el record de Persona. Limpia el caché para que la próxima
- * página vea los valores actualizados.
+ * Llama a auth-bootstrap pasando todos los campos editables del perfil.
+ * El backend graba lo que venga (modo override cuando perfilCompletado=true).
+ * Limpia el caché para que la próxima página vea los valores actualizados.
+ *
+ * @param {object} fields
+ * @param {string} fields.nombre
+ * @param {string} fields.apellidos
+ * @param {string} [fields.avatarUrl]
+ * @param {string} [fields.telefonoPais]
+ * @param {string} [fields.telefonoNumero]
+ * @param {boolean} [fields.perfilCompletado]
  */
-export async function updatePersonaProfile({ nombre, apellidos }) {
+export async function updatePersonaProfile(fields) {
   clearCachedPersona();
-  const persona = await api.bootstrap({ nombre, apellidos });
+  const persona = await api.bootstrap(fields);
   setCachedPersona(persona);
   return persona;
 }
 
 /**
- * Devuelve true si la Persona aún no ha completado su perfil mínimo
- * (nombre o apellidos vacíos). Esto pasa típicamente cuando el usuario
- * entró por magic link, sin proveedor OAuth que rellene esos campos.
+ * Devuelve true si la Persona aún no completó el onboarding del portal.
+ * Usamos un flag explícito (Airtable: "Perfil completado") para distinguir
+ * usuarios reales completados de usuarios recién creados con datos parciales
+ * (típico de Google sign-in: trae nombre+apellidos pero no teléfono).
  */
 export function needsOnboarding(persona) {
   if (!persona) return false;
-  const nombre = (persona.nombre || "").trim();
-  const apellidos = (persona.apellidos || "").trim();
-  return !nombre || !apellidos;
+  return !persona.perfilCompletado;
 }
 
 /**
@@ -159,14 +166,12 @@ export async function requireAuth() {
   try {
     const persona = await bootstrapPersona();
 
-    // Onboarding gate: si falta nombre/apellidos y NO estamos ya en
-    // /app/bienvenida, mandar al usuario a completar su perfil.
+    // Onboarding gate: si la persona aún no marcó perfilCompletado,
+    // mandarla a /app/bienvenida (excepto si ya está ahí).
     const onBienvenida = location.pathname.startsWith("/app/bienvenida");
     if (!onBienvenida && needsOnboarding(persona)) {
-      sessionStorage.setItem(
-        POST_LOGIN_REDIRECT_KEY,
-        location.pathname + location.search,
-      );
+      // No guardamos pathname actual: siempre regresamos a /app/cursos
+      // post-onboarding (ver bienvenida.js).
       location.replace("/app/bienvenida");
       return null;
     }

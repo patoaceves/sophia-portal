@@ -139,13 +139,11 @@
             try {
               const result = await tryClaimPendingInvite();
               if (result.kind === "claimed" || result.kind === "already") {
-                const slug = result.data?.cursoSlug;
-                if (slug) {
-                  // Mandar directo al curso recién canjeado
-                  success(`/app/curso?slug=${encodeURIComponent(slug)}&welcome=1`);
-                } else {
-                  success();
-                }
+                // Inscripción canjeada (o ya existía). Mandamos siempre al
+                // dashboard de cursos: ahí el usuario ve TODOS sus cursos
+                // y puede entrar al que quiera. Esto es consistente con
+                // logins repetidos y con multi-curso.
+                success();
               } else if (result.kind === "retry") {
                 // Sync pendiente. cursos.html reintentará.
                 console.warn("[claim] sync pending, will retry on cursos.html");

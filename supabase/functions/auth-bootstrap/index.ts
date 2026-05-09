@@ -27,6 +27,9 @@ const FIELDS = {
     PRODUCTOS: "fldzj1HkWzIHZwdyn",
     ORIGEN: "fldR2ZD5Pi8Qsnm3i",
     ESTATUS: "fld8Ig1z8qSAzVo3M",
+    TELEFONO_PAIS: "fld0psZVirGYHs2AQ",
+    TELEFONO_NUMERO: "fld3fDQA1tfiNPXN5",
+    PERFIL_COMPLETADO: "fldB98L7JqQM27Z9I",
   },
 } as const;
 
@@ -175,6 +178,14 @@ function errorResponse(req: Request, message: string, status = 400, details?: un
 interface BootstrapBody {
   nombre?: string;
   apellidos?: string;
+  telefonoPais?: string;
+  telefonoNumero?: string;
+  avatarUrl?: string;
+  /** Si es true, indica que el caller acaba de completar el onboarding.
+   *  El backend respeta los valores del body como overrides
+   *  (incluso si la Persona ya los tenía con valor) — solo en este caso.
+   */
+  perfilCompletado?: boolean;
 }
 
 const DEFAULT_ROL = "participante";
@@ -231,6 +242,53 @@ Deno.serve(async (req) => {
       "";
     const avatarUrl = (meta.avatar_url as string) ?? (meta.picture as string) ?? "";
 
+    // Helper: construye el response uniforme desde un Persona record
+    function buildResponse(p: AirtableRecord, isNew: boolean) {
+      return jsonResponse(req, {
+        personaId: p.id,
+        rol: (p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL) as string,
+        nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? "") as string,
+        apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? "") as string,
+        email: (p.fields[FIELDS.PERSONAS_CRM.EMAIL] ?? email) as string,
+        avatarUrl: (p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] ?? "") as string,
+        telefonoPais: (p.fields[FIELDS.PERSONAS_CRM.TELEFONO_PAIS] ?? "") as string,
+        telefonoNumero: (p.fields[FIELDS.PERSONAS_CRM.TELEFONO_NUMERO] ?? "") as string,
+        perfilCompletado: !!p.fields[FIELDS.PERSONAS_CRM.PERFIL_COMPLETADO],
+        isNew,
+      });
+    }
+
+    // Helper: aplica updates al record. Si perfilCompletado=true, los body
+    // values OVERRIDEAN los existentes (modo edición). Si no, solo se llenan
+    // campos vacíos (modo backfill).
+    function buildUpdates(p: AirtableRecord, opts: { force: boolean }): Record<string, unknown> {
+      const updates: Record<string, unknown> = {};
+      const setIfEmpty = (fieldId: string, value: unknown) => {
+        if (value === undefined || value === null || value === "") return;
+        if (opts.force || !p.fields[fieldId]) updates[fieldId] = value;
+      };
+
+      // Sistema (siempre rellenar si vacío, nunca override)
+      if (!p.fields[FIELDS.PERSONAS_CRM.ROL])      updates[FIELDS.PERSONAS_CRM.ROL]      = DEFAULT_ROL;
+      if (!p.fields[FIELDS.PERSONAS_CRM.PRODUCTOS]) updates[FIELDS.PERSONAS_CRM.PRODUCTOS] = ["portal"];
+      if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    updates[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
+      if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   updates[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
+
+      // Datos de perfil (force=true sobrescribe)
+      setIfEmpty(FIELDS.PERSONAS_CRM.NOMBRE,           body.nombre);
+      setIfEmpty(FIELDS.PERSONAS_CRM.APELLIDOS,        body.apellidos);
+      setIfEmpty(FIELDS.PERSONAS_CRM.AVATAR_URL,       body.avatarUrl ?? avatarUrl);
+      setIfEmpty(FIELDS.PERSONAS_CRM.TELEFONO_PAIS,    body.telefonoPais);
+      setIfEmpty(FIELDS.PERSONAS_CRM.TELEFONO_NUMERO,  body.telefonoNumero);
+
+      // Si el caller explicitó perfilCompletado=true, lo seteamos
+      if (body.perfilCompletado) {
+        updates[FIELDS.PERSONAS_CRM.PERFIL_COMPLETADO] = true;
+      }
+
+      return updates;
+    }
+
     // 1. Lookup by Auth User ID
     let personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
       filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
@@ -239,34 +297,14 @@ Deno.serve(async (req) => {
 
     if (personas.length > 0) {
       const p = personas[0];
-
-      // Backfill any missing fields so Airtable stays complete
-      const missing: Record<string, unknown> = {};
-      if (!p.fields[FIELDS.PERSONAS_CRM.ROL])      missing[FIELDS.PERSONAS_CRM.ROL]      = DEFAULT_ROL;
-      if (!p.fields[FIELDS.PERSONAS_CRM.PRODUCTOS]) missing[FIELDS.PERSONAS_CRM.PRODUCTOS] = ["portal"];
-      if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    missing[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
-      if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   missing[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
-      if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) missing[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
-      // Si el body trae nombre/apellidos (caller explícito, ej. onboarding form)
-      // y la persona los tiene vacíos, completarlos.
-      if (body.nombre && !p.fields[FIELDS.PERSONAS_CRM.NOMBRE])     missing[FIELDS.PERSONAS_CRM.NOMBRE]     = body.nombre;
-      if (body.apellidos && !p.fields[FIELDS.PERSONAS_CRM.APELLIDOS]) missing[FIELDS.PERSONAS_CRM.APELLIDOS] = body.apellidos;
-      if (Object.keys(missing).length > 0) {
-        await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, missing).catch((e) =>
+      const updates = buildUpdates(p, { force: !!body.perfilCompletado });
+      if (Object.keys(updates).length > 0) {
+        await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, updates).catch((e) =>
           console.warn("Backfill (auth_id) failed:", e),
         );
-        // Reflejar lo que acabamos de escribir en el record en memoria
-        // para que el response devuelva los valores nuevos.
-        Object.assign(p.fields, missing);
+        Object.assign(p.fields, updates);
       }
-
-      return jsonResponse(req, {
-        personaId: p.id,
-        rol: (p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL) as string,
-        nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? "") as string,
-        apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? "") as string,
-        isNew: false,
-      });
+      return buildResponse(p, false);
     }
 
     // 2. Lookup by email
@@ -277,30 +315,14 @@ Deno.serve(async (req) => {
 
     if (personas.length > 0) {
       const p = personas[0];
-
-      // Backfill: always write AUTH_USER_ID + any missing fields
-      const updateFields: Record<string, unknown> = {
-        [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
-      };
-      if (!p.fields[FIELDS.PERSONAS_CRM.ROL])      updateFields[FIELDS.PERSONAS_CRM.ROL]      = DEFAULT_ROL;
-      if (!p.fields[FIELDS.PERSONAS_CRM.PRODUCTOS]) updateFields[FIELDS.PERSONAS_CRM.PRODUCTOS] = ["portal"];
-      if (!p.fields[FIELDS.PERSONAS_CRM.ORIGEN])    updateFields[FIELDS.PERSONAS_CRM.ORIGEN]    = "signup";
-      if (!p.fields[FIELDS.PERSONAS_CRM.ESTATUS])   updateFields[FIELDS.PERSONAS_CRM.ESTATUS]   = "activo";
-      if (!p.fields[FIELDS.PERSONAS_CRM.AVATAR_URL] && avatarUrl) updateFields[FIELDS.PERSONAS_CRM.AVATAR_URL] = avatarUrl;
-      if (body.nombre && !p.fields[FIELDS.PERSONAS_CRM.NOMBRE])     updateFields[FIELDS.PERSONAS_CRM.NOMBRE]     = body.nombre;
-      if (body.apellidos && !p.fields[FIELDS.PERSONAS_CRM.APELLIDOS]) updateFields[FIELDS.PERSONAS_CRM.APELLIDOS] = body.apellidos;
-      await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, updateFields).catch((e) =>
+      const updates = buildUpdates(p, { force: !!body.perfilCompletado });
+      // Siempre asegurar el AUTH_USER_ID (vínculo entre auth y CRM)
+      updates[FIELDS.PERSONAS_CRM.AUTH_USER_ID] = authUserId;
+      await updateRecord(BASES.CRM, TABLES.PERSONAS, p.id, updates).catch((e) =>
         console.warn("Backfill (email) failed:", e),
       );
-      Object.assign(p.fields, updateFields);
-
-      return jsonResponse(req, {
-        personaId: p.id,
-        rol: (p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL) as string,
-        nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] ?? nombre) as string,
-        apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] ?? apellidos) as string,
-        isNew: false,
-      });
+      Object.assign(p.fields, updates);
+      return buildResponse(p, false);
     }
 
         // 3. Create new Persona · defensive: try full, fall back to essentials
@@ -309,12 +331,15 @@ Deno.serve(async (req) => {
       [FIELDS.PERSONAS_CRM.APELLIDOS]: apellidos,
       [FIELDS.PERSONAS_CRM.EMAIL]: email,
       [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
-      [FIELDS.PERSONAS_CRM.AVATAR_URL]: avatarUrl,
+      [FIELDS.PERSONAS_CRM.AVATAR_URL]: body.avatarUrl ?? avatarUrl,
       [FIELDS.PERSONAS_CRM.ROL]: DEFAULT_ROL,
       [FIELDS.PERSONAS_CRM.ORIGEN]: "signup",
       [FIELDS.PERSONAS_CRM.ESTATUS]: "activo",
       [FIELDS.PERSONAS_CRM.PRODUCTOS]: ["portal"],
     };
+    if (body.telefonoPais)    fullFields[FIELDS.PERSONAS_CRM.TELEFONO_PAIS]    = body.telefonoPais;
+    if (body.telefonoNumero)  fullFields[FIELDS.PERSONAS_CRM.TELEFONO_NUMERO]  = body.telefonoNumero;
+    if (body.perfilCompletado) fullFields[FIELDS.PERSONAS_CRM.PERFIL_COMPLETADO] = true;
 
     let newPersona: AirtableRecord;
     try {
@@ -356,13 +381,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonResponse(req, {
-      personaId: newPersona.id,
-      rol: DEFAULT_ROL,
-      nombre,
-      apellidos,
-      isNew: true,
-    });
+    return buildResponse(newPersona, true);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("auth-bootstrap fatal:", msg);

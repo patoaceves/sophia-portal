@@ -119,6 +119,7 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
     activePath: "/app/cursos",
     contentHtml: `
       ${renderHero(curso, coverUrl, ctx)}
+      ${renderProgressStrip(ctx)}
       ${renderTabsNav(slug, initialTab)}
       <div class="tab-panels">
         ${VALID_TABS.map(t => `
@@ -146,6 +147,11 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
       mountRueda({ svg, tooltip: tip, scores: resultadoTest.scores, animate: true, compact: true });
     }
   }
+
+  // Cargar preview del foro en background (la card vive en el resumen,
+  // que es el tab default). Si el usuario aterriza en otro tab, igual
+  // se carga para que esté listo cuando vuelva al resumen.
+  fetchForoPreview(ctx.curso.id);
 
   // Prefetch en background: lección siguiente + todas las del primer capítulo
   // Esto hace que la primera navegacion sea instantanea (sin cold start)
@@ -320,16 +326,11 @@ function renderTabsNav(slug, currentTab) {
 //   4. Material adicional (mini-cards en su propia sección)
 // ────────────────────────────────────────────────────────────────────
 function renderResumenTab(ctx) {
-  const { capitulos, totalLecc, completadas, progresoPct, next } = ctx;
+  const { capitulos, totalLecc, completadas } = ctx;
 
   return `
-    <header class="tab-panel-header">
-      <span class="tab-panel-header__eyebrow">Tu camino</span>
-      <h3 class="tab-panel-header__title">Continúa donde te quedaste</h3>
-    </header>
-
     <div class="resumen-row">
-      ${renderContinuePanel(next, capitulos, totalLecc, completadas, progresoPct)}
+      ${renderForoPreviewCard(ctx)}
       ${renderTestCajita(ctx)}
     </div>
 
@@ -382,44 +383,142 @@ function renderResumenTab(ctx) {
   `;
 }
 
-function renderContinuePanel(next, capitulos, total, completadas, pct) {
+/**
+ * Strip horizontal de progreso debajo del hero. Sustituye al old continue-card
+ * que vivía en el resumen-row. Muestra: barra de progreso (full width) + 
+ * descripción de qué sigue + botón continuar.
+ */
+function renderProgressStrip(ctx) {
+  const { capitulos, totalLecc, completadas, progresoPct, next, slug } = ctx;
+
   if (!next) {
     return `
-      <section class="continue-card continue-card--done">
-        <span class="continue-card__eyebrow">¡Felicidades!</span>
-        <h3 class="continue-card__title">Has completado el curso</h3>
-        <div class="continue-card__progress">
-          <div class="continue-card__bar"><div class="continue-card__bar-fill" style="width:100%"></div></div>
-          <div class="continue-card__progress-meta">
-            <span class="continue-card__pct">100%</span>
-            <span>${total} de ${total} lecciones</span>
+      <section class="curso-progress-strip curso-progress-strip--done">
+        <div class="curso-progress-strip__main">
+          <span class="curso-progress-strip__eyebrow">¡Felicidades!</span>
+          <p class="curso-progress-strip__meta">Has completado el curso · ${totalLecc} de ${totalLecc} lecciones</p>
+          <div class="curso-progress-strip__bar">
+            <div class="curso-progress-strip__bar-fill" style="width:100%"></div>
           </div>
         </div>
       </section>
     `;
   }
+
   const cap = capitulos.find(c => c.lecciones.some(l => l.id === next.id));
   return `
-    <section class="continue-card">
-      <span class="continue-card__eyebrow">Continúa donde te quedaste</span>
-      ${cap ? `<div class="continue-card__cap">Capítulo ${cap.orden} · ${escapeHtml(cap.titulo)}</div>` : ""}
-      <h3 class="continue-card__title">${escapeHtml(next.titulo)}</h3>
-      <p class="continue-card__lead">
-        ${escapeHtml(lessonTipoLabel(next.tipo))}${cap ? ` · Lección ${next.orden} de ${cap.lecciones.length}` : ""}
-      </p>
-      <a class="btn btn-accent continue-card__cta" href="/app/leccion?id=${encodeURIComponent(next.id)}">
-        <span>${pct === 0 ? "Comenzar" : "Continuar"}</span>
-        ${icon("arrowRight")}
-      </a>
-      <div class="continue-card__progress">
-        <div class="continue-card__bar"><div class="continue-card__bar-fill" style="width:${pct}%"></div></div>
-        <div class="continue-card__progress-meta">
-          <span class="continue-card__pct">${pct}%</span>
-          <span>· ${completadas} de ${total} lecciones</span>
+    <section class="curso-progress-strip">
+      <div class="curso-progress-strip__main">
+        <span class="curso-progress-strip__eyebrow">${progresoPct === 0 ? "Para comenzar" : "Continúa donde te quedaste"}</span>
+        <p class="curso-progress-strip__meta">
+          ${cap ? `Capítulo ${cap.orden} · ` : ""}
+          <strong>${escapeHtml(next.titulo)}</strong>
+          · ${completadas} de ${totalLecc} lecciones (${progresoPct}%)
+        </p>
+        <div class="curso-progress-strip__bar">
+          <div class="curso-progress-strip__bar-fill" style="width:${progresoPct}%"></div>
         </div>
       </div>
+      <a class="btn btn-accent curso-progress-strip__cta" href="/app/leccion?id=${encodeURIComponent(next.id)}">
+        <span>${progresoPct === 0 ? "Comenzar" : "Continuar"}</span>
+        ${icon("arrowRight")}
+      </a>
     </section>
   `;
+}
+
+/**
+ * Card del Resumen que muestra los posts más recientes del foro.
+ * Contenido se rellena por fetch en background (renderForoPreview).
+ */
+function renderForoPreviewCard(ctx) {
+  return `
+    <section class="foro-preview-card" data-foro-preview data-curso-id="${escapeHtml(ctx.curso.id)}" data-curso-slug="${escapeHtml(ctx.slug)}">
+      <header class="foro-preview-card__header">
+        <span class="foro-preview-card__eyebrow">Conversación reciente</span>
+        <h3 class="foro-preview-card__title">Foro</h3>
+      </header>
+      <div class="foro-preview-card__body" data-foro-preview-body>
+        <div class="foro-skeleton__row loading-skeleton" style="height: 56px; margin-bottom: 12px;"></div>
+        <div class="foro-skeleton__row loading-skeleton" style="height: 56px;"></div>
+      </div>
+      <a class="foro-preview-card__link" href="?slug=${encodeURIComponent(ctx.slug)}&tab=foro">
+        <span>Ver foro completo</span>
+        ${icon("arrowRight")}
+      </a>
+    </section>
+  `;
+}
+
+/**
+ * Carga los posts más recientes del foro y los pinta en la card del resumen.
+ * Fire-and-forget. Si falla (por ej. el usuario no está inscrito), simplemente
+ * pone un mensaje de empty/error y no bloquea el dashboard.
+ */
+async function fetchForoPreview(cursoId) {
+  const card = document.querySelector('[data-foro-preview]');
+  if (!card) return;
+  const body = card.querySelector('[data-foro-preview-body]');
+  if (!body) return;
+
+  try {
+    const data = await api.foroPosts(cursoId);
+    const posts = (data?.posts ?? []).filter(p => !p.eliminado).slice(0, 3);
+    if (posts.length === 0) {
+      body.innerHTML = `
+        <div class="foro-preview-card__empty">
+          <p>Aún no hay publicaciones.</p>
+          <p class="foro-preview-card__empty-sub">Sé la primera persona en compartir.</p>
+        </div>
+      `;
+      return;
+    }
+    body.innerHTML = posts.map(p => `
+      <article class="foro-preview-item">
+        <div class="foro-preview-item__avatar">${escapeHtml(p.autor?.iniciales || "?")}</div>
+        <div class="foro-preview-item__body">
+          <div class="foro-preview-item__head">
+            <span class="foro-preview-item__author">${escapeHtml(displayName(p.autor))}</span>
+            <span class="foro-preview-item__time">${escapeHtml(formatRelativeDate(p.fechaISO))}</span>
+          </div>
+          <p class="foro-preview-item__excerpt">${escapeHtml(truncate(p.contenido, 160))}</p>
+        </div>
+      </article>
+    `).join("");
+  } catch (e) {
+    console.warn("foro preview fetch failed:", e);
+    body.innerHTML = `
+      <div class="foro-preview-card__empty">
+        <p>No pudimos cargar el foro.</p>
+      </div>
+    `;
+  }
+}
+
+function displayName(autor) {
+  if (!autor) return "Anónimo";
+  const n = (autor.nombre || "").trim();
+  const a = (autor.apellidos || "").trim();
+  return [n, a].filter(Boolean).join(" ") || "Anónimo";
+}
+
+function formatRelativeDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 1) return "ahora";
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `hace ${diffH} h`;
+  const diffD = Math.round(diffH / 24);
+  if (diffD < 7) return `hace ${diffD} d`;
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+}
+
+function truncate(s, n) {
+  s = String(s ?? "").trim();
+  return s.length > n ? s.slice(0, n - 1).trim() + "…" : s;
 }
 
 /**
