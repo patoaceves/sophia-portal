@@ -516,26 +516,59 @@ function renderForoPreviewCard(ctx) {
         <h3 class="foro-preview-card__title">Foro</h3>
       </header>
 
-      <form class="foro-preview-compose" data-foro-preview-compose>
-        ${avatarHtml}
-        <div class="foro-preview-compose__body">
-          <textarea
-            class="foro-preview-compose__textarea"
-            name="contenido"
-            placeholder="Comparte algo con el grupo…"
-            maxlength="4000"
-            rows="1"
-            data-foro-preview-textarea
-          ></textarea>
-          <div class="foro-preview-compose__bar">
-            <span class="foro-preview-compose__hint" data-foro-preview-hint>Para adjuntar imágenes, video o archivos abre el foro completo</span>
-            <button class="btn btn-accent btn-sm" type="submit" data-foro-preview-submit disabled>
-              <span data-foro-preview-cta>Publicar</span>
-            </button>
+      <div class="foro-preview-compose" data-foro-preview-compose>
+        <!-- Estado colapsado: pill estilo Facebook -->
+        <button type="button" class="foro-preview-compose__trigger" data-action="expand">
+          ${avatarHtml}
+          <span class="foro-preview-compose__placeholder">¿Qué quieres compartir?</span>
+          <span class="foro-preview-compose__quick-icons" aria-hidden="true">
+            ${icon("imagen")}
+            ${icon("clip")}
+          </span>
+        </button>
+
+        <!-- Estado expandido: composer completo -->
+        <form class="foro-preview-compose__form" data-form hidden>
+          ${avatarHtml}
+          <div class="foro-preview-compose__body">
+            <textarea
+              class="foro-preview-compose__textarea"
+              name="contenido"
+              placeholder="¿Qué quieres compartir con el grupo?"
+              maxlength="4000"
+              rows="2"
+              data-textarea
+            ></textarea>
+
+            <div class="foro-preview-compose__attachment" data-attachment hidden>
+              <div class="foro-preview-compose__attachment-inner" data-attachment-inner></div>
+              <button type="button" class="foro-preview-compose__attachment-remove" data-action="remove-attachment" aria-label="Quitar adjunto">×</button>
+            </div>
+
+            <input
+              type="file"
+              data-file-input
+              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip,application/x-zip-compressed"
+              style="display:none;"
+            >
+
+            <div class="foro-preview-compose__bar">
+              <button type="button" class="foro-preview-compose__tool" data-action="pick-file" title="Adjuntar imagen, video o archivo">
+                ${icon("clip")}
+                <span>Adjuntar</span>
+              </button>
+              <div class="foro-preview-compose__cta-group">
+                <button type="button" class="btn btn-ghost btn-sm" data-action="collapse">Cancelar</button>
+                <button type="submit" class="btn btn-accent btn-sm" data-submit disabled>
+                  <span data-cta>Publicar</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="foro-preview-compose__error" data-error hidden></div>
           </div>
-          <div class="foro-preview-compose__error" data-foro-preview-error hidden></div>
-        </div>
-      </form>
+        </form>
+      </div>
 
       <div class="foro-preview-card__body" data-foro-preview-body>
         <div class="foro-skeleton__row loading-skeleton" style="height: 56px; margin-bottom: 12px;"></div>
@@ -622,20 +655,31 @@ async function fetchForoPreview(cursoId) {
 }
 
 /**
- * Conecta el composer inline del preview del foro. Idempotente: solo wirea
- * una vez por instancia del card.
+ * Conecta el composer inline del preview del foro. Estilo Facebook:
+ * pill colapsado por default, expande a composer completo on click.
+ * Soporta adjuntos (imagen/video/archivo) idénticos al foro completo.
+ * Idempotente: solo wirea una vez por instancia del card.
  */
 function wireForoPreviewCompose(card) {
   if (!card || card.dataset.composeWired === "true") return;
   card.dataset.composeWired = "true";
 
-  const form = card.querySelector("[data-foro-preview-compose]");
-  if (!form) return;
+  const wrap = card.querySelector("[data-foro-preview-compose]");
+  if (!wrap) return;
 
-  const textarea = form.querySelector("[data-foro-preview-textarea]");
-  const submitBtn = form.querySelector("[data-foro-preview-submit]");
-  const ctaLabel = form.querySelector("[data-foro-preview-cta]");
-  const errorEl = form.querySelector("[data-foro-preview-error]");
+  const trigger = wrap.querySelector(".foro-preview-compose__trigger");
+  const form = wrap.querySelector("[data-form]");
+  const textarea = form.querySelector("[data-textarea]");
+  const submitBtn = form.querySelector("[data-submit]");
+  const ctaLabel = form.querySelector("[data-cta]");
+  const errorEl = form.querySelector("[data-error]");
+  const fileInput = form.querySelector("[data-file-input]");
+  const attachmentEl = form.querySelector("[data-attachment]");
+  const attachmentInner = form.querySelector("[data-attachment-inner]");
+
+  // Attachment state
+  let attachment = null;
+  let isUploading = false;
 
   function showError(msg) {
     if (!errorEl) return;
@@ -648,33 +692,165 @@ function wireForoPreviewCompose(card) {
     errorEl.hidden = true;
   }
 
-  // Auto-grow del textarea (de 1 hasta ~5 filas) según contenido
-  function autoGrow() {
-    textarea.style.height = "auto";
-    textarea.style.height = Math.min(160, textarea.scrollHeight) + "px";
+  function expand() {
+    wrap.classList.add("is-expanded");
+    trigger.hidden = true;
+    form.hidden = false;
+    setTimeout(() => textarea.focus(), 50);
   }
 
+  function collapse() {
+    wrap.classList.remove("is-expanded");
+    trigger.hidden = false;
+    form.hidden = true;
+    textarea.value = "";
+    textarea.style.height = "auto";
+    attachment = null;
+    hideAttachment();
+    submitBtn.disabled = true;
+    clearError();
+  }
+
+  function autoGrow() {
+    textarea.style.height = "auto";
+    textarea.style.height = Math.min(180, textarea.scrollHeight) + "px";
+  }
+
+  function refreshSubmitState() {
+    const hasText = textarea.value.trim().length > 0;
+    submitBtn.disabled = (!hasText && !attachment) || isUploading;
+  }
+
+  // ── Expand/collapse triggers ──────────────────────────────────────
+  trigger.addEventListener("click", expand);
+
+  // ── Textarea behavior ────────────────────────────────────────────
   textarea.addEventListener("input", () => {
-    const v = textarea.value.trim();
-    submitBtn.disabled = v.length === 0;
     autoGrow();
+    refreshSubmitState();
     clearError();
   });
-
-  // Cmd/Ctrl + Enter publica
   textarea.addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !submitBtn.disabled) {
       e.preventDefault();
       form.requestSubmit();
+    } else if (e.key === "Escape" && !textarea.value && !attachment) {
+      e.preventDefault();
+      collapse();
     }
   });
 
+  // ── File picker + upload ─────────────────────────────────────────
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    fileInput.value = "";
+    await handleFileUpload(file);
+  });
+
+  async function handleFileUpload(file) {
+    clearError();
+    isUploading = true;
+    refreshSubmitState();
+    showAttachmentUploading(file);
+
+    try {
+      const cursoId = card.dataset.cursoId;
+      const asset = await api.uploadAsset({
+        file,
+        kind: "foro-attachment",
+        cursoId,
+        onProgress: (p) => updateAttachmentProgress(p),
+      });
+      attachment = asset;
+      showAttachmentReady(asset);
+    } catch (err) {
+      console.error("preview compose upload failed:", err);
+      const msg = err?.payload?.code === "too_large"
+        ? err.message
+        : (err?.message || "No pudimos subir el archivo.");
+      showError(msg);
+      attachment = null;
+      hideAttachment();
+    } finally {
+      isUploading = false;
+      refreshSubmitState();
+    }
+  }
+
+  function showAttachmentUploading(file) {
+    attachmentEl.hidden = false;
+    attachmentEl.classList.add("is-uploading");
+    attachmentInner.innerHTML = `
+      <div class="foro-preview-compose__attachment-preview">
+        ${attachmentIconForFilePreview(file)}
+      </div>
+      <div class="foro-preview-compose__attachment-meta">
+        <div class="foro-preview-compose__attachment-name">${escapeHtml(file.name)}</div>
+        <div class="foro-preview-compose__attachment-progress">
+          <div class="foro-preview-compose__attachment-progress-bar">
+            <div class="foro-preview-compose__attachment-progress-fill" data-progress style="width:0%"></div>
+          </div>
+          <span data-progress-label>Subiendo…</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateAttachmentProgress(p) {
+    const fill = form.querySelector("[data-progress]");
+    const label = form.querySelector("[data-progress-label]");
+    if (fill) fill.style.width = `${Math.round(p * 100)}%`;
+    if (label) label.textContent = p < 1 ? `Subiendo… ${Math.round(p * 100)}%` : "Procesando…";
+  }
+
+  function showAttachmentReady(asset) {
+    attachmentEl.classList.remove("is-uploading");
+    attachmentEl.classList.add("is-ready");
+    attachmentInner.innerHTML = `
+      <div class="foro-preview-compose__attachment-preview">
+        ${attachmentReadyHtml(asset)}
+      </div>
+      <div class="foro-preview-compose__attachment-meta">
+        <div class="foro-preview-compose__attachment-name">${escapeHtml(asset.originalName)}</div>
+        <div class="foro-preview-compose__attachment-size">${formatBytes(asset.size)} · ${escapeHtml(asset.attachmentType)}</div>
+      </div>
+    `;
+  }
+
+  function hideAttachment() {
+    attachmentEl.hidden = true;
+    attachmentEl.classList.remove("is-uploading", "is-ready");
+    attachmentInner.innerHTML = "";
+  }
+
+  // ── Buttons ──────────────────────────────────────────────────────
+  wrap.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === "pick-file" && !isUploading) {
+      fileInput.click();
+    } else if (action === "remove-attachment") {
+      attachment = null;
+      hideAttachment();
+      refreshSubmitState();
+    } else if (action === "collapse") {
+      collapse();
+    }
+  });
+
+  // ── Submit ───────────────────────────────────────────────────────
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearError();
+    if (isUploading) {
+      showError("Espera a que termine de subir el archivo.");
+      return;
+    }
     const contenido = textarea.value.trim();
-    if (!contenido) {
-      showError("Escribe algo para publicar.");
+    if (!contenido && !attachment) {
+      showError("Escribe algo o adjunta un archivo.");
       return;
     }
 
@@ -689,26 +865,54 @@ function wireForoPreviewCompose(card) {
     ctaLabel.textContent = "Publicando…";
 
     try {
-      await api.crearForoPost({ cursoId, contenido });
-      // Reset
-      textarea.value = "";
-      autoGrow();
-      // Refrescar la lista de posts (incluirá el nuevo)
+      await api.crearForoPost({
+        cursoId,
+        contenido,
+        adjuntoUrl: attachment?.url,
+        adjuntoTipo: attachment?.attachmentType,
+        adjuntoNombre: attachment?.originalName,
+      });
+      collapse();
       await fetchForoPreview(cursoId);
     } catch (err) {
-      console.error("preview compose failed:", err);
+      console.error("preview compose submit failed:", err);
       const code = err?.payload?.code;
       const msg = code === "not_enrolled"
         ? "No estás inscrito a este curso."
         : code === "too_long"
         ? "Demasiado largo (max 4000 caracteres)."
+        : code === "invalid_adjunto_url" || code === "invalid_adjunto_tipo"
+        ? "El archivo adjunto no es válido."
         : (err?.message || "No pudimos publicar. Intenta de nuevo.");
       showError(msg);
-    } finally {
-      submitBtn.disabled = textarea.value.trim().length === 0;
+      submitBtn.disabled = false;
       ctaLabel.textContent = originalLabel;
     }
   });
+}
+
+function attachmentIconForFilePreview(file) {
+  const mime = file.type || "";
+  if (mime.startsWith("image/")) return icon("imagen");
+  if (mime.startsWith("video/")) return icon("video");
+  return icon("archivo");
+}
+
+function attachmentReadyHtml(asset) {
+  if (asset.attachmentType === "imagen") {
+    return `<img src="${escapeHtml(asset.url)}" alt="" loading="lazy">`;
+  }
+  if (asset.attachmentType === "video") {
+    return icon("video");
+  }
+  return icon("archivo");
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function displayName(autor) {

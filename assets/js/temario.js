@@ -65,7 +65,7 @@ function renderTemario(persona, slug, payload) {
 
   renderShell({
     persona,
-    title: `Temario · ${curso.titulo}`,
+    title: `Temario — ${curso.titulo}`,
     activePath: "/app/cursos",
     contentHtml: `
       <header class="page-header page-header--with-action">

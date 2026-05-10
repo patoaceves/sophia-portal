@@ -190,28 +190,6 @@ img {
   text-decoration: none;
 }
 
-/* Estado deshabilitado: aplica a TODOS los .btn (acento, primary, secondary, ghost). */
-.btn:disabled,
-.btn[disabled],
-.btn[aria-disabled="true"] {
-  cursor: not-allowed;
-  opacity: 0.45;
-  filter: grayscale(0.4);
-  pointer-events: none;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* SVGs dentro de cualquier .btn: por defecto 16×16, no se encogen.
-   Sin esto, los SVG con viewBox pero sin width/height renderean a 0×0
-   y los íconos como arrowLeft no se ven. */
-.btn svg,
-.btn-sm svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
 .btn-primary {
   background: var(--color-text);
   color: var(--color-bg);
@@ -453,41 +431,31 @@ html:hover {
   padding: var(--s-6);
 }
 
-/* ────────────────────────────────────────────────────────────────────
- * v17.8 · Microanimación de flechas en botones
- * Detecta SVG con path "arrow-right" (M5 12h14M12 5l7 7-7 7) y "arrow-left"
- * (M19 12H5M12 19l-7-7 7-7) y los desplaza hacia su dirección al hover.
- * Aplica solo cuando NO está disabled.
- *
- * Como los SVG son inline y no tienen una clase específica, usamos
- * :first-child / :last-child como heurística:
- *   - Primer SVG (a la izquierda del label): flecha izquierda → mueve a -3px
- *   - Último SVG (a la derecha del label): flecha derecha → mueve a +3px
- * ──────────────────────────────────────────────────────────────────── */
+/* ─── v17 · Button states + SVG sizing + arrow hover animation ──── */
+.btn:disabled,
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
+  filter: grayscale(0.4);
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn svg,
+.btn-sm svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
 
 .btn:not(:disabled):not([disabled]) svg {
   transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.btn:not(:disabled):not([disabled]):hover > svg:last-child { transform: translateX(3px); }
+.btn:not(:disabled):not([disabled]):hover > svg:first-child { transform: translateX(-3px); }
+.btn:not(:disabled):not([disabled]):hover > svg:only-child { transform: none; }
 
-/* Flecha al final (lado derecho del texto) → mueve a la derecha */
-.btn:not(:disabled):not([disabled]):hover > svg:last-child {
-  transform: translateX(3px);
-}
-
-/* Flecha al inicio (lado izquierdo del texto) → mueve a la izquierda */
-.btn:not(:disabled):not([disabled]):hover > svg:first-child {
-  transform: translateX(-3px);
-}
-
-/* Si el botón solo tiene un SVG (no texto), no animar (no hay dirección clara) */
-.btn:not(:disabled):not([disabled]):hover > svg:only-child {
-  transform: none;
-}
-
-/* page-back link tiene patrón similar (chevron izquierda + texto) */
-.page-back svg {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.page-back:hover svg {
-  transform: translateX(-2px);
-}
+.page-back svg { transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1); }
+.page-back:hover svg { transform: translateX(-2px); }
