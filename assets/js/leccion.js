@@ -16,6 +16,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
+import { mountEvaluacion } from "./evaluacion-sesion.js";
 
 (async () => {
   const persona = await requireAuth();
@@ -104,6 +105,10 @@ function renderLeccion(persona, payload, cursoContext) {
   const backLabel = cursoTitulo ? `Volver a Mi Curso` : "Volver";
 
   const isTest = leccion.tipo === "test" || leccion.tipo === "autoeval";
+  // "Evaluación de sesión": lección tipo enlace con etiqueta "Evaluación".
+  // En vez del iframe del Google Form, montamos el wizard nativo.
+  const isEvaluacion = leccion.tipo === "enlace" &&
+    (leccion.etiqueta || "").trim().toLowerCase() === "evaluación";
 
   renderShell({
     persona,
@@ -142,10 +147,12 @@ function renderLeccion(persona, payload, cursoContext) {
         </header>
 
         <div class="leccion-page__body">
-          ${isTest ? `<div id="testEmbed"></div>` : renderContent(leccion)}
+          ${isTest ? `<div id="testEmbed"></div>`
+            : isEvaluacion ? `<div id="evalEmbed"></div>`
+            : renderContent(leccion)}
         </div>
 
-        ${isTest ? `
+        ${(isTest || isEvaluacion) ? `
           <footer class="leccion-page__footer leccion-page__footer--test">
             <div>
               ${prevId
@@ -175,10 +182,7 @@ function renderLeccion(persona, payload, cursoContext) {
   });
 
   // After render: post-process content (sanitize image URLs)
-  if (!isTest) {
-    sanitizeLessonContent();
-    wireCtaButtons(leccion, inscripcionId, nextId, backHref);
-  } else {
+  if (isTest) {
     // Mount the test wizard embedded
     const container = document.getElementById("testEmbed");
     mountTestWizard({
@@ -193,6 +197,45 @@ function renderLeccion(persona, payload, cursoContext) {
         location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
       },
     });
+  } else if (isEvaluacion) {
+    // Mount evaluación nativa (reemplaza el iframe del Google Form)
+    const container = document.getElementById("evalEmbed");
+    const nextHref = nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref;
+    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Volver al curso";
+    mountEvaluacion({
+      container,
+      leccionId: leccion.id,
+      inscripcionId,
+      nextHref,
+      nextLabel,
+      // preguntas: leccion.evaluacionPreguntas (futuro: leerlo de Airtable)
+      onComplete: async ({ respuestas }) => {
+        // Persistir respuestas en la tabla "Evaluaciones Sesión".
+        // Si falla el submit, NO marcamos completada — el usuario debe
+        // intentar de nuevo. (El wizard ya conserva estado en sessionStorage.)
+        try {
+          await api.submitEvaluacion({
+            leccionId: leccion.id,
+            inscripcionId,
+            respuestas,
+          });
+        } catch (err) {
+          console.error("submitEvaluacion failed:", err);
+          throw err; // propagar para que el wizard re-habilite el botón
+        }
+        // Marcar lección completada (best-effort)
+        if (inscripcionId) {
+          try {
+            await api.marcarLeccion(leccion.id, inscripcionId);
+          } catch (e) {
+            console.warn("Could not mark evaluacion lesson complete:", e);
+          }
+        }
+      },
+    });
+  } else {
+    sanitizeLessonContent();
+    wireCtaButtons(leccion, inscripcionId, nextId, backHref);
   }
 
   // Prefetch adyacentes en background para que la navegacion sea instantanea

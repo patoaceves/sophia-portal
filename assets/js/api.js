@@ -279,4 +279,21 @@ export const api = {
       xhr.send(fd);
     });
   },
+
+  /**
+   * POST /submit-evaluacion · guarda las respuestas del wizard de evaluación
+   * de sesión en la tabla "Evaluaciones Sesión" de Airtable.
+   *
+   * @param {object} opts
+   * @param {string} opts.leccionId
+   * @param {string} [opts.inscripcionId]
+   * @param {{ profesor_preparado: number, contenido_relevante: number, fomento_participacion: number, ideas_aplicables: number, profesor_general: number, comentarios?: string }} opts.respuestas
+   * @returns {Promise<{ ok: boolean, evaluacionId: string, alreadySubmitted?: boolean }>}
+   */
+  async submitEvaluacion({ leccionId, inscripcionId, respuestas }) {
+    const body = { leccionId, respuestas };
+    if (inscripcionId) body.inscripcionId = inscripcionId;
+    const { data } = await callEdge("submit-evaluacion", { method: "POST", body });
+    return data;
+  },
 };

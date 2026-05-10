@@ -124,11 +124,16 @@ function renderForm(persona, email) {
                   : `<span class="onboarding-avatar__initials">${escape(iniciales)}</span>`}
               </div>
               <div class="onboarding-avatar-actions" id="avatarActions">
-                <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload">
-                  ${avatarUrl ? "Cambiar foto" : "Subir foto"}
-                </button>
-                ${avatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>` : ""}
-                <p class="onboarding-help" style="margin: var(--s-1) 0 0 0;" id="avatarHelp">JPG, PNG, WebP o GIF · max 5 MB</p>
+                <div class="onboarding-avatar-buttons">
+                  <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload">
+                    ${avatarUrl ? "Cambiar foto" : "Subir foto"}
+                  </button>
+                  ${avatarUrl ? `
+                    <span class="onboarding-avatar-buttons__sep">·</span>
+                    <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger);">Quitar</button>
+                  ` : ""}
+                </div>
+                <p class="onboarding-help" id="avatarHelp">JPG, PNG, WebP o GIF · max 5 MB</p>
               </div>
               <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
             </div>
@@ -249,11 +254,16 @@ function wireForm(persona) {
 
   function renderAvatarActions() {
     avatarActions.innerHTML = `
-      <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload"${isUploadingAvatar ? " disabled" : ""}>
-        ${isUploadingAvatar ? "Subiendo…" : (currentAvatarUrl ? "Cambiar foto" : "Subir foto")}
-      </button>
-      ${currentAvatarUrl && !isUploadingAvatar ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>` : ""}
-      <p class="onboarding-help" style="margin: var(--s-1) 0 0 0;">JPG, PNG, WebP o GIF · max 5 MB</p>
+      <div class="onboarding-avatar-buttons">
+        <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload"${isUploadingAvatar ? " disabled" : ""}>
+          ${isUploadingAvatar ? "Subiendo…" : (currentAvatarUrl ? "Cambiar foto" : "Subir foto")}
+        </button>
+        ${currentAvatarUrl && !isUploadingAvatar ? `
+          <span class="onboarding-avatar-buttons__sep">·</span>
+          <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger);">Quitar</button>
+        ` : ""}
+      </div>
+      <p class="onboarding-help">JPG, PNG, WebP o GIF · max 5 MB</p>
     `;
   }
 

@@ -328,8 +328,28 @@
 .onboarding-avatar-actions {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
+  gap: var(--s-2);
   align-items: flex-start;
+}
+
+/* Botones de acción del avatar lado a lado (Cambiar foto · Quitar) */
+.onboarding-avatar-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* Separador visual entre botones */
+.onboarding-avatar-buttons__sep {
+  color: var(--color-border-strong, var(--color-text-muted));
+  font-size: 0.75rem;
+  user-select: none;
+}
+
+/* Garantizar que ambos botones tengan el mismo padding */
+.onboarding-avatar-buttons .btn {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .onboarding-avatar-input-row {

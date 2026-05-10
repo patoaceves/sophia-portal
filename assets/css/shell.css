@@ -258,7 +258,9 @@
 .page-title {
   font-family: var(--font-display);
   font-size: clamp(2rem, 3.5vw, 2.75rem);
-  font-weight: 400;
+  /* Unificado a 500 para que coincida con curso-hero__title y h1-h6.
+     Antes era 400 y se veía más delgado en /app/cursos vs /app/curso. */
+  font-weight: 500;
   letter-spacing: -0.02em;
   margin-bottom: var(--s-2);
   font-variation-settings: "opsz" 144;
@@ -5532,4 +5534,93 @@
   flex-shrink: 0;
 }
 .foro-post__file-action svg { width: 16px; height: 16px; }
+
+
+/* ────────────────────────────────────────────────────────────────────
+ * v17.5 · Evaluación de sesión (wizard nativo)
+ * Reemplaza el iframe del Google Form en lecciones tipo "enlace"
+ * con etiqueta "Evaluación". Reusa el chrome de .test-wizard.
+ * ──────────────────────────────────────────────────────────────────── */
+
+/* Textarea para preguntas de texto libre */
+.eval-textarea-wrap {
+  margin: var(--s-6) auto var(--s-4);
+  max-width: 640px;
+  width: 100%;
+}
+
+.eval-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: var(--s-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eval-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.eval-textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.eval-textarea__count {
+  margin-top: var(--s-1);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: right;
+  font-feature-settings: "tnum";
+}
+
+/* Thanks state (post-submit) */
+.eval-thanks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--s-8) var(--s-5);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.eval-thanks__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-full);
+  background: var(--color-success-soft, #e6f5ec);
+  color: var(--color-success, #2d8659);
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--s-5);
+}
+.eval-thanks__icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.eval-thanks__title {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 500;
+  margin: 0 0 var(--s-3) 0;
+  color: var(--color-text);
+}
+
+.eval-thanks__lead {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  margin: 0 0 var(--s-6) 0;
+}
 
