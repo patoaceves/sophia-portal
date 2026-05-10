@@ -19,6 +19,7 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda } from "./rueda.js";
 import { mountForo } from "./foro.js";
+import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 
 const LOCAL_COVERS = new Set(["happiness-workshop"]);
 
@@ -500,15 +501,6 @@ function renderProgressStrip(ctx) {
  * Contenido se rellena por fetch en background (renderForoPreview).
  */
 function renderForoPreviewCard(ctx) {
-  const yo = ctx.persona || {};
-  const nombre = (yo.nombre || "").trim()[0] || "";
-  const apellidos = (yo.apellidos || "").trim()[0] || "";
-  const iniciales = ((nombre + apellidos).toUpperCase() || "S");
-  const avatarUrl = (yo.avatarUrl || "").trim();
-  const avatarHtml = avatarUrl
-    ? `<div class="foro-preview-compose__avatar has-photo"><img src="${escapeHtml(avatarUrl)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>`
-    : `<div class="foro-preview-compose__avatar">${escapeHtml(iniciales)}</div>`;
-
   return `
     <section class="foro-preview-card" data-foro-preview data-curso-id="${escapeHtml(ctx.curso.id)}" data-curso-slug="${escapeHtml(ctx.slug)}">
       <header class="foro-preview-card__header">
@@ -516,68 +508,19 @@ function renderForoPreviewCard(ctx) {
         <h3 class="foro-preview-card__title">Foro</h3>
       </header>
 
-      <div class="foro-preview-compose" data-foro-preview-compose>
-        <!-- Estado colapsado: pill estilo Facebook -->
-        <button type="button" class="foro-preview-compose__trigger" data-action="expand">
-          ${avatarHtml}
-          <span class="foro-preview-compose__placeholder">¿Qué quieres compartir?</span>
-          <span class="foro-preview-compose__quick-icons" aria-hidden="true">
-            ${icon("imagen")}
-            ${icon("clip")}
-          </span>
-        </button>
-
-        <!-- Estado expandido: composer completo -->
-        <form class="foro-preview-compose__form" data-form hidden>
-          ${avatarHtml}
-          <div class="foro-preview-compose__body">
-            <textarea
-              class="foro-preview-compose__textarea"
-              name="contenido"
-              placeholder="¿Qué quieres compartir con el grupo?"
-              maxlength="4000"
-              rows="2"
-              data-textarea
-            ></textarea>
-
-            <div class="foro-preview-compose__attachment" data-attachment hidden>
-              <div class="foro-preview-compose__attachment-inner" data-attachment-inner></div>
-              <button type="button" class="foro-preview-compose__attachment-remove" data-action="remove-attachment" aria-label="Quitar adjunto">×</button>
-            </div>
-
-            <input
-              type="file"
-              data-file-input
-              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip,application/x-zip-compressed"
-              style="display:none;"
-            >
-
-            <div class="foro-preview-compose__bar">
-              <button type="button" class="foro-preview-compose__tool" data-action="pick-file" title="Adjuntar imagen, video o archivo">
-                ${icon("clip")}
-                <span>Adjuntar</span>
-              </button>
-              <div class="foro-preview-compose__cta-group">
-                <button type="button" class="btn btn-ghost btn-sm" data-action="collapse">Cancelar</button>
-                <button type="submit" class="btn btn-accent btn-sm" data-submit disabled>
-                  <span data-cta>Publicar</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="foro-preview-compose__error" data-error hidden></div>
-          </div>
-        </form>
+      <div data-foro-preview-compose>
+        ${renderComposerPill(ctx.persona)}
       </div>
 
       <div class="foro-preview-card__body" data-foro-preview-body>
         <div class="foro-skeleton__row loading-skeleton" style="height: 56px; margin-bottom: 12px;"></div>
         <div class="foro-skeleton__row loading-skeleton" style="height: 56px;"></div>
       </div>
-      <a class="foro-preview-card__link" href="?slug=${encodeURIComponent(ctx.slug)}&tab=foro">
+
+      <button type="button" class="foro-preview-card__link" data-foro-preview-link>
         <span>Ver foro completo</span>
         ${icon("arrowRight")}
-      </a>
+      </button>
     </section>
   `;
 }
@@ -664,255 +607,27 @@ function wireForoPreviewCompose(card) {
   if (!card || card.dataset.composeWired === "true") return;
   card.dataset.composeWired = "true";
 
-  const wrap = card.querySelector("[data-foro-preview-compose]");
-  if (!wrap) return;
+  const cursoId = card.dataset.cursoId;
 
-  const trigger = wrap.querySelector(".foro-preview-compose__trigger");
-  const form = wrap.querySelector("[data-form]");
-  const textarea = form.querySelector("[data-textarea]");
-  const submitBtn = form.querySelector("[data-submit]");
-  const ctaLabel = form.querySelector("[data-cta]");
-  const errorEl = form.querySelector("[data-error]");
-  const fileInput = form.querySelector("[data-file-input]");
-  const attachmentEl = form.querySelector("[data-attachment]");
-  const attachmentInner = form.querySelector("[data-attachment-inner]");
-
-  // Attachment state
-  let attachment = null;
-  let isUploading = false;
-
-  function showError(msg) {
-    if (!errorEl) return;
-    errorEl.textContent = msg;
-    errorEl.hidden = false;
-  }
-  function clearError() {
-    if (!errorEl) return;
-    errorEl.textContent = "";
-    errorEl.hidden = true;
+  // Composer pill compartido (módulo foro-composer-pill.js)
+  const formContainer = card.querySelector("[data-foro-preview-compose]");
+  const form = formContainer?.querySelector("[data-foro-pill]");
+  if (form && cursoId) {
+    wireComposerPill(form, {
+      cursoId,
+      onPublished: () => fetchForoPreview(cursoId),
+    });
   }
 
-  function expand() {
-    wrap.classList.add("is-expanded");
-    trigger.hidden = true;
-    form.hidden = false;
-    setTimeout(() => textarea.focus(), 50);
-  }
-
-  function collapse() {
-    wrap.classList.remove("is-expanded");
-    trigger.hidden = false;
-    form.hidden = true;
-    textarea.value = "";
-    textarea.style.height = "auto";
-    attachment = null;
-    hideAttachment();
-    submitBtn.disabled = true;
-    clearError();
-  }
-
-  function autoGrow() {
-    textarea.style.height = "auto";
-    textarea.style.height = Math.min(180, textarea.scrollHeight) + "px";
-  }
-
-  function refreshSubmitState() {
-    const hasText = textarea.value.trim().length > 0;
-    submitBtn.disabled = (!hasText && !attachment) || isUploading;
-  }
-
-  // ── Expand/collapse triggers ──────────────────────────────────────
-  trigger.addEventListener("click", expand);
-
-  // ── Textarea behavior ────────────────────────────────────────────
-  textarea.addEventListener("input", () => {
-    autoGrow();
-    refreshSubmitState();
-    clearError();
-  });
-  textarea.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !submitBtn.disabled) {
+  // "Ver foro completo" → activateTab(foro) sin recargar la página
+  const verLink = card.querySelector("[data-foro-preview-link]");
+  if (verLink) {
+    verLink.addEventListener("click", (e) => {
       e.preventDefault();
-      form.requestSubmit();
-    } else if (e.key === "Escape" && !textarea.value && !attachment) {
-      e.preventDefault();
-      collapse();
-    }
-  });
-
-  // ── File picker + upload ─────────────────────────────────────────
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    fileInput.value = "";
-    await handleFileUpload(file);
-  });
-
-  async function handleFileUpload(file) {
-    clearError();
-    isUploading = true;
-    refreshSubmitState();
-    showAttachmentUploading(file);
-
-    try {
-      const cursoId = card.dataset.cursoId;
-      const asset = await api.uploadAsset({
-        file,
-        kind: "foro-attachment",
-        cursoId,
-        onProgress: (p) => updateAttachmentProgress(p),
-      });
-      attachment = asset;
-      showAttachmentReady(asset);
-    } catch (err) {
-      console.error("preview compose upload failed:", err);
-      const msg = err?.payload?.code === "too_large"
-        ? err.message
-        : (err?.message || "No pudimos subir el archivo.");
-      showError(msg);
-      attachment = null;
-      hideAttachment();
-    } finally {
-      isUploading = false;
-      refreshSubmitState();
-    }
+      const slug = card.dataset.cursoSlug;
+      activateTab("foro", slug);
+    });
   }
-
-  function showAttachmentUploading(file) {
-    attachmentEl.hidden = false;
-    attachmentEl.classList.add("is-uploading");
-    attachmentInner.innerHTML = `
-      <div class="foro-preview-compose__attachment-preview">
-        ${attachmentIconForFilePreview(file)}
-      </div>
-      <div class="foro-preview-compose__attachment-meta">
-        <div class="foro-preview-compose__attachment-name">${escapeHtml(file.name)}</div>
-        <div class="foro-preview-compose__attachment-progress">
-          <div class="foro-preview-compose__attachment-progress-bar">
-            <div class="foro-preview-compose__attachment-progress-fill" data-progress style="width:0%"></div>
-          </div>
-          <span data-progress-label>Subiendo…</span>
-        </div>
-      </div>
-    `;
-  }
-
-  function updateAttachmentProgress(p) {
-    const fill = form.querySelector("[data-progress]");
-    const label = form.querySelector("[data-progress-label]");
-    if (fill) fill.style.width = `${Math.round(p * 100)}%`;
-    if (label) label.textContent = p < 1 ? `Subiendo… ${Math.round(p * 100)}%` : "Procesando…";
-  }
-
-  function showAttachmentReady(asset) {
-    attachmentEl.classList.remove("is-uploading");
-    attachmentEl.classList.add("is-ready");
-    attachmentInner.innerHTML = `
-      <div class="foro-preview-compose__attachment-preview">
-        ${attachmentReadyHtml(asset)}
-      </div>
-      <div class="foro-preview-compose__attachment-meta">
-        <div class="foro-preview-compose__attachment-name">${escapeHtml(asset.originalName)}</div>
-        <div class="foro-preview-compose__attachment-size">${formatBytes(asset.size)} · ${escapeHtml(asset.attachmentType)}</div>
-      </div>
-    `;
-  }
-
-  function hideAttachment() {
-    attachmentEl.hidden = true;
-    attachmentEl.classList.remove("is-uploading", "is-ready");
-    attachmentInner.innerHTML = "";
-  }
-
-  // ── Buttons ──────────────────────────────────────────────────────
-  wrap.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-action]");
-    if (!btn) return;
-    const action = btn.dataset.action;
-    if (action === "pick-file" && !isUploading) {
-      fileInput.click();
-    } else if (action === "remove-attachment") {
-      attachment = null;
-      hideAttachment();
-      refreshSubmitState();
-    } else if (action === "collapse") {
-      collapse();
-    }
-  });
-
-  // ── Submit ───────────────────────────────────────────────────────
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearError();
-    if (isUploading) {
-      showError("Espera a que termine de subir el archivo.");
-      return;
-    }
-    const contenido = textarea.value.trim();
-    if (!contenido && !attachment) {
-      showError("Escribe algo o adjunta un archivo.");
-      return;
-    }
-
-    const cursoId = card.dataset.cursoId;
-    if (!cursoId) {
-      showError("Curso no detectado.");
-      return;
-    }
-
-    submitBtn.disabled = true;
-    const originalLabel = ctaLabel.textContent;
-    ctaLabel.textContent = "Publicando…";
-
-    try {
-      await api.crearForoPost({
-        cursoId,
-        contenido,
-        adjuntoUrl: attachment?.url,
-        adjuntoTipo: attachment?.attachmentType,
-        adjuntoNombre: attachment?.originalName,
-      });
-      collapse();
-      await fetchForoPreview(cursoId);
-    } catch (err) {
-      console.error("preview compose submit failed:", err);
-      const code = err?.payload?.code;
-      const msg = code === "not_enrolled"
-        ? "No estás inscrito a este curso."
-        : code === "too_long"
-        ? "Demasiado largo (max 4000 caracteres)."
-        : code === "invalid_adjunto_url" || code === "invalid_adjunto_tipo"
-        ? "El archivo adjunto no es válido."
-        : (err?.message || "No pudimos publicar. Intenta de nuevo.");
-      showError(msg);
-      submitBtn.disabled = false;
-      ctaLabel.textContent = originalLabel;
-    }
-  });
-}
-
-function attachmentIconForFilePreview(file) {
-  const mime = file.type || "";
-  if (mime.startsWith("image/")) return icon("imagen");
-  if (mime.startsWith("video/")) return icon("video");
-  return icon("archivo");
-}
-
-function attachmentReadyHtml(asset) {
-  if (asset.attachmentType === "imagen") {
-    return `<img src="${escapeHtml(asset.url)}" alt="" loading="lazy">`;
-  }
-  if (asset.attachmentType === "video") {
-    return icon("video");
-  }
-  return icon("archivo");
-}
-
-function formatBytes(bytes) {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function displayName(autor) {

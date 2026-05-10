@@ -17,7 +17,7 @@ import { icon } from "./icons.js";
 
   renderShell({
     persona,
-    title: "Resultados — Test de Felicidad",
+    title: "Resultados - Test de Felicidad",
     activePath: "/app/cursos",
     contentHtml: loaderHtml({ context: "resultados" }),
   });

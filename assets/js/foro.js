@@ -16,6 +16,7 @@
 import { api, ApiError } from "./api.js";
 import { icon } from "./icons.js";
 import { escapeHtml } from "./ui-shell.js";
+import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 
 const MAX_LEN = 4000;
 
@@ -116,7 +117,9 @@ function renderFeed(container, cursoId, data) {
       </p>
     </header>
 
-    ${renderComposer(yo, { mode: "post" })}
+    <div data-foro-tab-compose>
+      ${renderComposerPill(yo)}
+    </div>
 
     <div class="foro-feed" id="foroFeed" data-curso-id="${escapeHtml(cursoId)}">
       ${posts.length === 0
@@ -129,7 +132,33 @@ function renderFeed(container, cursoId, data) {
     </div>
   `;
 
-  wireComposer(container, { cursoId, parentPostId: null, yo });
+  // Top composer (pill compartido con /resumen)
+  const pillForm = container.querySelector("[data-foro-tab-compose] [data-foro-pill]");
+  if (pillForm) {
+    wireComposerPill(pillForm, {
+      cursoId,
+      onPublished: async (post) => {
+        // Re-fetch del feed para reflejar el post nuevo (incluye autor + adjunto)
+        try {
+          const data = await api.foroPosts(cursoId);
+          const fresh = (data?.posts ?? []).filter(p => !p.eliminado);
+          const feed = container.querySelector("#foroFeed");
+          if (feed) {
+            feed.innerHTML = fresh.length === 0
+              ? `<div class="foro-empty">
+                   <div class="foro-empty__icon">${icon("mensajes")}</div>
+                   <h4>Aún no hay publicaciones</h4>
+                   <p>Sé la primera persona en comenzar la conversación.</p>
+                 </div>`
+              : fresh.map((p) => renderPost(p, yo)).join("");
+          }
+        } catch (e) {
+          console.warn("foro feed reload failed:", e);
+        }
+      },
+    });
+  }
+
   wireFeedActions(container, cursoId, yo);
 }
 
