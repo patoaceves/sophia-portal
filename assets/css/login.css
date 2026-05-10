@@ -240,9 +240,9 @@
   animation: flashIn 0.3s ease;
 }
 .flash.is-success {
-  background: var(--color-success-soft);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
+  background: var(--color-success-tech-soft);
+  color: var(--color-success-tech);
+  border: 1px solid var(--color-success-tech);
 }
 .flash.is-error {
   background: var(--color-danger-soft);

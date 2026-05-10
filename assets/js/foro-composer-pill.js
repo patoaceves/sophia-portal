@@ -457,6 +457,7 @@ export function wireComposerPill(form, opts) {
         adjuntoUrl: attachment?.url,
         adjuntoTipo: attachment?.attachmentType,
         adjuntoNombre: attachment?.originalName,
+        parentPostId: opts.parentPostId, // null para top-level, recXXX para replies
       });
       // Reset
       textarea.value = "";

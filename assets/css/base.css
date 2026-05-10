@@ -23,9 +23,15 @@
   --color-accent-faint: #fbecef;
   --color-border: #e8dfd0;
   --color-border-strong: #c9bea9;
-  /* Verde tech más brillante para mensajes de éxito (antes era olive #6f8e5e). */
-  --color-success: #10b981;
-  --color-success-soft: #d1fae5;
+  /* Verde sage/olive original — para palomitas, highlights de checkpoints,
+     completados, etc. Es el verde "ambiental" del portal. */
+  --color-success: #6f8e5e;
+  --color-success-soft: #dde8d3;
+  /* Verde tech BRILLANTE — solo para mensajes de éxito específicos
+     (eval thanks state, flash success messages). Se aplica explícitamente
+     vía .eval-thanks__icon, .flash--success, etc. */
+  --color-success-tech: #10b981;
+  --color-success-tech-soft: #d1fae5;
   --color-danger: #b04a3e;
   --color-danger-soft: #f0d8d3;
 

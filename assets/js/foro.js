@@ -17,6 +17,7 @@ import { api, ApiError } from "./api.js";
 import { icon } from "./icons.js";
 import { escapeHtml } from "./ui-shell.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
+import { openForoLightbox } from "./foro-lightbox.js";
 
 const MAX_LEN = 4000;
 
@@ -48,9 +49,9 @@ function renderAttachment(p) {
 
   if (tipo === "imagen") {
     return `
-      <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="foro-post__image-link">
+      <button type="button" class="foro-post__image-link" data-action="open-lightbox" data-post-id="${escapeHtml(p.id)}" aria-label="Ver imagen en grande">
         <img src="${escapeHtml(url)}" alt="" loading="lazy" class="foro-post__image" onerror="this.parentElement.style.display='none'">
-      </a>
+      </button>
     `;
   }
 
@@ -601,6 +602,37 @@ function wireFeedActions(root, cursoId, yo) {
     if (!btn) return;
     const action = btn.dataset.action;
 
+    if (action === "open-lightbox") {
+      const postId = btn.dataset.postId;
+      if (!postId) return;
+      // Buscar el post completo en el feed actual para tener comentarios
+      try {
+        const data = await api.foroPosts(cursoId);
+        const post = (data?.posts ?? []).find(p => p.id === postId);
+        if (post) {
+          openForoLightbox({
+            post,
+            cursoId,
+            yo,
+            onChange: async () => {
+              // Re-renderear el feed para reflejar el nuevo conteo de comments
+              const data2 = await api.foroPosts(cursoId);
+              const fresh = (data2?.posts ?? []).filter(p => !p.eliminado);
+              const feed = root.querySelector("#foroFeed");
+              if (feed) {
+                feed.innerHTML = fresh.length === 0
+                  ? `<div class="foro-empty"><div class="foro-empty__icon">${icon("mensajes")}</div><h4>Aún no hay publicaciones</h4></div>`
+                  : fresh.map((p) => renderPost(p, yo)).join("");
+              }
+            },
+          });
+        }
+      } catch (err) {
+        console.error("lightbox open failed:", err);
+      }
+      return;
+    }
+
     if (action === "delete") {
       const postId = btn.dataset.postId;
       if (!postId) return;
@@ -661,10 +693,37 @@ function wireFeedActions(root, cursoId, yo) {
         slot.innerHTML = "";
         return;
       }
-      slot.innerHTML = renderComposer(yo, { mode: "comment", parentPostId: postId });
-      wireComposer(root, { cursoId, parentPostId: postId, yo });
-      // Focus en el textarea recién agregado
-      slot.querySelector(".foro-composer__textarea")?.focus();
+      // Reply usa el mismo pill que los posts top-level (pill pequeño blanco
+      // con attachments y mentions), no el composer expandido grandote.
+      slot.innerHTML = renderComposerPill(yo, { placeholder: "Escribe una respuesta…" });
+      const pillForm = slot.querySelector("[data-foro-pill]");
+      if (pillForm) {
+        wireComposerPill(pillForm, {
+          cursoId,
+          parentPostId: postId,
+          onPublished: async () => {
+            // Re-fetchear feed completo (incluirá el nuevo comentario nested)
+            try {
+              const data = await api.foroPosts(cursoId);
+              const fresh = (data?.posts ?? []).filter(p => !p.eliminado);
+              const feed = root.querySelector("#foroFeed");
+              if (feed) {
+                feed.innerHTML = fresh.length === 0
+                  ? `<div class="foro-empty">
+                       <div class="foro-empty__icon">${icon("mensajes")}</div>
+                       <h4>Aún no hay publicaciones</h4>
+                       <p>Sé la primera persona en comenzar la conversación.</p>
+                     </div>`
+                  : fresh.map((p) => renderPost(p, yo)).join("");
+              }
+            } catch (e) {
+              console.warn("foro feed reload failed:", e);
+            }
+          },
+        });
+        // Focus en el textarea
+        slot.querySelector(".foro-pill__textarea")?.focus();
+      }
       return;
     }
   });

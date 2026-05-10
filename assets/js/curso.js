@@ -20,6 +20,7 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda } from "./rueda.js";
 import { mountForo } from "./foro.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
+import { openForoLightbox } from "./foro-lightbox.js";
 
 const LOCAL_COVERS = new Set(["happiness-workshop"]);
 
@@ -576,7 +577,7 @@ async function fetchForoPreview(cursoId) {
       const adjuntoTipo = (p.adjuntoTipo || "").trim();
       let adjuntoHtml = "";
       if (adjuntoUrl && adjuntoTipo === "imagen") {
-        adjuntoHtml = `<a href="${escapeHtml(adjuntoUrl)}" target="_blank" rel="noopener" class="foro-preview-item__thumb"><img src="${escapeHtml(adjuntoUrl)}" alt="" loading="lazy"></a>`;
+        adjuntoHtml = `<button type="button" class="foro-preview-item__thumb" data-action="open-lightbox" data-post-id="${escapeHtml(p.id)}" aria-label="Ver imagen en grande"><img src="${escapeHtml(adjuntoUrl)}" alt="" loading="lazy"></button>`;
       } else if (adjuntoUrl && adjuntoTipo === "video") {
         adjuntoHtml = `<span class="foro-preview-item__attach-tag">▶ Video</span>`;
       } else if (adjuntoUrl && adjuntoTipo === "archivo") {
@@ -653,12 +654,32 @@ function wireForoPreviewCompose(card) {
 
   // Click en cualquier post del preview → navega al foro + scroll al post
   // (delegated porque los items se re-renderean al refrescar el preview)
-  card.addEventListener("click", (e) => {
+  card.addEventListener("click", async (e) => {
     // No interferir si el click viene del composer (que está dentro del card)
     if (e.target.closest("[data-foro-preview-compose]")) return;
     if (e.target.closest("[data-foro-preview-link]")) return;
-    // No interferir con clicks en thumbnails (que abren imagen en nueva pestaña)
-    if (e.target.closest(".foro-preview-item__thumb")) return;
+
+    // Click en el thumbnail de imagen → abrir lightbox modal con post + comments
+    const thumbBtn = e.target.closest('[data-action="open-lightbox"]');
+    if (thumbBtn) {
+      e.stopPropagation();
+      const postId = thumbBtn.dataset.postId;
+      try {
+        const data = await api.foroPosts(cursoId);
+        const post = (data?.posts ?? []).find(p => p.id === postId);
+        if (post) {
+          openForoLightbox({
+            post,
+            cursoId,
+            yo: window.__sophiaPersona || {},
+            onChange: () => fetchForoPreview(cursoId),
+          });
+        }
+      } catch (err) {
+        console.error("preview lightbox failed:", err);
+      }
+      return;
+    }
 
     const item = e.target.closest("[data-post-id]");
     if (!item) return;

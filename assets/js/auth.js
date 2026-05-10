@@ -84,7 +84,10 @@ export async function getSession() {
 export function getCachedPersona() {
   try {
     const raw = sessionStorage.getItem(PERSONA_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const persona = JSON.parse(raw);
+    if (typeof window !== "undefined") window.__sophiaPersona = persona;
+    return persona;
   } catch {
     return null;
   }
@@ -93,6 +96,11 @@ export function getCachedPersona() {
 function setCachedPersona(persona) {
   try {
     sessionStorage.setItem(PERSONA_CACHE_KEY, JSON.stringify(persona));
+    // También exponer en window para módulos que necesiten acceso rápido
+    // (ej: foro-lightbox abierto desde el preview del resumen).
+    if (typeof window !== "undefined") {
+      window.__sophiaPersona = persona;
+    }
   } catch {}
 }
 

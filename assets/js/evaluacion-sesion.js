@@ -131,7 +131,10 @@ export function mountEvaluacion({ container, leccionId, inscripcionId, preguntas
 
 function render(state) {
   if (state.submitted) {
-    state.container.innerHTML = renderThanks(state);
+    state.container.innerHTML = `
+      ${renderPonenteHeader(state)}
+      ${renderThanks(state)}
+    `;
     return;
   }
 
