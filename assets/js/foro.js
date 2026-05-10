@@ -20,6 +20,66 @@ import { escapeHtml } from "./ui-shell.js";
 const MAX_LEN = 4000;
 
 /**
+ * Render avatar HTML — uses photo if `avatarUrl` exists, else initials.
+ * @param {object} actor · expects { avatarUrl, iniciales }
+ * @param {string} extraClass · optional extra class on the wrapper
+ */
+function renderAvatar(actor, extraClass = "") {
+  const url = (actor?.avatarUrl || "").trim();
+  const initials = actor?.iniciales || "?";
+  if (url) {
+    return `<div class="${extraClass} has-photo"><img src="${escapeHtml(url)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>`;
+  }
+  return `<div class="${extraClass}">${escapeHtml(initials)}</div>`;
+}
+
+/**
+ * Render a post's attachment based on its type. v16 supports:
+ *   - "imagen" → inline <img> in a clickable wrapper
+ *   - "video"  → <video controls> player
+ *   - "archivo" → card with file icon + name + download link
+ * Returns empty string when there's no attachment.
+ */
+function renderAttachment(p) {
+  const url = (p.adjuntoUrl || "").trim();
+  const tipo = (p.adjuntoTipo || "").trim();
+  if (!url || !tipo) return "";
+
+  if (tipo === "imagen") {
+    return `
+      <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="foro-post__image-link">
+        <img src="${escapeHtml(url)}" alt="" loading="lazy" class="foro-post__image" onerror="this.parentElement.style.display='none'">
+      </a>
+    `;
+  }
+
+  if (tipo === "video") {
+    return `
+      <div class="foro-post__video-wrap">
+        <video class="foro-post__video" controls preload="metadata" playsinline>
+          <source src="${escapeHtml(url)}">
+          Tu navegador no soporta el video.
+        </video>
+      </div>
+    `;
+  }
+
+  // archivo
+  const filename = (p.adjuntoNombre || "").trim() || "Archivo";
+  return `
+    <a href="${escapeHtml(url)}" target="_blank" rel="noopener" download class="foro-post__file-card">
+      <div class="foro-post__file-icon">${icon("archivo")}</div>
+      <div class="foro-post__file-body">
+        <div class="foro-post__file-name">${escapeHtml(filename)}</div>
+        <div class="foro-post__file-action">
+          ${icon("download")}<span>Descargar</span>
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+/**
  * Monta el foro completo. Idempotente, si ya estaba montado lo reemplaza.
  * @param {object} opts
  * @param {HTMLElement} opts.container · donde montar el HTML
@@ -81,7 +141,7 @@ function renderComposer(yo, { mode, parentPostId }) {
 
   return `
     <form class="foro-composer ${isComment ? "foro-composer--inline" : ""}" id="${escapeHtml(formId)}" data-parent="${escapeHtml(parentPostId || "")}">
-      <div class="foro-composer__avatar">${escapeHtml(yo.iniciales || "S")}</div>
+      ${renderAvatar(yo, "foro-composer__avatar")}
       <div class="foro-composer__body">
         <textarea
           class="foro-composer__textarea"
@@ -91,23 +151,27 @@ function renderComposer(yo, { mode, parentPostId }) {
           rows="${isComment ? 2 : 3}"
           required
         ></textarea>
+
+        <!-- Attachment preview (only on top-level composer, not in comments) -->
         ${isComment ? "" : `
-          <div class="foro-composer__image-row" hidden>
-            <input
-              type="url"
-              class="foro-composer__image-input"
-              name="imagenUrl"
-              placeholder="https://… (URL pública de imagen)"
-              maxlength="1000"
-            >
-            <button type="button" class="foro-composer__image-cancel" data-action="cancel-image" aria-label="Quitar imagen">×</button>
+          <div class="foro-composer__attachment" data-attachment hidden>
+            <div class="foro-composer__attachment-inner" data-attachment-inner></div>
+            <button type="button" class="foro-composer__attachment-remove" data-action="remove-attachment" aria-label="Quitar adjunto">×</button>
           </div>
+          <input
+            type="file"
+            class="foro-composer__file-input"
+            data-file-input
+            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip,application/x-zip-compressed"
+            style="display:none;"
+          >
         `}
+
         <div class="foro-composer__bar">
           <div class="foro-composer__tools">
             ${isComment ? "" : `
-              <button type="button" class="foro-composer__tool" data-action="add-image" title="Agregar imagen por URL">
-                ${icon("recursos")}<span>Imagen</span>
+              <button type="button" class="foro-composer__tool" data-action="pick-file" title="Adjuntar imagen, video o archivo">
+                ${icon("clip")}<span>Adjuntar</span>
               </button>
             `}
             <span class="foro-composer__count" data-count>0 / ${MAX_LEN}</span>
@@ -149,7 +213,7 @@ function renderPost(p, yo) {
   const canDelete = p.esAutor || yo.esAdmin;
   return `
     <article class="foro-post" data-post-id="${escapeHtml(p.id)}">
-      <div class="foro-post__avatar">${escapeHtml(p.autor.iniciales || "?")}</div>
+      ${renderAvatar(p.autor, "foro-post__avatar")}
       <div class="foro-post__body">
         <header class="foro-post__head">
           <div>
@@ -163,11 +227,7 @@ function renderPost(p, yo) {
           ` : ""}
         </header>
         <div class="foro-post__content">${renderContent(p.contenido)}</div>
-        ${p.imagenUrl ? `
-          <a href="${escapeHtml(p.imagenUrl)}" target="_blank" rel="noopener" class="foro-post__image-link">
-            <img src="${escapeHtml(p.imagenUrl)}" alt="" loading="lazy" class="foro-post__image" onerror="this.parentElement.style.display='none'">
-          </a>
-        ` : ""}
+        ${renderAttachment(p)}
         <footer class="foro-post__footer">
           <button type="button" class="foro-post__action" data-action="reply" data-post-id="${escapeHtml(p.id)}">
             ${icon("mensajes")}<span>Responder</span>
@@ -190,7 +250,7 @@ function renderComment(c, yo) {
   const canDelete = c.esAutor || yo.esAdmin;
   return `
     <article class="foro-comment" data-post-id="${escapeHtml(c.id)}">
-      <div class="foro-comment__avatar">${escapeHtml(c.autor.iniciales || "?")}</div>
+      ${renderAvatar(c.autor, "foro-comment__avatar")}
       <div class="foro-comment__body">
         <header class="foro-comment__head">
           <div>
@@ -255,11 +315,16 @@ function wireComposer(root, { cursoId, parentPostId, yo }) {
   const submitBtn = form.querySelector("[data-submit]");
   const ctaLabel = form.querySelector("[data-cta-label]");
   const errorEl = form.querySelector("[data-error]");
-  const imageRow = form.querySelector(".foro-composer__image-row");
-  const imageInput = form.querySelector(".foro-composer__image-input");
-  const addImageBtn = form.querySelector('[data-action="add-image"]');
-  const cancelImageBtn = form.querySelector('[data-action="cancel-image"]');
+  const fileInput = form.querySelector("[data-file-input]");
+  const attachmentEl = form.querySelector("[data-attachment]");
+  const attachmentInner = form.querySelector("[data-attachment-inner]");
+  const pickFileBtn = form.querySelector('[data-action="pick-file"]');
+  const removeAttachmentBtn = form.querySelector('[data-action="remove-attachment"]');
   const cancelCommentBtn = form.querySelector('[data-action="cancel-comment"]');
+
+  // Attachment state (only meaningful for top-level composer)
+  let attachment = null; // { url, attachmentType, originalName, mimeType, size }
+  let isUploading = false;
 
   function updateCount() {
     if (!counter) return;
@@ -268,18 +333,104 @@ function wireComposer(root, { cursoId, parentPostId, yo }) {
   textarea.addEventListener("input", updateCount);
   updateCount();
 
-  if (addImageBtn) {
-    addImageBtn.addEventListener("click", () => {
-      imageRow.hidden = false;
-      imageInput?.focus();
-      addImageBtn.style.display = "none";
+  if (pickFileBtn && fileInput) {
+    pickFileBtn.addEventListener("click", () => {
+      if (isUploading) return;
+      fileInput.click();
+    });
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      fileInput.value = "";
+      await handleFileUpload(file);
     });
   }
-  if (cancelImageBtn) {
-    cancelImageBtn.addEventListener("click", () => {
-      if (imageInput) imageInput.value = "";
-      imageRow.hidden = true;
-      if (addImageBtn) addImageBtn.style.display = "";
+
+  async function handleFileUpload(file) {
+    clearError();
+    isUploading = true;
+    setComposerBusy(true);
+    showAttachmentUploading(file);
+
+    try {
+      const asset = await api.uploadAsset({
+        file,
+        kind: "foro-attachment",
+        cursoId,
+        onProgress: (p) => updateAttachmentProgress(p),
+      });
+      attachment = asset;
+      showAttachmentReady(asset);
+    } catch (err) {
+      console.error("upload failed:", err);
+      const msg = err?.payload?.code === "too_large"
+        ? err.message
+        : (err?.message || "No pudimos subir el archivo.");
+      showError(msg);
+      attachment = null;
+      hideAttachment();
+    } finally {
+      isUploading = false;
+      setComposerBusy(false);
+    }
+  }
+
+  function showAttachmentUploading(file) {
+    if (!attachmentEl || !attachmentInner) return;
+    attachmentEl.hidden = false;
+    attachmentEl.classList.add("is-uploading");
+    attachmentInner.innerHTML = `
+      <div class="foro-composer__attachment-preview">
+        ${attachmentIconForFile(file)}
+      </div>
+      <div class="foro-composer__attachment-meta">
+        <div class="foro-composer__attachment-name">${escapeHtml(file.name)}</div>
+        <div class="foro-composer__attachment-progress">
+          <div class="foro-composer__attachment-progress-bar"><div class="foro-composer__attachment-progress-fill" data-progress style="width:0%"></div></div>
+          <span data-progress-label>Subiendo…</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateAttachmentProgress(p) {
+    const fill = form.querySelector("[data-progress]");
+    const label = form.querySelector("[data-progress-label]");
+    if (fill) fill.style.width = `${Math.round(p * 100)}%`;
+    if (label) label.textContent = p < 1 ? `Subiendo… ${Math.round(p * 100)}%` : "Procesando…";
+  }
+
+  function showAttachmentReady(asset) {
+    if (!attachmentEl || !attachmentInner) return;
+    attachmentEl.classList.remove("is-uploading");
+    attachmentEl.classList.add("is-ready");
+    attachmentInner.innerHTML = `
+      <div class="foro-composer__attachment-preview">
+        ${attachmentPreviewHtml(asset)}
+      </div>
+      <div class="foro-composer__attachment-meta">
+        <div class="foro-composer__attachment-name">${escapeHtml(asset.originalName)}</div>
+        <div class="foro-composer__attachment-size">${formatBytes(asset.size)} · ${escapeHtml(asset.attachmentType)}</div>
+      </div>
+    `;
+  }
+
+  function hideAttachment() {
+    if (!attachmentEl || !attachmentInner) return;
+    attachmentEl.hidden = true;
+    attachmentEl.classList.remove("is-uploading", "is-ready");
+    attachmentInner.innerHTML = "";
+  }
+
+  function setComposerBusy(busy) {
+    submitBtn.disabled = busy;
+    if (pickFileBtn) pickFileBtn.disabled = busy;
+  }
+
+  if (removeAttachmentBtn) {
+    removeAttachmentBtn.addEventListener("click", () => {
+      attachment = null;
+      hideAttachment();
     });
   }
   if (cancelCommentBtn) {
@@ -300,11 +451,14 @@ function wireComposer(root, { cursoId, parentPostId, yo }) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearError();
+    if (isUploading) {
+      showError("Espera a que termine de subir el archivo.");
+      return;
+    }
     const contenido = (textarea.value || "").trim();
-    const imagenUrl = (imageInput?.value || "").trim();
 
-    if (!contenido && !imagenUrl) {
-      showError("Escribe algo o agrega una imagen.");
+    if (!contenido && !attachment) {
+      showError("Escribe algo o adjunta un archivo.");
       return;
     }
     if (contenido.length > MAX_LEN) {
@@ -320,16 +474,17 @@ function wireComposer(root, { cursoId, parentPostId, yo }) {
       const { post } = await api.crearForoPost({
         cursoId,
         contenido,
-        imagenUrl: imagenUrl || undefined,
+        adjuntoUrl: attachment?.url,
+        adjuntoTipo: attachment?.attachmentType,
+        adjuntoNombre: attachment?.originalName,
         parentPostId: parentPostId || undefined,
       });
       // Insertar en el DOM sin recargar
       insertNewPost(root, post, yo, parentPostId);
       // Reset form
       textarea.value = "";
-      if (imageInput) imageInput.value = "";
-      if (imageRow) imageRow.hidden = true;
-      if (addImageBtn) addImageBtn.style.display = "";
+      attachment = null;
+      hideAttachment();
       updateCount();
       // Si era reply, cerrar el composer inline
       if (parentPostId) form.remove();
@@ -340,8 +495,8 @@ function wireComposer(root, { cursoId, parentPostId, yo }) {
         ? "No estás inscrito a este curso."
         : code === "too_long"
         ? `Demasiado largo (max ${MAX_LEN} caracteres).`
-        : code === "invalid_image_url"
-        ? "URL de imagen inválida."
+        : code === "invalid_adjunto_url" || code === "invalid_adjunto_tipo"
+        ? "El archivo adjunto no es válido."
         : (err?.message || "No pudimos publicar tu post. Intenta de nuevo.");
       showError(msg);
     } finally {
@@ -349,6 +504,30 @@ function wireComposer(root, { cursoId, parentPostId, yo }) {
       ctaLabel.textContent = originalLabel;
     }
   });
+}
+
+function attachmentIconForFile(file) {
+  const mime = file.type || "";
+  if (mime.startsWith("image/")) return icon("imagen");
+  if (mime.startsWith("video/")) return icon("video");
+  return icon("archivo");
+}
+
+function attachmentPreviewHtml(asset) {
+  if (asset.attachmentType === "imagen") {
+    return `<img src="${escapeHtml(asset.url)}" alt="" loading="lazy">`;
+  }
+  if (asset.attachmentType === "video") {
+    return icon("video");
+  }
+  return icon("archivo");
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function insertNewPost(root, post, yo, parentPostId) {

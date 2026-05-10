@@ -15,33 +15,85 @@
       place-items: center;
       background: var(--color-bg);
       margin: 0;
+      padding: var(--s-6);
     }
-    .auth-status {
+    .auth-loader {
       text-align: center;
       max-width: 460px;
       padding: var(--s-8);
       width: 100%;
     }
-    .auth-status .err-detail {
-      background: var(--color-danger-soft);
-      color: var(--color-danger);
-      padding: var(--s-3) var(--s-4);
-      border-radius: var(--r-md);
-      margin-top: var(--s-4);
-      font-size: 0.8125rem;
-      text-align: left;
-    }
-    .hidden { display: none; }
-
-    /* Override page-loader to be inline-friendly inside this minimal page */
     .page-loader {
       min-height: auto;
       padding: 0;
     }
+
+    /* Error card — replaces loader on fail */
+    .auth-error {
+      display: none;
+      max-width: 440px;
+      width: 100%;
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-lg);
+      padding: var(--s-7) var(--s-6) var(--s-6);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .auth-error.is-visible { display: block; }
+
+    .auth-error__icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--r-full);
+      background: var(--color-danger-soft);
+      color: var(--color-danger);
+      display: grid;
+      place-items: center;
+      margin: 0 auto var(--s-4);
+    }
+    .auth-error__icon svg { width: 28px; height: 28px; }
+
+    .auth-error__title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin: 0 0 var(--s-2) 0;
+      text-align: center;
+      color: var(--color-text);
+    }
+
+    .auth-error__msg {
+      margin: 0 0 var(--s-4) 0;
+      font-size: 0.9375rem;
+      color: var(--color-text-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .auth-error__detail {
+      background: var(--color-bg-subtle);
+      border-radius: var(--r-md);
+      padding: var(--s-3) var(--s-4);
+      margin: 0 0 var(--s-5) 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      text-align: left;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      word-break: break-word;
+    }
+    .auth-error__detail.hidden { display: none; }
+
+    .auth-error__actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .auth-error__actions .btn { width: 100%; justify-content: center; }
   </style>
 </head>
 <body>
-  <div class="auth-status">
+  <!-- Loader (default state) -->
+  <div class="auth-loader" id="authLoader">
     <div class="page-loader" data-context="portal">
       <div class="page-loader__inner">
         <div class="spinner spinner--wheel" role="status" aria-live="polite">
@@ -53,7 +105,24 @@
         </div>
       </div>
     </div>
-    <div id="errDetail" class="err-detail hidden"></div>
+  </div>
+
+  <!-- Error card (hidden until fail()) -->
+  <div class="auth-error" id="authError" role="alert">
+    <div class="auth-error__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1 class="auth-error__title" id="authErrorTitle">No pudimos iniciar tu sesión</h1>
+    <p class="auth-error__msg" id="authErrorMsg">El enlace pudo haber expirado o ya fue usado. Pídelo de nuevo desde el portal.</p>
+    <div class="auth-error__detail hidden" id="authErrorDetail"></div>
+    <div class="auth-error__actions">
+      <a class="btn btn-primary" href="/">Volver al inicio</a>
+      <a class="btn btn-ghost" href="mailto:contacto@sophiamx.org">Reportar el problema</a>
+    </div>
   </div>
 
   <script>
@@ -77,31 +146,53 @@
     import { tryClaimPendingInvite, getPendingInvite, bootstrapPersona, needsOnboarding } from "/assets/js/auth.js";
 
     const $msg = document.getElementById("msg");
-    const $err = document.getElementById("errDetail");
+    const $loader = document.getElementById("authLoader");
+    const $error = document.getElementById("authError");
+    const $errorMsg = document.getElementById("authErrorMsg");
+    const $errorDetail = document.getElementById("authErrorDetail");
+
     function clearRotation() {
       if (window.__rot) { clearInterval(window.__rot); window.__rot = null; }
     }
 
-    function fail(reason, detail) {
-      console.error("[auth/callback]", reason, detail);
-      clearRotation();
-      $msg.textContent = reason;
-      // Stop animating dots when there's an error
-      const dotsEl = document.querySelector(".page-loader__dots");
-      if (dotsEl) dotsEl.style.display = "none";
-      if (detail) {
-        $err.textContent = String(detail);
-        $err.classList.remove("hidden");
+    /**
+     * Friendly Spanish translation of common Supabase auth errors.
+     * Maps the URL-hash error code/description into a clear user message.
+     */
+    function humanizeAuthError(code, desc) {
+      const d = (desc || "").toLowerCase();
+      if (d.includes("expired") || d.includes("expir")) {
+        return "El enlace expiró. Pide uno nuevo desde el portal.";
       }
-      setTimeout(() => location.replace("/"), 4000);
+      if (d.includes("already been used") || d.includes("ya fue usado")) {
+        return "Este enlace ya fue usado. Pide uno nuevo desde el portal.";
+      }
+      if (d.includes("invalid") || d.includes("not found")) {
+        return "El enlace no es válido. Pide uno nuevo desde el portal.";
+      }
+      if (d.includes("access_denied") || code === "access_denied") {
+        return "Se canceló el inicio de sesión. Vuelve a intentar.";
+      }
+      if (d.includes("server_error") || code === "server_error") {
+        return "Hubo un error en el servidor. Intenta de nuevo en unos segundos.";
+      }
+      // Default: capitalize the description if it exists, else generic
+      if (desc) return desc.charAt(0).toUpperCase() + desc.slice(1);
+      return "El enlace pudo haber expirado o ya fue usado. Pídelo de nuevo desde el portal.";
     }
 
-    /**
-     * Decide el destino post-login. Hace bootstrap (creando/refrescando la
-     * Persona en Airtable) y revisa si falta onboarding. Si falta, manda a
-     * /app/bienvenida; si no, al destino normal (/app/cursos por default).
-     * Esto evita el "flash de mis cursos" que el usuario veía antes.
-     */
+    function fail(msg, detail) {
+      console.error("[auth/callback]", msg, detail);
+      clearRotation();
+      $loader.style.display = "none";
+      $errorMsg.textContent = msg;
+      if (detail) {
+        $errorDetail.textContent = String(detail);
+        $errorDetail.classList.remove("hidden");
+      }
+      $error.classList.add("is-visible");
+    }
+
     async function decideAndRedirect(targetOverride) {
       clearRotation();
       try {
@@ -112,9 +203,6 @@
           return;
         }
       } catch (e) {
-        // Si el bootstrap falla, no bloqueamos al usuario — lo mandamos al
-        // destino normal. requireAuth() en la siguiente página manejará el
-        // error con su flujo normal de error UI.
         console.warn("[auth/callback] bootstrap failed, continuing:", e);
       }
       $msg.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px;color:var(--color-success);"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Sesión iniciada. Redirigiendo`;
@@ -136,10 +224,10 @@
         url.hash.match(/error_description=([^&]+)/)?.[1];
 
       if (errorParam) {
-        const human = errorDescription
+        const decoded = errorDescription
           ? decodeURIComponent(errorDescription).replace(/\+/g, " ")
-          : `Error de autenticación: ${decodeURIComponent(errorParam)}`;
-        fail(human);
+          : "";
+        fail(humanizeAuthError(errorParam, decoded), decoded);
       } else {
         let session = null;
         for (let i = 0; i < 15; i++) {
@@ -148,28 +236,19 @@
           await new Promise(r => setTimeout(r, 200));
         }
         if (!session) {
-          fail("No pudimos iniciar tu sesión. Vuelve a intentarlo.");
+          fail("No pudimos verificar tu sesión. El enlace pudo expirar o haber sido usado. Pide uno nuevo desde el portal.");
         } else {
-          // ── Canjear invitación pendiente (si la hay) ───────────
-          // Esto se ejecuta ANTES del bootstrap-cache de cursos.html
-          // para que la inscripción ya exista cuando lleguemos ahí.
           if (getPendingInvite()) {
             $msg.textContent = "Activando tu invitación";
             try {
               const result = await tryClaimPendingInvite();
               if (result.kind === "claimed" || result.kind === "already") {
-                // Inscripción canjeada (o ya existía). Mandamos siempre al
-                // dashboard de cursos: ahí el usuario ve TODOS sus cursos
-                // y puede entrar al que quiera. Esto es consistente con
-                // logins repetidos y con multi-curso.
                 decideAndRedirect();
               } else if (result.kind === "retry") {
-                // Sync pendiente. cursos.html reintentará.
                 console.warn("[claim] sync pending, will retry on cursos.html");
                 decideAndRedirect();
               } else if (result.kind === "fatal") {
                 console.error("[claim] fatal:", result.error);
-                // No bloquear el login, solo log + mensaje en cursos.html
                 sessionStorage.setItem(
                   "sophia_invite_error",
                   result.error?.message || "No pudimos activar tu invitación.",

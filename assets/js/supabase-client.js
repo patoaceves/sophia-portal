@@ -22,5 +22,3 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-// Útil para debug en consola
-if (typeof window !== "undefined") window.__sb = supabase;

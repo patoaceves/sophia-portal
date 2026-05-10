@@ -18,6 +18,7 @@ import {
   getSession,
   logout,
 } from "./auth.js";
+import { api, ApiError } from "./api.js";
 
 const POST_LOGIN_REDIRECT_KEY = "sophia_post_login_redirect";
 
@@ -123,12 +124,13 @@ function renderForm(persona, email) {
                   : `<span class="onboarding-avatar__initials">${escape(iniciales)}</span>`}
               </div>
               <div class="onboarding-avatar-actions" id="avatarActions">
-                ${avatarUrl
-                  ? `<p class="onboarding-help" style="margin:0;">Foto desde tu cuenta de Google.</p>
-                     <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
-                  : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Podrás cambiarla más tarde.</p>`
-                }
+                <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload">
+                  ${avatarUrl ? "Cambiar foto" : "Subir foto"}
+                </button>
+                ${avatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>` : ""}
+                <p class="onboarding-help" style="margin: var(--s-1) 0 0 0;" id="avatarHelp">JPG, PNG, WebP o GIF · max 5 MB</p>
               </div>
+              <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
             </div>
 
             <!-- Nombre -->
@@ -214,12 +216,19 @@ function wireForm(persona) {
 
   const avatarPreview = document.getElementById("avatarPreview");
   const avatarActions = document.getElementById("avatarActions");
+  const avatarFileInput = document.getElementById("avatarFileInput");
+  const avatarHelp = document.getElementById("avatarHelp");
 
   let currentAvatarUrl = persona.avatarUrl || "";
+  let isUploadingAvatar = false;
 
   function showFlash(msg, kind = "error") {
     flash.textContent = msg;
     flash.className = `flash is-visible is-${kind}`;
+  }
+  function clearFlash() {
+    flash.className = "flash";
+    flash.textContent = "";
   }
 
   function refreshAvatarPreview() {
@@ -239,34 +248,76 @@ function wireForm(persona) {
   }
 
   function renderAvatarActions() {
-    avatarActions.innerHTML = currentAvatarUrl
-      ? `<p class="onboarding-help" style="margin:0;">Foto desde tu cuenta de Google.</p>
-         <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
-      : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Podrás cambiarla más tarde.</p>`;
+    avatarActions.innerHTML = `
+      <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload"${isUploadingAvatar ? " disabled" : ""}>
+        ${isUploadingAvatar ? "Subiendo…" : (currentAvatarUrl ? "Cambiar foto" : "Subir foto")}
+      </button>
+      ${currentAvatarUrl && !isUploadingAvatar ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>` : ""}
+      <p class="onboarding-help" style="margin: var(--s-1) 0 0 0;">JPG, PNG, WebP o GIF · max 5 MB</p>
+    `;
   }
 
-  // Delegated remove handler
+  // Upload + remove
   avatarActions.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-avatar-action]");
-    if (!btn) return;
-    if (btn.dataset.avatarAction === "remove") {
+    if (!btn || btn.disabled) return;
+    if (btn.dataset.avatarAction === "upload") {
+      avatarFileInput.click();
+    } else if (btn.dataset.avatarAction === "remove") {
       currentAvatarUrl = "";
       refreshAvatarPreview();
     }
   });
+
+  avatarFileInput.addEventListener("change", async () => {
+    const file = avatarFileInput.files?.[0];
+    if (!file) return;
+    avatarFileInput.value = ""; // reset so same file can re-trigger
+    await uploadAvatarFile(file);
+  });
+
+  async function uploadAvatarFile(file) {
+    // Optimistic local preview con un object URL
+    const previewUrl = URL.createObjectURL(file);
+    avatarPreview.innerHTML = `<img src="${previewUrl}" alt="">`;
+    avatarPreview.dataset.hasImage = "true";
+
+    isUploadingAvatar = true;
+    renderAvatarActions();
+    clearFlash();
+
+    try {
+      const asset = await api.uploadAsset({ file, kind: "avatar" });
+      currentAvatarUrl = asset.url;
+      URL.revokeObjectURL(previewUrl);
+      refreshAvatarPreview();
+    } catch (err) {
+      URL.revokeObjectURL(previewUrl);
+      console.error("avatar upload failed:", err);
+      showFlash(err?.message || "No pudimos subir la foto. Intenta de nuevo.");
+      // Volver al estado previo
+      refreshAvatarPreview();
+    } finally {
+      isUploadingAvatar = false;
+      renderAvatarActions();
+    }
+  }
 
   logoutLink.addEventListener("click", (e) => {
     e.preventDefault();
     logout();
   });
 
-  // Refresh initials live as the user types (only matters if no avatar)
   const updateInitials = () => { if (!currentAvatarUrl) refreshAvatarPreview(); };
   document.getElementById("nombreInput")?.addEventListener("input", updateInitials);
   document.getElementById("apellidosInput")?.addEventListener("input", updateInitials);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (isUploadingAvatar) {
+      showFlash("Espera a que termine de subir la foto.");
+      return;
+    }
     const nombre = document.getElementById("nombreInput").value.trim();
     const apellidos = document.getElementById("apellidosInput").value.trim();
     const telefonoPais = document.getElementById("telPaisInput").value.trim();
@@ -283,8 +334,7 @@ function wireForm(persona) {
 
     submit.disabled = true;
     submit.textContent = "Guardando…";
-    flash.className = "flash";
-    flash.textContent = "";
+    clearFlash();
 
     try {
       await updatePersonaProfile({

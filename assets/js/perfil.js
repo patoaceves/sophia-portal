@@ -1,7 +1,8 @@
-// SOPHIA Portal · Mi perfil (editable)
+// SOPHIA Portal · Mi perfil (editable + uploads nativos v16)
 
 import { requireAuth, getSession, logout, updatePersonaProfile } from "./auth.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
+import { api, ApiError } from "./api.js";
 
 const PAISES = [
   { name: "Argentina",          code: "+54",  flag: "🇦🇷" },
@@ -64,11 +65,13 @@ const PAISES = [
                 : `<span class="onboarding-avatar__initials">${escapeHtml(computeIniciales(nombre, apellidos, email))}</span>`}
             </div>
             <div class="onboarding-avatar-actions" id="avatarActions">
-              ${avatarUrl
-                ? `<p class="onboarding-help" style="margin:0;">Foto sincronizada con tu cuenta de Google.</p>
-                   <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
-                : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Pronto podrás subir una.</p>`}
+              <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload">
+                ${avatarUrl ? "Cambiar foto" : "Subir foto"}
+              </button>
+              ${avatarUrl ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>` : ""}
+              <p class="onboarding-help" style="margin: var(--s-1) 0 0 0;">JPG, PNG, WebP o GIF · max 5 MB</p>
             </div>
+            <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
           </div>
 
           <!-- Nombre -->
@@ -130,8 +133,10 @@ function wireProfileForm({ initialPersona, email }) {
 
   const avatarPreview = document.getElementById("avatarPreview");
   const avatarActions = document.getElementById("avatarActions");
+  const avatarFileInput = document.getElementById("avatarFileInput");
 
   let currentAvatarUrl = initialPersona.avatarUrl || "";
+  let isUploadingAvatar = false;
 
   function showFlash(msg, kind = "error") {
     flash.textContent = msg;
@@ -159,20 +164,57 @@ function wireProfileForm({ initialPersona, email }) {
   }
 
   function renderAvatarActions() {
-    avatarActions.innerHTML = currentAvatarUrl
-      ? `<p class="onboarding-help" style="margin:0;">Foto sincronizada con tu cuenta de Google.</p>
-         <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>`
-      : `<p class="onboarding-help" style="margin:0;">Tu foto de perfil. Pronto podrás subir una.</p>`;
+    avatarActions.innerHTML = `
+      <button type="button" class="btn btn-ghost btn-sm" data-avatar-action="upload"${isUploadingAvatar ? " disabled" : ""}>
+        ${isUploadingAvatar ? "Subiendo…" : (currentAvatarUrl ? "Cambiar foto" : "Subir foto")}
+      </button>
+      ${currentAvatarUrl && !isUploadingAvatar ? `<button type="button" class="btn btn-ghost btn-sm" data-avatar-action="remove" style="color: var(--color-danger); padding-left: 0;">Quitar</button>` : ""}
+      <p class="onboarding-help" style="margin: var(--s-1) 0 0 0;">JPG, PNG, WebP o GIF · max 5 MB</p>
+    `;
   }
 
   avatarActions.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-avatar-action]");
-    if (!btn) return;
-    if (btn.dataset.avatarAction === "remove") {
+    if (!btn || btn.disabled) return;
+    if (btn.dataset.avatarAction === "upload") {
+      avatarFileInput.click();
+    } else if (btn.dataset.avatarAction === "remove") {
       currentAvatarUrl = "";
       refreshAvatarPreview();
     }
   });
+
+  avatarFileInput.addEventListener("change", async () => {
+    const file = avatarFileInput.files?.[0];
+    if (!file) return;
+    avatarFileInput.value = "";
+    await uploadAvatarFile(file);
+  });
+
+  async function uploadAvatarFile(file) {
+    const previewUrl = URL.createObjectURL(file);
+    avatarPreview.innerHTML = `<img src="${previewUrl}" alt="">`;
+    avatarPreview.dataset.hasImage = "true";
+
+    isUploadingAvatar = true;
+    renderAvatarActions();
+    clearFlash();
+
+    try {
+      const asset = await api.uploadAsset({ file, kind: "avatar" });
+      currentAvatarUrl = asset.url;
+      URL.revokeObjectURL(previewUrl);
+      refreshAvatarPreview();
+    } catch (err) {
+      URL.revokeObjectURL(previewUrl);
+      console.error("avatar upload failed:", err);
+      showFlash(err?.message || "No pudimos subir la foto. Intenta de nuevo.");
+      refreshAvatarPreview();
+    } finally {
+      isUploadingAvatar = false;
+      renderAvatarActions();
+    }
+  }
 
   const updateInitials = () => { if (!currentAvatarUrl) refreshAvatarPreview(); };
   document.getElementById("nombreInput")?.addEventListener("input", updateInitials);
@@ -180,6 +222,10 @@ function wireProfileForm({ initialPersona, email }) {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (isUploadingAvatar) {
+      showFlash("Espera a que termine de subir la foto.");
+      return;
+    }
     const nombre = document.getElementById("nombreInput").value.trim();
     const apellidos = document.getElementById("apellidosInput").value.trim();
     const telefonoPais = document.getElementById("telPaisInput").value.trim();

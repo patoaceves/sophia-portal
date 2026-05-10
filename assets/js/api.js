@@ -203,12 +203,16 @@ export const api = {
 
   /**
    * POST /create-foro-post
-   * body: { cursoId, contenido, imagenUrl?, parentPostId? }
+   * body: { cursoId, contenido, adjuntoUrl?, adjuntoTipo?, adjuntoNombre?, parentPostId? }
    * → { ok, post }
    */
-  async crearForoPost({ cursoId, contenido, imagenUrl, parentPostId }) {
+  async crearForoPost({ cursoId, contenido, adjuntoUrl, adjuntoTipo, adjuntoNombre, parentPostId }) {
     const body = { cursoId, contenido };
-    if (imagenUrl) body.imagenUrl = imagenUrl;
+    if (adjuntoUrl) {
+      body.adjuntoUrl = adjuntoUrl;
+      body.adjuntoTipo = adjuntoTipo;
+      if (adjuntoNombre) body.adjuntoNombre = adjuntoNombre;
+    }
     if (parentPostId) body.parentPostId = parentPostId;
     const { data } = await callEdge("create-foro-post", { method: "POST", body });
     return data;
@@ -225,5 +229,54 @@ export const api = {
       body: { postId },
     });
     return data;
+  },
+
+  /**
+   * POST /upload-asset · multipart upload to Supabase Storage.
+   *
+   * @param {object} opts
+   * @param {File} opts.file
+   * @param {"avatar"|"foro-attachment"} opts.kind
+   * @param {string} [opts.cursoId] · required if kind=foro-attachment
+   * @param {(progress01: number) => void} [opts.onProgress] · 0..1
+   * @returns {Promise<{ url, path, kind, attachmentType, mimeType, size, originalName }>}
+   */
+  async uploadAsset({ file, kind, cursoId, onProgress }) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) throw new ApiError("Not authenticated", 401);
+
+    const url = new URL("/functions/v1/upload-asset", SUPABASE_URL);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("kind", kind);
+    if (cursoId) fd.append("cursoId", cursoId);
+
+    // Usamos XHR (no fetch) para tener progreso de upload.
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url.toString());
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
+
+      if (onProgress && xhr.upload) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) onProgress(e.loaded / e.total);
+        };
+      }
+
+      xhr.onload = () => {
+        let payload = null;
+        try { payload = JSON.parse(xhr.responseText); } catch { /* not json */ }
+        if (xhr.status >= 200 && xhr.status < 300 && payload?.ok) {
+          resolve(payload.asset);
+        } else {
+          const msg = payload?.error || `Upload failed (${xhr.status})`;
+          reject(new ApiError(msg, xhr.status, payload));
+        }
+      };
+      xhr.onerror = () => reject(new ApiError("Network error during upload", 0));
+      xhr.send(fd);
+    });
   },
 };

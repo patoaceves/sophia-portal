@@ -54,6 +54,7 @@ const FIELDS = {
     APELLIDOS: "fldvZE8Y5Y4rVCOKa",
     EMAIL: "fldnRbi4mJRtfuAmV",
     AUTH_USER_ID: "fldSKACBNXloxYRBc",
+    AVATAR_URL: "fldvi4xBiYc6tPbar",
   },
   INSCRIPCIONES: {
     PERSONA: "fldsgcanUDaXzX20x",
@@ -64,7 +65,9 @@ const FIELDS = {
     AUTOR: "fldjOVXCAkwoNENnX",
     CURSO: "fldFiySrT6wjout5k",
     CONTENIDO: "fldPmHX3Pt0f4r1pv",
-    IMAGEN_URL: "fldmMwKgVz0lP3BO8",
+    ADJUNTO_URL: "fldmMwKgVz0lP3BO8",
+    ADJUNTO_TIPO: "fldoKoSJCdGjZnhyD",
+    ADJUNTO_NOMBRE: "fldpswnHcsl5He8M2",
     POST_PADRE: "fldq82v7aJfKlu6i1",
     ESTATUS: "fldy88bnFeG7QEIQN",
     FECHA: "fldPzXu1gkRN4YSYQ",
@@ -150,9 +153,8 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const isVercelPreview = /^https:\/\/sophia-portal[\w-]*\.vercel\.app$/.test(origin);
   const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) || isVercelPreview ? origin : ALLOWED_ORIGINS[0];
+    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -196,6 +198,7 @@ interface AuthedUser {
   personaPortalId: string;
   nombre: string;
   apellidos: string;
+  avatarUrl: string;
   rol: string;
 }
 
@@ -247,6 +250,7 @@ async function authenticate(req: Request): Promise<AuthedUser> {
     personaPortalId: pp.id,
     nombre: (pp.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "",
     apellidos: (pp.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "",
+    avatarUrl: (pp.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "",
     rol,
   };
 }
@@ -323,22 +327,24 @@ Deno.serve(async (req) => {
     }
 
     // 3. Cargar info de autores en batch
-    const autoresById = new Map<string, { nombre: string; apellidos: string; iniciales: string }>();
+    const autoresById = new Map<string, { nombre: string; apellidos: string; iniciales: string; avatarUrl: string }>();
     if (autorIds.size > 0) {
       const idsArray = Array.from(autorIds);
       // Airtable formula con OR(RECORD_ID() = '...', ...) tiene límite de longitud,
       // así que cargamos toda la tabla con maxRecords prudente y filtramos en JS
       const personas = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-        fields: [FIELDS.PERSONAS_PORTAL.NOMBRE, FIELDS.PERSONAS_PORTAL.APELLIDOS],
+        fields: [FIELDS.PERSONAS_PORTAL.NOMBRE, FIELDS.PERSONAS_PORTAL.APELLIDOS, FIELDS.PERSONAS_PORTAL.AVATAR_URL],
       });
       for (const p of personas) {
         if (idsArray.includes(p.id)) {
           const nombre = (p.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "";
           const apellidos = (p.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "";
+          const avatarUrl = (p.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "";
           autoresById.set(p.id, {
             nombre,
             apellidos,
             iniciales: iniciales(nombre, apellidos),
+            avatarUrl,
           });
         }
       }
@@ -363,19 +369,27 @@ Deno.serve(async (req) => {
           id: rec.id,
           eliminado: true,
           contenido: "",
-          imagenUrl: "",
+          adjuntoUrl: "",
+          adjuntoTipo: "",
+          adjuntoNombre: "",
           fechaISO: (rec.fields[FIELDS.POSTS.FECHA] as string) ?? rec.createdTime ?? "",
           esAutor: false,
           parentId: parentLinks[0] ?? null,
-          autor: { id: "", nombre: "", apellidos: "", iniciales: "·" },
+          autor: { id: "", nombre: "", apellidos: "", iniciales: "·", avatarUrl: "" },
         };
       }
+
+      // Adjunto tipo es singleSelect: viene como objeto { name, color, id }
+      const adjuntoTipoRaw = rec.fields[FIELDS.POSTS.ADJUNTO_TIPO] as string | { name?: string } | undefined;
+      const adjuntoTipo = typeof adjuntoTipoRaw === "string" ? adjuntoTipoRaw : adjuntoTipoRaw?.name ?? "";
 
       return {
         id: rec.id,
         eliminado: false,
         contenido: (rec.fields[FIELDS.POSTS.CONTENIDO] as string) ?? "",
-        imagenUrl: (rec.fields[FIELDS.POSTS.IMAGEN_URL] as string) ?? "",
+        adjuntoUrl: (rec.fields[FIELDS.POSTS.ADJUNTO_URL] as string) ?? "",
+        adjuntoTipo,
+        adjuntoNombre: (rec.fields[FIELDS.POSTS.ADJUNTO_NOMBRE] as string) ?? "",
         fechaISO: (rec.fields[FIELDS.POSTS.FECHA] as string) ?? rec.createdTime ?? "",
         esAutor: autorId === me.personaPortalId,
         parentId: parentLinks[0] ?? null,
@@ -384,6 +398,7 @@ Deno.serve(async (req) => {
           nombre: autor?.nombre ?? "",
           apellidos: autor?.apellidos ?? "",
           iniciales: autor?.iniciales ?? "?",
+          avatarUrl: autor?.avatarUrl ?? "",
         },
       };
     }
@@ -428,6 +443,7 @@ Deno.serve(async (req) => {
         nombre: me.nombre,
         apellidos: me.apellidos,
         iniciales: iniciales(me.nombre, me.apellidos),
+        avatarUrl: me.avatarUrl,
         esAdmin: me.rol === "admin",
       },
     });

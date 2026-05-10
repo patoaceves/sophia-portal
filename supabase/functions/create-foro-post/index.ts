@@ -49,6 +49,7 @@ const FIELDS = {
     APELLIDOS: "fldvZE8Y5Y4rVCOKa",
     EMAIL: "fldnRbi4mJRtfuAmV",
     AUTH_USER_ID: "fldSKACBNXloxYRBc",
+    AVATAR_URL: "fldvi4xBiYc6tPbar",
   },
   INSCRIPCIONES: {
     PERSONA: "fldsgcanUDaXzX20x",
@@ -59,7 +60,9 @@ const FIELDS = {
     AUTOR: "fldjOVXCAkwoNENnX",
     CURSO: "fldFiySrT6wjout5k",
     CONTENIDO: "fldPmHX3Pt0f4r1pv",
-    IMAGEN_URL: "fldmMwKgVz0lP3BO8",
+    ADJUNTO_URL: "fldmMwKgVz0lP3BO8",
+    ADJUNTO_TIPO: "fldoKoSJCdGjZnhyD",
+    ADJUNTO_NOMBRE: "fldpswnHcsl5He8M2",
     POST_PADRE: "fldq82v7aJfKlu6i1",
     ESTATUS: "fldy88bnFeG7QEIQN",
     FECHA: "fldPzXu1gkRN4YSYQ",
@@ -171,9 +174,8 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const isVercelPreview = /^https:\/\/sophia-portal[\w-]*\.vercel\.app$/.test(origin);
   const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) || isVercelPreview ? origin : ALLOWED_ORIGINS[0];
+    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -223,6 +225,7 @@ interface AuthedUser {
   personaPortalId: string;
   nombre: string;
   apellidos: string;
+  avatarUrl: string;
 }
 
 async function authenticate(req: Request): Promise<AuthedUser> {
@@ -265,6 +268,7 @@ async function authenticate(req: Request): Promise<AuthedUser> {
     personaPortalId: pp.id,
     nombre: (pp.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "",
     apellidos: (pp.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "",
+    avatarUrl: (pp.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "",
   };
 }
 
@@ -287,12 +291,21 @@ async function verifyEnrollment(personaPortalId: string, cursoId: string): Promi
 // ============================================================================
 
 const MAX_CONTENIDO_LEN = 4000;
-const MAX_IMAGEN_URL_LEN = 1000;
+const MAX_URL_LEN = 1000;
+const MAX_FILENAME_LEN = 255;
+
+const ATTACHMENT_TYPES = ["imagen", "video", "archivo"] as const;
+type AttachmentType = (typeof ATTACHMENT_TYPES)[number];
 
 interface Body {
   cursoId?: string;
   contenido?: string;
-  imagenUrl?: string;
+  /** URL pública del adjunto, devuelta por upload-asset */
+  adjuntoUrl?: string;
+  /** Tipo del adjunto, escrito por upload-asset al validar el MIME */
+  adjuntoTipo?: AttachmentType;
+  /** Nombre original del archivo, mostrado en el card de descarga */
+  adjuntoNombre?: string;
   parentPostId?: string;
 }
 
@@ -300,11 +313,20 @@ function isValidRecordId(s: unknown): s is string {
   return typeof s === "string" && /^rec[A-Za-z0-9]{14,}$/.test(s);
 }
 
-function isValidImageUrl(s: string): boolean {
-  if (!s || s.length > MAX_IMAGEN_URL_LEN) return false;
+/**
+ * Acepta solo URLs que vengan del bucket de Storage de SOPHIA. Esto evita
+ * que un atacante mande URLs externas como "adjunto" (lo que sería un vector
+ * para ataques de phishing o referer leakage).
+ */
+function isValidStorageUrl(s: string): boolean {
+  if (!s || s.length > MAX_URL_LEN) return false;
   try {
     const u = new URL(s);
-    return u.protocol === "http:" || u.protocol === "https:";
+    if (u.protocol !== "https:") return false;
+    // Supabase storage public URLs:
+    //   https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+    return /\.supabase\.co$/.test(u.hostname) &&
+           u.pathname.startsWith("/storage/v1/object/public/sophia-portal-uploads/");
   } catch {
     return false;
   }
@@ -328,20 +350,27 @@ Deno.serve(async (req) => {
     const body: Body = await req.json().catch(() => ({}));
     const cursoId = body.cursoId;
     const contenidoRaw = (body.contenido ?? "").trim();
-    const imagenUrlRaw = (body.imagenUrl ?? "").trim();
+    const adjuntoUrlRaw = (body.adjuntoUrl ?? "").trim();
+    const adjuntoTipoRaw = (body.adjuntoTipo ?? "").trim() as AttachmentType | "";
+    const adjuntoNombreRaw = (body.adjuntoNombre ?? "").trim().slice(0, MAX_FILENAME_LEN);
     const parentPostId = body.parentPostId;
 
     if (!isValidRecordId(cursoId)) {
       return errorResponse(req, "cursoId inválido", 400, "invalid_curso_id");
     }
-    if (!contenidoRaw && !imagenUrlRaw) {
+    if (!contenidoRaw && !adjuntoUrlRaw) {
       return errorResponse(req, "El post no puede estar vacío", 400, "empty_post");
     }
     if (contenidoRaw.length > MAX_CONTENIDO_LEN) {
       return errorResponse(req, `Contenido demasiado largo (max ${MAX_CONTENIDO_LEN} caracteres)`, 400, "too_long");
     }
-    if (imagenUrlRaw && !isValidImageUrl(imagenUrlRaw)) {
-      return errorResponse(req, "URL de imagen inválida (debe ser http/https)", 400, "invalid_image_url");
+    if (adjuntoUrlRaw) {
+      if (!isValidStorageUrl(adjuntoUrlRaw)) {
+        return errorResponse(req, "URL del adjunto inválida (debe venir de upload-asset).", 400, "invalid_adjunto_url");
+      }
+      if (!ATTACHMENT_TYPES.includes(adjuntoTipoRaw as AttachmentType)) {
+        return errorResponse(req, "adjuntoTipo debe ser imagen, video o archivo.", 400, "invalid_adjunto_tipo");
+      }
     }
     if (parentPostId !== undefined && !isValidRecordId(parentPostId)) {
       return errorResponse(req, "parentPostId inválido", 400, "invalid_parent_id");
@@ -381,7 +410,11 @@ Deno.serve(async (req) => {
       [FIELDS.POSTS.ESTATUS]: "activo",
       [FIELDS.POSTS.FECHA]: nowISO,
     };
-    if (imagenUrlRaw) fields[FIELDS.POSTS.IMAGEN_URL] = imagenUrlRaw;
+    if (adjuntoUrlRaw) {
+      fields[FIELDS.POSTS.ADJUNTO_URL] = adjuntoUrlRaw;
+      fields[FIELDS.POSTS.ADJUNTO_TIPO] = adjuntoTipoRaw;
+      if (adjuntoNombreRaw) fields[FIELDS.POSTS.ADJUNTO_NOMBRE] = adjuntoNombreRaw;
+    }
     if (parentPostId) fields[FIELDS.POSTS.POST_PADRE] = [parentPostId];
 
     const created = await createRecord(BASES.PORTAL, TABLES.POSTS, fields);
@@ -391,18 +424,22 @@ Deno.serve(async (req) => {
       post: {
         id: created.id,
         contenido: contenidoRaw,
-        imagenUrl: imagenUrlRaw || "",
+        adjuntoUrl: adjuntoUrlRaw || "",
+        adjuntoTipo: adjuntoUrlRaw ? adjuntoTipoRaw : "",
+        adjuntoNombre: adjuntoUrlRaw ? adjuntoNombreRaw : "",
         fechaISO:
           (created.fields[FIELDS.POSTS.FECHA] as string) ??
           created.createdTime ??
           nowISO,
         parentId: parentPostId || null,
         esAutor: true,
+        eliminado: false,
         autor: {
           id: me.personaPortalId,
           nombre: me.nombre,
           apellidos: me.apellidos,
           iniciales: iniciales(me.nombre, me.apellidos),
+          avatarUrl: me.avatarUrl,
         },
       },
     });

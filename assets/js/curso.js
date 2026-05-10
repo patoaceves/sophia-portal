@@ -220,6 +220,73 @@ function activateTab(tab, slug, updateHistory = true) {
   // Lazy-mount del foro: solo cuando el usuario activa el tab por primera vez.
   if (tab === "foro") {
     ensureForoMounted();
+    // El usuario está viendo el foro → marcar todo como leído + limpiar badge
+    markForoSeen();
+  } else if (tab === "resumen") {
+    // Volvimos al resumen: re-fetchear el preview por si el usuario posteó
+    // algo nuevo en la pestaña Foro.
+    const cursoId = document.querySelector('[data-foro-preview]')?.dataset.cursoId;
+    if (cursoId) fetchForoPreview(cursoId);
+  }
+}
+
+/**
+ * LocalStorage key para tracking de última visita al foro por curso.
+ */
+function foroSeenKey(cursoId) {
+  return `sophia_foro_last_seen_${cursoId}`;
+}
+
+function getForoLastSeen(cursoId) {
+  try { return localStorage.getItem(foroSeenKey(cursoId)) || ""; }
+  catch { return ""; }
+}
+
+function markForoSeen() {
+  const cursoId = document.querySelector('[data-foro-preview]')?.dataset.cursoId
+    || document.querySelector('[data-foro-mount]')?.dataset.cursoId;
+  if (!cursoId) return;
+  try { localStorage.setItem(foroSeenKey(cursoId), new Date().toISOString()); }
+  catch { /* ignore */ }
+  // Limpiar badge inmediatamente
+  const badge = document.getElementById("foroTabBadge");
+  if (badge) { badge.textContent = ""; badge.classList.remove("is-visible"); }
+}
+
+/**
+ * Cuenta posts/comentarios nuevos desde la última visita al foro por el
+ * usuario, excluyendo los que él mismo creó. Actualiza el badge en el tab.
+ */
+function updateForoBadge(posts) {
+  const badge = document.getElementById("foroTabBadge");
+  if (!badge || !Array.isArray(posts)) return;
+  const cursoId = document.querySelector('[data-foro-preview]')?.dataset.cursoId
+    || document.querySelector('[data-foro-mount]')?.dataset.cursoId;
+  const lastSeen = getForoLastSeen(cursoId);
+
+  const flat = [];
+  for (const p of posts) {
+    if (!p.eliminado) flat.push(p);
+    if (Array.isArray(p.comentarios)) {
+      for (const c of p.comentarios) {
+        if (!c.eliminado) flat.push(c);
+      }
+    }
+  }
+
+  let count = 0;
+  for (const item of flat) {
+    if (item.esAutor) continue;
+    if (!item.fechaISO) continue;
+    if (!lastSeen || item.fechaISO > lastSeen) count += 1;
+  }
+
+  if (count > 0) {
+    badge.textContent = count > 9 ? "9+" : String(count);
+    badge.classList.add("is-visible");
+  } else {
+    badge.textContent = "";
+    badge.classList.remove("is-visible");
   }
 }
 
@@ -311,7 +378,8 @@ function renderTabsNav(slug, currentTab) {
            href="?slug=${encodeURIComponent(slug)}&tab=${t.id}"
            data-tab-target="${t.id}"
            aria-selected="${currentTab === t.id}">
-          ${escapeHtml(t.label)}
+          <span>${escapeHtml(t.label)}</span>
+          ${t.id === "foro" ? `<span class="tab-nav__badge" id="foroTabBadge" aria-label="Publicaciones nuevas"></span>` : ""}
         </a>
       `).join("")}
     </nav>
@@ -463,6 +531,9 @@ async function fetchForoPreview(cursoId) {
 
   try {
     const data = await api.foroPosts(cursoId);
+    // Actualizar badge del tab con el conteo de "nuevos"
+    updateForoBadge(data?.posts ?? []);
+
     const posts = (data?.posts ?? []).filter(p => !p.eliminado).slice(0, 3);
     if (posts.length === 0) {
       body.innerHTML = `
@@ -473,18 +544,25 @@ async function fetchForoPreview(cursoId) {
       `;
       return;
     }
-    body.innerHTML = posts.map(p => `
-      <article class="foro-preview-item">
-        <div class="foro-preview-item__avatar">${escapeHtml(p.autor?.iniciales || "?")}</div>
-        <div class="foro-preview-item__body">
-          <div class="foro-preview-item__head">
-            <span class="foro-preview-item__author">${escapeHtml(displayName(p.autor))}</span>
-            <span class="foro-preview-item__time">${escapeHtml(formatRelativeDate(p.fechaISO))}</span>
+    body.innerHTML = posts.map(p => {
+      const url = (p.autor?.avatarUrl || "").trim();
+      const initials = p.autor?.iniciales || "?";
+      const avatarInner = url
+        ? `<img src="${escapeHtml(url)}" alt="" referrerpolicy="no-referrer" loading="lazy">`
+        : escapeHtml(initials);
+      return `
+        <article class="foro-preview-item">
+          <div class="foro-preview-item__avatar ${url ? "has-photo" : ""}">${avatarInner}</div>
+          <div class="foro-preview-item__body">
+            <div class="foro-preview-item__head">
+              <span class="foro-preview-item__author">${escapeHtml(displayName(p.autor))}</span>
+              <span class="foro-preview-item__time">${escapeHtml(formatRelativeDate(p.fechaISO))}</span>
+            </div>
+            <p class="foro-preview-item__excerpt">${escapeHtml(truncate(p.contenido, 160))}</p>
           </div>
-          <p class="foro-preview-item__excerpt">${escapeHtml(truncate(p.contenido, 160))}</p>
-        </div>
-      </article>
-    `).join("");
+        </article>
+      `;
+    }).join("");
   } catch (e) {
     console.warn("foro preview fetch failed:", e);
     body.innerHTML = `
