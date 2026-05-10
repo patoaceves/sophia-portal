@@ -500,12 +500,43 @@ function renderProgressStrip(ctx) {
  * Contenido se rellena por fetch en background (renderForoPreview).
  */
 function renderForoPreviewCard(ctx) {
+  const yo = ctx.persona || {};
+  const nombre = (yo.nombre || "").trim()[0] || "";
+  const apellidos = (yo.apellidos || "").trim()[0] || "";
+  const iniciales = ((nombre + apellidos).toUpperCase() || "S");
+  const avatarUrl = (yo.avatarUrl || "").trim();
+  const avatarHtml = avatarUrl
+    ? `<div class="foro-preview-compose__avatar has-photo"><img src="${escapeHtml(avatarUrl)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>`
+    : `<div class="foro-preview-compose__avatar">${escapeHtml(iniciales)}</div>`;
+
   return `
     <section class="foro-preview-card" data-foro-preview data-curso-id="${escapeHtml(ctx.curso.id)}" data-curso-slug="${escapeHtml(ctx.slug)}">
       <header class="foro-preview-card__header">
         <span class="foro-preview-card__eyebrow">Conversación reciente</span>
         <h3 class="foro-preview-card__title">Foro</h3>
       </header>
+
+      <form class="foro-preview-compose" data-foro-preview-compose>
+        ${avatarHtml}
+        <div class="foro-preview-compose__body">
+          <textarea
+            class="foro-preview-compose__textarea"
+            name="contenido"
+            placeholder="Comparte algo con el grupo…"
+            maxlength="4000"
+            rows="1"
+            data-foro-preview-textarea
+          ></textarea>
+          <div class="foro-preview-compose__bar">
+            <span class="foro-preview-compose__hint" data-foro-preview-hint>Para adjuntar imágenes, video o archivos abre el foro completo</span>
+            <button class="btn btn-accent btn-sm" type="submit" data-foro-preview-submit disabled>
+              <span data-foro-preview-cta>Publicar</span>
+            </button>
+          </div>
+          <div class="foro-preview-compose__error" data-foro-preview-error hidden></div>
+        </div>
+      </form>
+
       <div class="foro-preview-card__body" data-foro-preview-body>
         <div class="foro-skeleton__row loading-skeleton" style="height: 56px; margin-bottom: 12px;"></div>
         <div class="foro-skeleton__row loading-skeleton" style="height: 56px;"></div>
@@ -529,12 +560,15 @@ async function fetchForoPreview(cursoId) {
   const body = card.querySelector('[data-foro-preview-body]');
   if (!body) return;
 
+  // Asegurar que el composer inline esté wired (idempotente)
+  wireForoPreviewCompose(card);
+
   try {
     const data = await api.foroPosts(cursoId);
     // Actualizar badge del tab con el conteo de "nuevos"
     updateForoBadge(data?.posts ?? []);
 
-    const posts = (data?.posts ?? []).filter(p => !p.eliminado).slice(0, 3);
+    const posts = (data?.posts ?? []).filter(p => !p.eliminado).slice(0, 2);
     if (posts.length === 0) {
       body.innerHTML = `
         <div class="foro-preview-card__empty">
@@ -585,6 +619,96 @@ async function fetchForoPreview(cursoId) {
       </div>
     `;
   }
+}
+
+/**
+ * Conecta el composer inline del preview del foro. Idempotente: solo wirea
+ * una vez por instancia del card.
+ */
+function wireForoPreviewCompose(card) {
+  if (!card || card.dataset.composeWired === "true") return;
+  card.dataset.composeWired = "true";
+
+  const form = card.querySelector("[data-foro-preview-compose]");
+  if (!form) return;
+
+  const textarea = form.querySelector("[data-foro-preview-textarea]");
+  const submitBtn = form.querySelector("[data-foro-preview-submit]");
+  const ctaLabel = form.querySelector("[data-foro-preview-cta]");
+  const errorEl = form.querySelector("[data-foro-preview-error]");
+
+  function showError(msg) {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+  function clearError() {
+    if (!errorEl) return;
+    errorEl.textContent = "";
+    errorEl.hidden = true;
+  }
+
+  // Auto-grow del textarea (de 1 hasta ~5 filas) según contenido
+  function autoGrow() {
+    textarea.style.height = "auto";
+    textarea.style.height = Math.min(160, textarea.scrollHeight) + "px";
+  }
+
+  textarea.addEventListener("input", () => {
+    const v = textarea.value.trim();
+    submitBtn.disabled = v.length === 0;
+    autoGrow();
+    clearError();
+  });
+
+  // Cmd/Ctrl + Enter publica
+  textarea.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !submitBtn.disabled) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearError();
+    const contenido = textarea.value.trim();
+    if (!contenido) {
+      showError("Escribe algo para publicar.");
+      return;
+    }
+
+    const cursoId = card.dataset.cursoId;
+    if (!cursoId) {
+      showError("Curso no detectado.");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    const originalLabel = ctaLabel.textContent;
+    ctaLabel.textContent = "Publicando…";
+
+    try {
+      await api.crearForoPost({ cursoId, contenido });
+      // Reset
+      textarea.value = "";
+      autoGrow();
+      // Refrescar la lista de posts (incluirá el nuevo)
+      await fetchForoPreview(cursoId);
+    } catch (err) {
+      console.error("preview compose failed:", err);
+      const code = err?.payload?.code;
+      const msg = code === "not_enrolled"
+        ? "No estás inscrito a este curso."
+        : code === "too_long"
+        ? "Demasiado largo (max 4000 caracteres)."
+        : (err?.message || "No pudimos publicar. Intenta de nuevo.");
+      showError(msg);
+    } finally {
+      submitBtn.disabled = textarea.value.trim().length === 0;
+      ctaLabel.textContent = originalLabel;
+    }
+  });
 }
 
 function displayName(autor) {
