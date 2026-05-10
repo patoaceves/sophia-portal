@@ -6099,8 +6099,8 @@ button.foro-preview-card__link {
 
 .eval-ponente-header__photo {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 96px;
+  height: 96px;
   border-radius: var(--r-full);
   overflow: hidden;
   background: var(--color-accent-soft);
@@ -6111,12 +6111,16 @@ button.foro-preview-card__link {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Para fotos verticales tipo retrato, centrar arriba evita cortar la cabeza */
+  object-position: center 20%;
   display: block;
 }
 .eval-ponente-header__photo--initials {
   color: var(--color-accent);
-  font-weight: 500;
-  font-size: 1.125rem;
+  font-weight: 400;
+  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144;
 }
 
 .eval-ponente-header__info {
