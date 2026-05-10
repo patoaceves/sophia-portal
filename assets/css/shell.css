@@ -5360,6 +5360,11 @@
   gap: var(--s-3);
   transition: opacity 0.2s ease;
 }
+/* `display: flex` arriba pisa el atributo HTML `hidden`. Forzamos que
+   los elementos con `hidden` queden verdaderamente ocultos. */
+.foro-composer__attachment[hidden] {
+  display: none !important;
+}
 .foro-composer__attachment.is-uploading { opacity: 0.85; }
 
 .foro-composer__attachment-inner {
