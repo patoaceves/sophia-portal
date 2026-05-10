@@ -191,3 +191,28 @@ function escapeHtml(s) {
 }
 
 export { escapeHtml, ICONS, icon };
+
+/**
+ * Live-update del avatar del sidebar sin re-renderear todo el shell.
+ * Útil después de subir/quitar la foto en /app/perfil o /app/bienvenida.
+ *
+ * @param {string} url · URL nueva, vacía para volver a iniciales
+ * @param {{nombre?: string, apellidos?: string}} [persona] · para iniciales fallback
+ */
+export function updateSidebarAvatar(url, persona) {
+  const wrap = document.querySelector(".sidebar__user .sidebar__avatar")
+    || document.querySelector(".sidebar__avatar");
+  if (!wrap) return;
+
+  const cleanUrl = (url || "").trim();
+  if (cleanUrl) {
+    wrap.classList.add("sidebar__avatar--photo");
+    wrap.innerHTML = `<img src="${escapeHtml(cleanUrl)}" alt="" referrerpolicy="no-referrer">`;
+  } else {
+    wrap.classList.remove("sidebar__avatar--photo");
+    const a = (persona?.nombre || "").trim()[0] || "";
+    const b = (persona?.apellidos || "").trim()[0] || "";
+    const initials = (a + b).toUpperCase() || "S";
+    wrap.innerHTML = escapeHtml(initials);
+  }
+}

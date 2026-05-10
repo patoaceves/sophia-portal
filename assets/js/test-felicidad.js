@@ -183,7 +183,7 @@ function renderPregunta(idx, respuestas) {
     `;
   }).join("");
 
-  const nextLabel = isLast ? "Enviar y ver resultados" : "Siguiente";
+  const nextLabel = isLast ? "Ver resultados" : "Siguiente"; // legacy, kept for back-compat
 
   return `
     <article class="test-question">
@@ -201,10 +201,12 @@ function renderPregunta(idx, respuestas) {
           ${icon("arrowLeft")}
           <span>Anterior</span>
         </button>
-        <button class="btn btn-accent" data-test-action="next" type="button" ${selected ? "" : "disabled"}>
-          <span>${nextLabel}</span>
-          ${icon("arrowRight")}
-        </button>
+        ${isLast ? `
+          <button class="btn btn-accent" data-test-action="next" type="button" ${selected ? "" : "disabled"}>
+            <span>Ver resultados</span>
+            ${icon("arrowRight")}
+          </button>
+        ` : `<span></span>`}
       </footer>
     </article>
   `;

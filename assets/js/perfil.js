@@ -1,8 +1,9 @@
 // SOPHIA Portal · Mi perfil (editable + uploads nativos v16)
 
 import { requireAuth, getSession, logout, updatePersonaProfile } from "./auth.js";
-import { renderShell, escapeHtml } from "./ui-shell.js";
+import { renderShell, escapeHtml, updateSidebarAvatar } from "./ui-shell.js";
 import { api, ApiError } from "./api.js";
+import { openAvatarCropper } from "./avatar-crop.js";
 
 const PAISES = [
   { name: "Argentina",          code: "+54",  flag: "🇦🇷" },
@@ -189,10 +190,33 @@ function wireProfileForm({ initialPersona, email }) {
     if (btn.dataset.avatarAction === "upload") {
       avatarFileInput.click();
     } else if (btn.dataset.avatarAction === "remove") {
-      currentAvatarUrl = "";
-      refreshAvatarPreview();
+      removeAvatar();
     }
   });
+
+  async function removeAvatar() {
+    const previousUrl = currentAvatarUrl;
+    currentAvatarUrl = "";
+    refreshAvatarPreview();
+    updateSidebarAvatar("", initialPersona);
+    // Auto-persistir el remove en Airtable
+    try {
+      await updatePersonaProfile({
+        nombre: document.getElementById("nombreInput").value.trim() || initialPersona.nombre,
+        apellidos: document.getElementById("apellidosInput").value.trim() || initialPersona.apellidos,
+        avatarUrl: "",
+        telefonoPais: document.getElementById("telPaisInput").value.trim(),
+        telefonoNumero: document.getElementById("telNumeroInput").value.trim(),
+        perfilCompletado: true,
+      });
+    } catch (err) {
+      console.error("avatar remove failed:", err);
+      currentAvatarUrl = previousUrl;
+      refreshAvatarPreview();
+      updateSidebarAvatar(previousUrl, initialPersona);
+      showFlash(err?.message || "No pudimos quitar la foto. Intenta de nuevo.");
+    }
+  }
 
   avatarFileInput.addEventListener("change", async () => {
     const file = avatarFileInput.files?.[0];
@@ -202,19 +226,54 @@ function wireProfileForm({ initialPersona, email }) {
   });
 
   async function uploadAvatarFile(file) {
-    const previewUrl = URL.createObjectURL(file);
+    clearFlash();
+
+    // ─── Paso 1: cropper modal ──────────────────────────────────────
+    // El usuario reposiciona/zoom y obtenemos un Blob 512×512 cuadrado.
+    let croppedBlob;
+    try {
+      croppedBlob = await openAvatarCropper(file);
+    } catch (err) {
+      if (err?.message === "cancelled") return; // usuario cerró el modal
+      console.error("cropper failed:", err);
+      showFlash(err?.message || "No pudimos preparar la foto.");
+      return;
+    }
+    const croppedFile = new File([croppedBlob], (file.name || "avatar").replace(/\.[^.]+$/, "") + ".jpg", {
+      type: "image/jpeg",
+    });
+
+    // ─── Paso 2: preview optimista + upload ─────────────────────────
+    const previewUrl = URL.createObjectURL(croppedBlob);
     avatarPreview.innerHTML = `<img src="${previewUrl}" alt="">`;
     avatarPreview.dataset.hasImage = "true";
 
     isUploadingAvatar = true;
     renderAvatarActions();
-    clearFlash();
 
     try {
-      const asset = await api.uploadAsset({ file, kind: "avatar" });
+      const asset = await api.uploadAsset({ file: croppedFile, kind: "avatar" });
       currentAvatarUrl = asset.url;
       URL.revokeObjectURL(previewUrl);
       refreshAvatarPreview();
+
+      // ─── Paso 3: auto-persist en Airtable ─────────────────────────
+      try {
+        await updatePersonaProfile({
+          nombre: document.getElementById("nombreInput").value.trim() || initialPersona.nombre,
+          apellidos: document.getElementById("apellidosInput").value.trim() || initialPersona.apellidos,
+          avatarUrl: asset.url,
+          telefonoPais: document.getElementById("telPaisInput").value.trim(),
+          telefonoNumero: document.getElementById("telNumeroInput").value.trim(),
+          perfilCompletado: true,
+        });
+        updateSidebarAvatar(asset.url, initialPersona);
+        showFlash("Foto actualizada.", "success");
+        setTimeout(clearFlash, 2200);
+      } catch (saveErr) {
+        console.error("avatar autosave failed:", saveErr);
+        showFlash("Foto subida pero no se guardó en tu perfil. Click en \"Guardar cambios\".");
+      }
     } catch (err) {
       URL.revokeObjectURL(previewUrl);
       console.error("avatar upload failed:", err);

@@ -550,6 +550,19 @@ async function fetchForoPreview(cursoId) {
       const avatarInner = url
         ? `<img src="${escapeHtml(url)}" alt="" referrerpolicy="no-referrer" loading="lazy">`
         : escapeHtml(initials);
+
+      // Indicador de adjunto: thumbnail si imagen, icono si video/archivo
+      const adjuntoUrl = (p.adjuntoUrl || "").trim();
+      const adjuntoTipo = (p.adjuntoTipo || "").trim();
+      let adjuntoHtml = "";
+      if (adjuntoUrl && adjuntoTipo === "imagen") {
+        adjuntoHtml = `<a href="${escapeHtml(adjuntoUrl)}" target="_blank" rel="noopener" class="foro-preview-item__thumb"><img src="${escapeHtml(adjuntoUrl)}" alt="" loading="lazy"></a>`;
+      } else if (adjuntoUrl && adjuntoTipo === "video") {
+        adjuntoHtml = `<span class="foro-preview-item__attach-tag">▶ Video</span>`;
+      } else if (adjuntoUrl && adjuntoTipo === "archivo") {
+        adjuntoHtml = `<span class="foro-preview-item__attach-tag">📎 Archivo</span>`;
+      }
+
       return `
         <article class="foro-preview-item">
           <div class="foro-preview-item__avatar ${url ? "has-photo" : ""}">${avatarInner}</div>
@@ -558,7 +571,8 @@ async function fetchForoPreview(cursoId) {
               <span class="foro-preview-item__author">${escapeHtml(displayName(p.autor))}</span>
               <span class="foro-preview-item__time">${escapeHtml(formatRelativeDate(p.fechaISO))}</span>
             </div>
-            <p class="foro-preview-item__excerpt">${escapeHtml(truncate(p.contenido, 160))}</p>
+            ${p.contenido ? `<p class="foro-preview-item__excerpt">${escapeHtml(truncate(p.contenido, 160))}</p>` : ""}
+            ${adjuntoHtml}
           </div>
         </article>
       `;

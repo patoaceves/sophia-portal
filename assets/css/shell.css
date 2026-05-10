@@ -193,7 +193,7 @@
   /* Boosted from 1.125rem (~18px) to 1.5rem (~24px) for stronger
      hierarchy, the lesson title in header was visually too quiet. */
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   font-variation-settings: "opsz" 144;
 }
@@ -260,7 +260,7 @@
   font-size: clamp(2rem, 3.5vw, 2.75rem);
   /* Unificado a 500 para que coincida con curso-hero__title y h1-h6.
      Antes era 400 y se veía más delgado en /app/cursos vs /app/curso. */
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.02em;
   margin-bottom: var(--s-2);
   font-variation-settings: "opsz" 144;
@@ -347,7 +347,7 @@
 .curso-card__title {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.25;
   color: var(--color-text);
@@ -530,7 +530,7 @@
 .capitulo-card__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
@@ -771,7 +771,7 @@
 .profile-card__title {
   font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 500;
+  font-weight: 400;
   margin-bottom: var(--s-5);
   padding-bottom: var(--s-3);
   border-bottom: 1px solid var(--color-border);
@@ -1053,7 +1053,7 @@
 .summary-stat__num {
   font-family: var(--font-display);
   font-size: 4rem;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--color-accent);
   line-height: 1;
   font-variation-settings: "opsz" 144;
@@ -1143,7 +1143,7 @@
 
 .rueda-card__title {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 400;
   font-size: 1.0625rem;
   margin: 0 0 var(--s-2) 0;
   color: var(--color-text);
@@ -1241,7 +1241,7 @@
   font-family: var(--font-display);
   font-size: 2rem;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
   font-variation-settings: "opsz" 144;
 }
@@ -1274,7 +1274,7 @@
 .dashboard-grid__title {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   margin-bottom: var(--s-4);
   color: var(--color-text);
 }
@@ -1362,7 +1362,7 @@
 .tool-card__title {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   margin-bottom: var(--s-2);
   color: var(--color-text);
 }
@@ -1760,7 +1760,7 @@
 .test-intro__title {
   font-family: var(--font-display);
   font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.05;
   margin-bottom: var(--s-5);
   font-variation-settings: "opsz" 144, "SOFT" 50;
@@ -1816,7 +1816,7 @@
 .test-question__texto {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 3vw, 1.875rem);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.3;
   text-align: center;
   margin-bottom: var(--s-9);
@@ -1925,7 +1925,7 @@
 .test-review__title {
   font-family: var(--font-display);
   font-size: 1.875rem;
-  font-weight: 500;
+  font-weight: 400;
   margin-bottom: var(--s-3);
   font-variation-settings: "opsz" 144;
 }
@@ -1978,7 +1978,7 @@
   font-family: var(--font-display);
   font-size: 1.125rem;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 400;
   flex-shrink: 0;
   width: 32px;
 }
@@ -2011,7 +2011,7 @@
   font-family: var(--font-display);
   font-size: 1rem;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .test-review__missing {
@@ -2140,7 +2140,7 @@
 .curso-hero__title {
   font-family: var(--font-display);
   font-size: clamp(1.625rem, 2.5vw, 2.125rem);
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.15;
   font-variation-settings: "opsz" 144;
@@ -2289,7 +2289,7 @@
 .continue-panel__title {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 2.5vw, 1.875rem);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.15;
   letter-spacing: -0.01em;
   color: var(--color-text);
@@ -2340,7 +2340,7 @@
   font-family: var(--font-display);
   font-size: 1.625rem;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 400;
   font-variation-settings: "opsz" 144;
   line-height: 1;
 }
@@ -2392,7 +2392,7 @@
 .rueda-panel__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   color: var(--color-text);
   font-variation-settings: "opsz" 144;
@@ -2484,7 +2484,7 @@
 .temario-timeline__title {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   margin: 0;
   font-variation-settings: "opsz" 144;
@@ -2574,7 +2574,7 @@
   border: 2px solid var(--color-border);
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--color-text-muted);
   transition: all 0.2s ease;
   font-variation-settings: "opsz" 144;
@@ -2710,7 +2710,7 @@
 .mini-tool__big {
   font-family: var(--font-display);
   font-size: 1.875rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
   color: var(--color-text);
   font-variation-settings: "opsz" 144;
@@ -2812,7 +2812,7 @@
 .tab-panel-header__title {
   font-family: var(--font-display);
   font-size: 1.625rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   margin: 0 0 var(--s-2) 0;
   font-variation-settings: "opsz" 144;
@@ -2844,7 +2844,7 @@
 .resumen-section-header__title {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   margin: 0 0 var(--s-2) 0;
   font-variation-settings: "opsz" 144;
@@ -2896,7 +2896,7 @@
 .pillar-grid__title {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   margin: 0 0 var(--s-2) 0;
   font-variation-settings: "opsz" 144;
@@ -3090,7 +3090,7 @@
 .continue-card__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.2;
   margin: 0;
   font-variation-settings: "opsz" 144;
@@ -3136,7 +3136,7 @@
   font-family: var(--font-display);
   font-size: 1.375rem;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -3198,7 +3198,7 @@
 .test-cajita__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
 }
@@ -3288,7 +3288,7 @@
 .resumen-extras__title {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.01em;
   margin: 0;
   font-variation-settings: "opsz" 144;
@@ -3772,7 +3772,7 @@
 .foro-empty h4 {
   font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 var(--s-1);
 }
 
@@ -4060,7 +4060,7 @@
 .placeholder-state h4 {
   font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 var(--s-2) 0;
 }
 
@@ -4167,7 +4167,7 @@
 .proxima-sesion__day-num {
   font-family: var(--font-display);
   font-size: 3.5rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
   color: var(--color-accent);
   font-variation-settings: "opsz" 144;
@@ -4199,7 +4199,7 @@
 .proxima-sesion__title {
   font-family: var(--font-display);
   font-size: 1.625rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
   letter-spacing: -0.01em;
@@ -4243,7 +4243,7 @@
 .cal-list__title {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
 }
@@ -4294,7 +4294,7 @@
 .cal-item__day-num {
   font-family: var(--font-display);
   font-size: 1.875rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
   font-variation-settings: "opsz" 144;
 }
@@ -4320,7 +4320,7 @@
 .cal-item__title {
   font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 var(--s-1) 0;
   font-variation-settings: "opsz" 144;
 }
@@ -4423,7 +4423,7 @@
 .stat-card__num {
   font-family: var(--font-display);
   font-size: 2.5rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.05;
   color: var(--color-text);
   font-variation-settings: "opsz" 144;
@@ -4497,7 +4497,7 @@
 .progreso-rueda__title {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
 }
@@ -4527,7 +4527,7 @@
 .progreso-cursos__header h3 {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
 }
@@ -4562,7 +4562,7 @@
 .curso-row__title {
   font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 var(--s-1) 0;
   font-variation-settings: "opsz" 144;
 }
@@ -4687,7 +4687,7 @@
 .anuncio__title {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
   line-height: 1.3;
@@ -4761,7 +4761,7 @@
 .coming-soon__title {
   font-family: var(--font-display);
   font-size: 1.875rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 var(--s-3) 0;
   font-variation-settings: "opsz" 144;
 }
@@ -4820,7 +4820,7 @@
   color: var(--color-accent);
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.04em;
   font-variation-settings: "opsz" 144;
 }
@@ -4833,7 +4833,7 @@
 .leccion-html .claustro-name {
   font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 2px 0;
   letter-spacing: -0.01em;
   font-variation-settings: "opsz" 144;
@@ -5181,7 +5181,7 @@
 .foro-preview-card__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   font-variation-settings: "opsz" 144;
 }
@@ -5612,7 +5612,7 @@
 .eval-thanks__title {
   font-family: var(--font-display);
   font-size: 1.625rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 var(--s-3) 0;
   color: var(--color-text);
 }
@@ -5624,3 +5624,226 @@
   margin: 0 0 var(--s-6) 0;
 }
 
+
+/* v17.8 · Foro preview thumbnails (lista de "Conversación reciente") */
+.foro-preview-item__thumb {
+  display: block;
+  margin-top: var(--s-2);
+  width: 100%;
+  max-width: 240px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+.foro-preview-item__thumb img {
+  display: block;
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+}
+
+.foro-preview-item__attach-tag {
+  display: inline-block;
+  margin-top: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * v17.9 · Avatar cropper modal
+ * Modal nativo de pan/zoom para ajustar la foto antes de subirla.
+ * Viewport 320×320 con máscara circular; output JPEG 512×512.
+ * ──────────────────────────────────────────────────────────────────── */
+
+.avatar-cropper {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 14, 8, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: var(--s-4);
+  animation: avatar-cropper-fade 0.18s ease-out;
+}
+
+@keyframes avatar-cropper-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.avatar-cropper__modal {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  width: 100%;
+  max-width: 420px;
+  padding: var(--s-5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.avatar-cropper__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.avatar-cropper__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.avatar-cropper__close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.avatar-cropper__close:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.avatar-cropper__viewport {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  margin: 0 auto;
+  background: #1a1310;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.avatar-cropper__viewport:active {
+  cursor: grabbing;
+}
+
+.avatar-cropper__image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  max-width: none; /* override otras reglas globales */
+  max-height: none;
+}
+
+/* Máscara con hueco circular: muestra qué se va a cropear */
+.avatar-cropper__mask {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* Slider de zoom */
+.avatar-cropper__zoom-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 0 var(--s-2);
+}
+
+.avatar-cropper__zoom-icon {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  user-select: none;
+  width: 18px;
+  text-align: center;
+}
+
+.avatar-cropper__zoom {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 24px;
+  cursor: pointer;
+}
+
+.avatar-cropper__zoom::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+.avatar-cropper__zoom::-moz-range-track {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.avatar-cropper__zoom::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg-elevated);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-top: -7px;
+  cursor: pointer;
+}
+.avatar-cropper__zoom::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg-elevated);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.avatar-cropper__hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.avatar-cropper__actions {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: flex-end;
+  margin-top: var(--s-2);
+}
+
+@media (max-width: 480px) {
+  .avatar-cropper__viewport {
+    width: 280px;
+    height: 280px;
+  }
+}

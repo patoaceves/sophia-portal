@@ -19,6 +19,7 @@ import {
   logout,
 } from "./auth.js";
 import { api, ApiError } from "./api.js";
+import { openAvatarCropper } from "./avatar-crop.js";
 
 const POST_LOGIN_REDIRECT_KEY = "sophia_post_login_redirect";
 
@@ -287,17 +288,32 @@ function wireForm(persona) {
   });
 
   async function uploadAvatarFile(file) {
-    // Optimistic local preview con un object URL
-    const previewUrl = URL.createObjectURL(file);
+    // Paso 1: cropper modal
+    let croppedBlob;
+    try {
+      croppedBlob = await openAvatarCropper(file);
+    } catch (err) {
+      if (err?.message === "cancelled") return;
+      console.error("cropper failed:", err);
+      showFlash(err?.message || "No pudimos preparar la foto.");
+      return;
+    }
+    const croppedFile = new File([croppedBlob], (file.name || "avatar").replace(/\.[^.]+$/, "") + ".jpg", {
+      type: "image/jpeg",
+    });
+
+    // Paso 2: preview optimista + upload
+    const previewUrl = URL.createObjectURL(croppedBlob);
     avatarPreview.innerHTML = `<img src="${previewUrl}" alt="">`;
     avatarPreview.dataset.hasImage = "true";
 
     isUploadingAvatar = true;
     renderAvatarActions();
-    clearFlash();
+    flash.className = "flash";
+    flash.textContent = "";
 
     try {
-      const asset = await api.uploadAsset({ file, kind: "avatar" });
+      const asset = await api.uploadAsset({ file: croppedFile, kind: "avatar" });
       currentAvatarUrl = asset.url;
       URL.revokeObjectURL(previewUrl);
       refreshAvatarPreview();
@@ -305,7 +321,6 @@ function wireForm(persona) {
       URL.revokeObjectURL(previewUrl);
       console.error("avatar upload failed:", err);
       showFlash(err?.message || "No pudimos subir la foto. Intenta de nuevo.");
-      // Volver al estado previo
       refreshAvatarPreview();
     } finally {
       isUploadingAvatar = false;
