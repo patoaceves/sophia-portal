@@ -68,14 +68,17 @@ export function renderComposerPill(persona, opts = {}) {
       <div class="foro-pill__row">
         ${avatarHtml}
 
-        <textarea
-          class="foro-pill__textarea"
-          name="contenido"
-          placeholder="${escapeHtml(placeholder)}"
-          rows="1"
-          maxlength="4000"
-          data-textarea
-        ></textarea>
+        <div class="foro-pill__textarea-wrap">
+          <textarea
+            class="foro-pill__textarea"
+            name="contenido"
+            placeholder="${escapeHtml(placeholder)}"
+            rows="1"
+            maxlength="4000"
+            data-textarea
+          ></textarea>
+          <div class="foro-pill__mentions" data-mentions hidden role="listbox" aria-label="Menciones"></div>
+        </div>
 
         <div class="foro-pill__icons">
           <button type="button" class="foro-pill__icon-btn" data-action="pick-image" aria-label="Adjuntar imagen" title="Imagen">
@@ -126,10 +129,15 @@ export function wireComposerPill(form, opts) {
   const fileInput = form.querySelector("[data-file-input]");
   const attachmentEl = form.querySelector("[data-attachment]");
   const attachmentInner = form.querySelector("[data-attachment-inner]");
+  const mentionsEl = form.querySelector("[data-mentions]");
 
   let attachment = null;
   let isUploading = false;
   let isSubmitting = false;
+
+  // ── Mentions state ───────────────────────────────────────────────
+  let roster = null; // se carga lazy cuando el user escribe el primer "@"
+  let mentionState = null; // { startIdx, query, items, selectedIdx } o null
 
   function showError(msg) {
     errorEl.textContent = msg;
@@ -155,12 +163,166 @@ export function wireComposerPill(form, opts) {
     clearError();
     autoGrow();
     refreshSubmitState();
+    handleMentionInput();
   });
   textarea.addEventListener("keydown", (e) => {
+    // Mentions navigation
+    if (mentionState && mentionState.items.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        mentionState.selectedIdx = (mentionState.selectedIdx + 1) % mentionState.items.length;
+        renderMentions();
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        mentionState.selectedIdx = (mentionState.selectedIdx - 1 + mentionState.items.length) % mentionState.items.length;
+        renderMentions();
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        applyMention(mentionState.items[mentionState.selectedIdx]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMentions();
+        return;
+      }
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !submitBtn.disabled) {
       e.preventDefault();
       form.requestSubmit();
     }
+  });
+  textarea.addEventListener("blur", () => {
+    // Cerrar dropdown con un delay para permitir clicks dentro
+    setTimeout(closeMentions, 150);
+  });
+
+  // ── Mentions: detección + dropdown ──────────────────────────────
+  async function handleMentionInput() {
+    const value = textarea.value;
+    const cursor = textarea.selectionStart ?? value.length;
+    // Buscar el "@" hacia atrás desde el cursor sin pasar por whitespace o newline
+    let i = cursor - 1;
+    while (i >= 0 && /[^\s@]/.test(value[i])) i--;
+    if (i < 0 || value[i] !== "@") {
+      closeMentions();
+      return;
+    }
+    // Validar que el "@" esté al inicio o precedido por whitespace (no @en@medio)
+    if (i > 0 && !/\s/.test(value[i - 1])) {
+      closeMentions();
+      return;
+    }
+    const query = value.slice(i + 1, cursor).toLowerCase();
+
+    // Cargar roster on-demand
+    if (!roster) {
+      try {
+        roster = await api.getCursoRoster(cursoId);
+      } catch (err) {
+        console.warn("getCursoRoster failed:", err);
+        roster = [];
+      }
+    }
+
+    const items = filterRoster(roster, query);
+    mentionState = { startIdx: i, query, items, selectedIdx: 0 };
+    renderMentions();
+  }
+
+  function filterRoster(list, q) {
+    const items = [];
+    // Primero "todos"/"grupo"
+    if ("todos".startsWith(q) || "grupo".startsWith(q) || q === "") {
+      items.push({ id: "@todos", nombre: "todos", apellidos: "", iniciales: "@", avatarUrl: "", rol: "", isAll: true });
+    }
+    if (!q) {
+      items.push(...list.slice(0, 7));
+    } else {
+      for (const p of list) {
+        const fullName = `${p.nombre} ${p.apellidos}`.toLowerCase();
+        if (fullName.includes(q) || p.nombre.toLowerCase().startsWith(q)) {
+          items.push(p);
+          if (items.length >= 8) break;
+        }
+      }
+    }
+    return items;
+  }
+
+  function renderMentions() {
+    if (!mentionState || mentionState.items.length === 0) {
+      closeMentions();
+      return;
+    }
+    mentionsEl.hidden = false;
+    mentionsEl.innerHTML = mentionState.items
+      .map((item, idx) => {
+        const isActive = idx === mentionState.selectedIdx;
+        const url = (item.avatarUrl || "").trim();
+        const avatar = item.isAll
+          ? `<div class="foro-pill__mention-avatar foro-pill__mention-avatar--all">@</div>`
+          : url
+          ? `<div class="foro-pill__mention-avatar has-photo"><img src="${escapeHtml(url)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>`
+          : `<div class="foro-pill__mention-avatar">${escapeHtml(item.iniciales)}</div>`;
+        const label = item.isAll
+          ? "Notificar a todo el grupo"
+          : `${escapeHtml(item.nombre)} ${escapeHtml(item.apellidos)}`.trim();
+        const sub = item.isAll
+          ? "@todos"
+          : (item.rol && item.rol !== "participante" ? item.rol : "");
+        return `
+          <button type="button" class="foro-pill__mention-item ${isActive ? "is-active" : ""}" data-mention-idx="${idx}" role="option" aria-selected="${isActive}">
+            ${avatar}
+            <span class="foro-pill__mention-name">${label}</span>
+            ${sub ? `<span class="foro-pill__mention-sub">${escapeHtml(sub)}</span>` : ""}
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function closeMentions() {
+    mentionState = null;
+    mentionsEl.hidden = true;
+    mentionsEl.innerHTML = "";
+  }
+
+  function applyMention(item) {
+    if (!item || !mentionState) return;
+    const before = textarea.value.slice(0, mentionState.startIdx);
+    const after = textarea.value.slice(textarea.selectionStart ?? textarea.value.length);
+    let token;
+    if (item.isAll) {
+      token = "@todos";
+    } else {
+      // Construir mention compacta (primer nombre + apellido para legibilidad)
+      const firstName = (item.nombre || "").trim().split(" ")[0];
+      const lastName = (item.apellidos || "").trim().split(" ")[0];
+      token = `@${firstName}${lastName ? "_" + lastName : ""}`;
+    }
+    const newValue = `${before}${token} ${after}`;
+    textarea.value = newValue;
+    const newCursor = before.length + token.length + 1;
+    textarea.setSelectionRange(newCursor, newCursor);
+    textarea.focus();
+    closeMentions();
+    autoGrow();
+    refreshSubmitState();
+  }
+
+  // Click sobre items del dropdown
+  mentionsEl.addEventListener("mousedown", (e) => {
+    // mousedown (no click) para que dispare antes del blur del textarea
+    const btn = e.target.closest("[data-mention-idx]");
+    if (!btn || !mentionState) return;
+    e.preventDefault();
+    const idx = parseInt(btn.dataset.mentionIdx, 10);
+    applyMention(mentionState.items[idx]);
   });
 
   // ─── File pickers ────────────────────────────────────────────────

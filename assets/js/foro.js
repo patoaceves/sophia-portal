@@ -113,7 +113,7 @@ function renderFeed(container, cursoId, data) {
       <span class="tab-panel-header__eyebrow">Conversación del grupo</span>
       <h3 class="tab-panel-header__title">Foro</h3>
       <p class="tab-panel-header__sub">
-        Comparte ideas, reflexiones y dudas con tus compañeros de generación.
+        Comparte ideas, reflexiones y dudas con tus compañeros de grupo.
       </p>
     </header>
 
@@ -246,7 +246,7 @@ function renderPost(p, yo) {
       <div class="foro-post__body">
         <header class="foro-post__head">
           <div>
-            <div class="foro-post__author">${escapeHtml(displayName(p.autor))}</div>
+            <div class="foro-post__author">${escapeHtml(displayName(p.autor))}${rolBadge(p.autor)}</div>
             <time class="foro-post__time" datetime="${escapeHtml(p.fechaISO)}">${escapeHtml(formatDate(p.fechaISO))}</time>
           </div>
           ${canDelete ? `
@@ -283,7 +283,7 @@ function renderComment(c, yo) {
       <div class="foro-comment__body">
         <header class="foro-comment__head">
           <div>
-            <span class="foro-comment__author">${escapeHtml(displayName(c.autor))}</span>
+            <span class="foro-comment__author">${escapeHtml(displayName(c.autor))}${rolBadge(c.autor)}</span>
             <time class="foro-comment__time" datetime="${escapeHtml(c.fechaISO)}">${escapeHtml(formatDate(c.fechaISO))}</time>
           </div>
           ${canDelete ? `
@@ -674,6 +674,23 @@ function wireFeedActions(root, cursoId, yo) {
 // Helpers
 // ────────────────────────────────────────────────────────────────────
 
+/**
+ * Renderea un badge de rol al lado del nombre. Solo muestra para roles
+ * distintos a "participante" (default), para no saturar visualmente.
+ */
+function rolBadge(autor) {
+  const rol = (autor?.rol || "").trim().toLowerCase();
+  if (!rol || rol === "participante") return "";
+  const labels = {
+    profesor: "Profesor",
+    admin: "Admin",
+    facilitador: "Facilitador",
+    coordinador: "Coordinador",
+  };
+  const label = labels[rol] || rol.charAt(0).toUpperCase() + rol.slice(1);
+  return ` <span class="foro-rol-badge foro-rol-badge--${escapeHtml(rol)}">${escapeHtml(label)}</span>`;
+}
+
 function displayName(autor) {
   const n = (autor.nombre || "").trim();
   const a = (autor.apellidos || "").trim();
@@ -708,7 +725,13 @@ function renderContent(text) {
     /(https?:\/\/[^\s<>"']+)/g,
     (m) => `<a href="${m}" target="_blank" rel="noopener noreferrer">${m}</a>`,
   );
-  return linked.replace(/\n/g, "<br>");
+  // @-mentions: matches @todos, @grupo, @nombre_apellido, @nombre.
+  // Acepta letras (incl. acentos), números, guion bajo, guion. NO espacios.
+  const withMentions = linked.replace(
+    /(^|\s)(@[A-Za-zÁÉÍÓÚÑáéíóúñ0-9_-]+)/g,
+    (_, pre, mention) => `${pre}<span class="foro-mention">${mention}</span>`,
+  );
+  return withMentions.replace(/\n/g, "<br>");
 }
 
 function cssEscape(s) {

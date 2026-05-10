@@ -208,6 +208,7 @@ function renderLeccion(persona, payload, cursoContext) {
       inscripcionId,
       nextHref,
       nextLabel,
+      ponente: ponente, // pasamos el nombre del ponente para mostrarlo arriba del wizard
       // preguntas: leccion.evaluacionPreguntas (futuro: leerlo de Airtable)
       onComplete: async ({ respuestas }) => {
         // Persistir respuestas en la tabla "Evaluaciones Sesión".

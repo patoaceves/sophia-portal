@@ -93,7 +93,7 @@ const RATING_VALUES = [1, 2, 3, 4, 5];
  * @param {Array} [opts.preguntas] · si no se pasa, usa DEFAULT_PREGUNTAS_SESION
  * @param {() => Promise<void>} [opts.onComplete] · llamada al submit (para marcar lección)
  */
-export function mountEvaluacion({ container, leccionId, inscripcionId, preguntas, nextHref, nextLabel, onComplete }) {
+export function mountEvaluacion({ container, leccionId, inscripcionId, preguntas, nextHref, nextLabel, ponente, onComplete }) {
   if (!container) return;
 
   const questions = Array.isArray(preguntas) && preguntas.length > 0
@@ -110,6 +110,7 @@ export function mountEvaluacion({ container, leccionId, inscripcionId, preguntas
     onComplete,
     nextHref: nextHref || "/app/cursos",
     nextLabel: nextLabel || "Volver a mis cursos",
+    ponente: (ponente || "").trim(),
     preguntas: questions,
     currentIndex: cached?.currentIndex ?? 0,
     respuestas: cached?.respuestas ?? {},
@@ -139,6 +140,7 @@ function render(state) {
   const pct = Math.round(((idx + 1) / total) * 100);
 
   state.container.innerHTML = `
+    ${renderPonenteHeader(state)}
     <div class="test-progress">
       <div class="test-progress__bar">
         <div class="test-progress__fill" style="width: ${pct}%;"></div>
@@ -151,6 +153,61 @@ function render(state) {
       </div>
     </div>
   `;
+}
+
+/**
+ * Encabezado con foto + nombre del ponente al que se está evaluando.
+ * Si no hay ponente, no se renderea nada.
+ */
+function renderPonenteHeader(state) {
+  if (!state.ponente) return "";
+  const slug = ponenteSlug(state.ponente);
+  const photoUrl = slug ? `/assets/img/brand/ponentes/${slug}` : "";
+  // Iniciales como fallback
+  const parts = state.ponente.split(/\s+/).filter(Boolean);
+  const initials = ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
+
+  return `
+    <div class="eval-ponente-header">
+      ${photoUrl ? `
+        <div class="eval-ponente-header__photo">
+          <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(state.ponente)}" onerror="this.parentElement.innerHTML='${initials}'; this.parentElement.classList.add('eval-ponente-header__photo--initials');">
+        </div>
+      ` : `
+        <div class="eval-ponente-header__photo eval-ponente-header__photo--initials">${initials}</div>
+      `}
+      <div class="eval-ponente-header__info">
+        <span class="eval-ponente-header__label">Estás evaluando a</span>
+        <h3 class="eval-ponente-header__name">${escapeHtml(state.ponente)}</h3>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Mapea el nombre del ponente al filename de su foto en /assets/img/brand/ponentes/.
+ * Normaliza acentos, espacios → guiones, y prueba .png + .jpg.
+ * Hardcoded list por ahora; los archivos reales en el repo son:
+ *   mariana-riojas.jpg, mateo-villarreal.jpg, marycarmen-tena.png,
+ *   nancy-moreno.jpg, pedro-mariscal.jpg, jose-gonzalez.jpg
+ */
+function ponenteSlug(name) {
+  const norm = (name || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quitar acentos
+    .toLowerCase().trim();
+  const slugs = {
+    "mariana riojas": "mariana-riojas.jpg",
+    "mateo villarreal": "mateo-villarreal.jpg",
+    "marycarmen tena": "marycarmen-tena.png",
+    "mary carmen tena": "marycarmen-tena.png",
+    "marycarmen tena herran": "marycarmen-tena.png",
+    "mary carmen tena herran": "marycarmen-tena.png",
+    "nancy moreno": "nancy-moreno.jpg",
+    "pedro mariscal": "pedro-mariscal.jpg",
+    "jose gonzalez": "jose-gonzalez.jpg",
+    "josé gonzález": "jose-gonzalez.jpg",
+  };
+  return slugs[norm] || "";
 }
 
 function renderPregunta(state, idx) {
@@ -181,10 +238,11 @@ function renderPregunta(state, idx) {
           ${icon("arrowLeft")}
           <span>Anterior</span>
         </button>
-        <button class="btn btn-accent" data-eval-action="next" type="button" ${canAdvance && !state.submitting ? "" : "disabled"}>
-          <span>${state.submitting ? "Enviando…" : nextLabel}</span>
-          ${isLast ? "" : icon("arrowRight")}
-        </button>
+        ${isLast && (isAnswered || !p.obligatoria) ? `
+          <button class="btn btn-accent" data-eval-action="next" type="button" ${state.submitting ? "disabled" : ""}>
+            <span>${state.submitting ? "Enviando…" : "Enviar evaluación"}</span>
+          </button>
+        ` : `<span></span>`}
       </footer>
     </article>
   `;
@@ -263,7 +321,27 @@ function clickHandler(state, e) {
     const value = parseInt(btn.dataset.value, 10);
     state.respuestas[p.id] = value;
     persistState(state);
-    render(state);
+
+    // Visual feedback inmediato: marcar la opción activa antes de re-rendear
+    const allDots = btn.parentElement?.querySelectorAll(".dot-option");
+    if (allDots) {
+      allDots.forEach((d) => d.classList.remove("is-active"));
+      btn.classList.add("is-active");
+    }
+
+    const isLast = state.currentIndex === state.preguntas.length - 1;
+    if (isLast) {
+      // Última pregunta es rating: el botón de enviar aparecerá al re-rendear
+      // (porque isAnswered ya es true). NO auto-submit aquí porque la 6ta es texto.
+      setTimeout(() => render(state), 200);
+    } else {
+      // Auto-advance a la siguiente pregunta
+      setTimeout(() => {
+        state.currentIndex += 1;
+        persistState(state);
+        render(state);
+      }, 280);
+    }
     return;
   }
 

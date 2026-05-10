@@ -85,14 +85,18 @@ function renderResultados(persona, data, cursoSlug) {
         </div>
       </div>
       <div class="resultados-summary">
-        <div class="summary-stat">
-          <div class="summary-stat__num">${avgPct}%</div>
-          <div class="summary-stat__label">Promedio general</div>
+        <h3 class="resultados-summary__title">Análisis de tu diagrama</h3>
+        <div class="resultados-summary__pillars">
+          <div class="resultados-summary__pillar">
+            <span class="resultados-summary__pillar-label">Tu pilar más fuerte</span>
+            <span class="resultados-summary__pillar-value resultados-summary__pillar-value--strong">${escapeHtml(strongestPilar(scores, pilarNombres))}</span>
+          </div>
+          <div class="resultados-summary__pillar">
+            <span class="resultados-summary__pillar-label">Tu pilar más vulnerable</span>
+            <span class="resultados-summary__pillar-value resultados-summary__pillar-value--weak">${escapeHtml(weakestPilar(scores, pilarNombres))}</span>
+          </div>
         </div>
-        <p class="summary-text">
-          <strong>Tu pilar más fuerte:</strong> ${escapeHtml(strongestPilar(scores, pilarNombres))}<br>
-          <strong>Tu pilar más vulnerable:</strong> ${escapeHtml(weakestPilar(scores, pilarNombres))}
-        </p>
+        <p class="resultados-summary__lead">${escapeHtml(buildHolisticAnalysis(scores, pilarNombres))}</p>
       </div>
     </section>
 
@@ -172,4 +176,53 @@ function weakestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
   const k = sorted[0]?.[0];
   return k ? (nombres?.[k] || k) : "—";
+}
+
+/**
+ * Genera un párrafo de análisis holístico. Mira la dispersión de los
+ * puntajes (cuán balanceada está tu rueda), el rango fuerte/débil y la
+ * relación entre el pilar más fuerte y el más vulnerable.
+ *
+ * Los puntajes vienen en escala 2-10 (suma de dos preguntas Likert 1-5).
+ * - Promedio alto (>7.5) + dispersión baja: rueda balanceada y nutrida
+ * - Promedio alto + dispersión alta: hay un área que requiere atención
+ * - Promedio medio: zona de cultivo, oportunidad amplia
+ * - Promedio bajo: invitación a empezar por el pilar más fuerte
+ */
+function buildHolisticAnalysis(scores, nombres) {
+  const values = Object.values(scores);
+  if (values.length === 0) return "";
+  const avg = values.reduce((s, v) => s + v, 0) / values.length;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const spread = max - min;
+
+  const fuerte = strongestPilar(scores, nombres);
+  const vulnerable = weakestPilar(scores, nombres);
+
+  // Tier por promedio
+  let tone;
+  if (avg >= 8) tone = "alto";
+  else if (avg >= 6.5) tone = "medio-alto";
+  else if (avg >= 5) tone = "medio";
+  else tone = "explorador";
+
+  // Tier por dispersión
+  const balanced = spread <= 2;
+
+  // Construcción del texto según los tiers
+  if (tone === "alto" && balanced) {
+    return `Tu diagrama refleja una vida con cimientos firmes y bien distribuidos. Tu fortaleza en ${fuerte} convive con un cuidado parejo de tus otras áreas — eso habla de hábitos integrados, no de un solo pilar cargando con todo. La oportunidad ahora es sostener este equilibrio y profundizar, sin perder de vista ${vulnerable.toLowerCase()}, que aunque está cerca de las demás, podría ser tu próximo lugar de exploración.`;
+  }
+  if (tone === "alto" && !balanced) {
+    return `Tu pilar más fuerte, ${fuerte}, está claramente nutrido y se nota. Sin embargo, hay una distancia notable con ${vulnerable.toLowerCase()}, lo que sugiere que estás invirtiendo mucho en ciertas áreas y descuidando otras. La invitación es a llevar parte de la energía que ya sabes generar hacia el pilar más vulnerable — no para descuidar tu fortaleza, sino para que el conjunto te sostenga.`;
+  }
+  if (tone === "medio-alto") {
+    return `Tu rueda muestra una base sólida con espacios claros de crecimiento. ${fuerte} es tu ancla y eso es una buena señal: ya sabes lo que se siente cuidar bien un área. ${vulnerable} aparece como tu invitación más directa — no como déficit, sino como el lugar donde el siguiente capítulo puede florecer. Pequeños movimientos consistentes ahí mueven mucho el conjunto.`;
+  }
+  if (tone === "medio") {
+    return `Tu diagrama dice algo importante: estás en una zona de cultivo. Ningún pilar está abandonado, pero ninguno está en su mejor momento tampoco. ${fuerte} es por dónde empezar a sostenerte — usa lo que ya funciona ahí como punto de apoyo. ${vulnerable} merece atención específica, idealmente con una práctica concreta y sostenida más que con un cambio drástico.`;
+  }
+  // explorador (avg < 5)
+  return `Tu diagrama refleja un momento de exploración. Es honesto y vale la pena reconocerlo: estás registrando dónde estás hoy, no dónde "deberías" estar. Empieza por ${fuerte} — incluso si no se siente fuerte, es tu mayor punto de apoyo. ${vulnerable} probablemente requiere acompañamiento o una decisión estructural, no solo voluntad. Este es un buen lugar desde el cual empezar.`;
 }

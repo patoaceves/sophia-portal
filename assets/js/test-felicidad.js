@@ -201,8 +201,8 @@ function renderPregunta(idx, respuestas) {
           ${icon("arrowLeft")}
           <span>Anterior</span>
         </button>
-        ${isLast ? `
-          <button class="btn btn-accent" data-test-action="next" type="button" ${selected ? "" : "disabled"}>
+        ${isLast && selected ? `
+          <button class="btn btn-accent" data-test-action="next" type="button">
             <span>Ver resultados</span>
             ${icon("arrowRight")}
           </button>
@@ -238,12 +238,19 @@ async function clickHandler(state, e) {
     }
 
     // Auto-advance after short delay (feels snappier).
-    // Last question: re-render so the submit button is properly enabled
-    //                and reflects the selected state in markup.
+    // Última pregunta: auto-submit directo, sin pasar por botón "Ver resultados".
+    // Si el usuario quiere revisar, puede volver con "Anterior".
     const isLast = state.currentIndex === PREGUNTAS.length - 1;
     if (isLast) {
-      // Re-render after a brief delay so the visual feedback is seen
-      setTimeout(() => renderInto(state), 200);
+      setTimeout(async () => {
+        try {
+          await submitTest(state, btn);
+        } catch (err) {
+          console.error("auto-submit failed:", err);
+          // Si falla, mostrar el botón para reintentar manualmente
+          renderInto(state);
+        }
+      }, 320);
     } else {
       setTimeout(() => {
         state.currentIndex += 1;

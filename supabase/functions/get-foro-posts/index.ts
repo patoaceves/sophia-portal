@@ -55,6 +55,7 @@ const FIELDS = {
     EMAIL: "fldnRbi4mJRtfuAmV",
     AUTH_USER_ID: "fldSKACBNXloxYRBc",
     AVATAR_URL: "fldvi4xBiYc6tPbar",
+    ROL: "fldRcBDK58Mu2tkWj",
   },
   INSCRIPCIONES: {
     PERSONA: "fldsgcanUDaXzX20x",
@@ -327,24 +328,26 @@ Deno.serve(async (req) => {
     }
 
     // 3. Cargar info de autores en batch
-    const autoresById = new Map<string, { nombre: string; apellidos: string; iniciales: string; avatarUrl: string }>();
+    const autoresById = new Map<string, { nombre: string; apellidos: string; iniciales: string; avatarUrl: string; rol: string }>();
     if (autorIds.size > 0) {
       const idsArray = Array.from(autorIds);
-      // Airtable formula con OR(RECORD_ID() = '...', ...) tiene límite de longitud,
-      // así que cargamos toda la tabla con maxRecords prudente y filtramos en JS
       const personas = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-        fields: [FIELDS.PERSONAS_PORTAL.NOMBRE, FIELDS.PERSONAS_PORTAL.APELLIDOS, FIELDS.PERSONAS_PORTAL.AVATAR_URL],
+        fields: [FIELDS.PERSONAS_PORTAL.NOMBRE, FIELDS.PERSONAS_PORTAL.APELLIDOS, FIELDS.PERSONAS_PORTAL.AVATAR_URL, FIELDS.PERSONAS_PORTAL.ROL],
       });
       for (const p of personas) {
         if (idsArray.includes(p.id)) {
           const nombre = (p.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "";
           const apellidos = (p.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "";
           const avatarUrl = (p.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "";
+          // Rol es singleSelect: viene como { name, color, id }
+          const rolRaw = p.fields[FIELDS.PERSONAS_PORTAL.ROL] as string | { name?: string } | undefined;
+          const rol = typeof rolRaw === "string" ? rolRaw : rolRaw?.name ?? "participante";
           autoresById.set(p.id, {
             nombre,
             apellidos,
             iniciales: iniciales(nombre, apellidos),
             avatarUrl,
+            rol,
           });
         }
       }
@@ -375,7 +378,7 @@ Deno.serve(async (req) => {
           fechaISO: (rec.fields[FIELDS.POSTS.FECHA] as string) ?? rec.createdTime ?? "",
           esAutor: false,
           parentId: parentLinks[0] ?? null,
-          autor: { id: "", nombre: "", apellidos: "", iniciales: "·", avatarUrl: "" },
+          autor: { id: "", nombre: "", apellidos: "", iniciales: "·", avatarUrl: "", rol: "" },
         };
       }
 
@@ -399,6 +402,7 @@ Deno.serve(async (req) => {
           apellidos: autor?.apellidos ?? "",
           iniciales: autor?.iniciales ?? "?",
           avatarUrl: autor?.avatarUrl ?? "",
+          rol: autor?.rol ?? "",
         },
       };
     }

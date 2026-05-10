@@ -296,4 +296,21 @@ export const api = {
     const { data } = await callEdge("submit-evaluacion", { method: "POST", body });
     return data;
   },
+
+  /**
+   * GET /get-curso-roster?cursoId=...
+   * Devuelve los inscritos del curso (Persona Portal info), para alimentar
+   * el autocomplete de menciones en el composer del foro.
+   */
+  async getCursoRoster(cursoId) {
+    const cacheKey = `api:roster:${cursoId}`;
+    const hit = cacheGet(cacheKey);
+    if (hit) return hit;
+    const { data } = await callEdge(`get-curso-roster?cursoId=${encodeURIComponent(cursoId)}`, {
+      method: "GET",
+    });
+    const roster = data?.roster ?? [];
+    cacheSet(cacheKey, roster);
+    return roster;
+  },
 };

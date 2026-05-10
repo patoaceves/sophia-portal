@@ -5936,3 +5936,253 @@ button.foro-preview-card__link {
   .foro-pill__icon-btn { width: 28px; height: 28px; }
   .foro-pill__submit { padding-left: 12px; padding-right: 12px; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+ * v17.13 · COMPLEMENTOS finales
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* ─── Foro preview: clickable items ───────────────────────────────── */
+.foro-preview-item {
+  cursor: pointer;
+}
+.foro-preview-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Conteo de comentarios en el preview */
+.foro-preview-item__comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--s-2);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.foro-preview-item__comments svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ─── Highlight cuando se navega a un post desde el preview ────────── */
+.foro-post.is-highlighted {
+  animation: foro-post-flash 2s ease-out;
+}
+@keyframes foro-post-flash {
+  0% { box-shadow: 0 0 0 4px var(--color-accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ─── Rol badge al lado del nombre en posts/comentarios ───────────── */
+.foro-rol-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.foro-rol-badge--profesor {
+  background: rgba(193, 18, 47, 0.08);
+  color: var(--color-accent);
+  border-color: rgba(193, 18, 47, 0.18);
+}
+.foro-rol-badge--admin {
+  background: rgba(16, 185, 129, 0.10);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.foro-rol-badge--facilitador,
+.foro-rol-badge--coordinador {
+  background: rgba(90, 126, 184, 0.10);
+  color: #2c5d99;
+  border-color: rgba(90, 126, 184, 0.25);
+}
+
+/* ─── @-mentions dropdown en composer pill ────────────────────────── */
+.foro-pill__textarea-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.foro-pill__mentions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 50;
+  padding: 4px;
+}
+.foro-pill__mentions[hidden] { display: none; }
+
+.foro-pill__mention-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  transition: background 0.1s ease;
+}
+.foro-pill__mention-item:hover,
+.foro-pill__mention-item.is-active {
+  background: var(--color-bg-subtle);
+}
+.foro-pill__mention-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.foro-pill__mention-avatar.has-photo { background: transparent; color: transparent; }
+.foro-pill__mention-avatar.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foro-pill__mention-avatar--all {
+  background: var(--color-accent);
+  color: white;
+  font-weight: 600;
+}
+.foro-pill__mention-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.foro-pill__mention-sub { font-size: 0.75rem; color: var(--color-text-muted); flex-shrink: 0; }
+
+/* ─── Mentions destacadas dentro del contenido del post ──────────── */
+.foro-mention {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(193, 18, 47, 0.08);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* ─── Header del wizard de evaluación: foto + nombre del ponente ──── */
+.eval-ponente-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  margin-bottom: var(--s-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+}
+
+.eval-ponente-header__photo {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-full);
+  overflow: hidden;
+  background: var(--color-accent-soft);
+  display: grid;
+  place-items: center;
+}
+.eval-ponente-header__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.eval-ponente-header__photo--initials {
+  color: var(--color-accent);
+  font-weight: 500;
+  font-size: 1.125rem;
+}
+
+.eval-ponente-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.eval-ponente-header__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.eval-ponente-header__name {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 400;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+/* ─── Resultados del test: análisis holístico (sin %) ─────────────── */
+.resultados-summary__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin: 0 0 var(--s-4) 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.resultados-summary__pillars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+
+.resultados-summary__pillar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultados-summary__pillar-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.resultados-summary__pillar-value {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.resultados-summary__pillar-value--strong {
+  color: #047857;
+}
+.resultados-summary__pillar-value--weak {
+  color: var(--color-accent);
+}
+
+.resultados-summary__lead {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin: 0;
+}

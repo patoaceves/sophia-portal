@@ -216,7 +216,17 @@ function activateTab(tab, slug, updateHistory = true) {
     history.pushState({ tab }, "", `?${params}`);
   }
 
-  document.querySelector(`#tab-${tab}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Solo scroll cuando los tabs están fuera del viewport, y scrollea hacia
+  // los TABS (no el panel) para que sigan visibles después del cambio.
+  const tabsNav = document.querySelector(".tab-nav");
+  if (tabsNav) {
+    const rect = tabsNav.getBoundingClientRect();
+    const isAbove = rect.bottom < 0;
+    const isBelow = rect.top > window.innerHeight;
+    if (isAbove || isBelow) {
+      tabsNav.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   // Lazy-mount del foro: solo cuando el usuario activa el tab por primera vez.
   if (tab === "foro") {
@@ -573,8 +583,19 @@ async function fetchForoPreview(cursoId) {
         adjuntoHtml = `<span class="foro-preview-item__attach-tag">📎 Archivo</span>`;
       }
 
+      // Conteo de comentarios (solo si hay)
+      const numComments = Array.isArray(p.comentarios)
+        ? p.comentarios.filter(c => !c.eliminado).length
+        : 0;
+      const commentsHtml = numComments > 0
+        ? `<span class="foro-preview-item__comments">
+             ${icon("mensajes")}
+             <span>${numComments} ${numComments === 1 ? "comentario" : "comentarios"}</span>
+           </span>`
+        : "";
+
       return `
-        <article class="foro-preview-item">
+        <article class="foro-preview-item" data-post-id="${escapeHtml(p.id)}" tabindex="0" role="link" aria-label="Ver post de ${escapeHtml(displayName(p.autor))}">
           <div class="foro-preview-item__avatar ${url ? "has-photo" : ""}">${avatarInner}</div>
           <div class="foro-preview-item__body">
             <div class="foro-preview-item__head">
@@ -583,6 +604,7 @@ async function fetchForoPreview(cursoId) {
             </div>
             ${p.contenido ? `<p class="foro-preview-item__excerpt">${escapeHtml(truncate(p.contenido, 160))}</p>` : ""}
             ${adjuntoHtml}
+            ${commentsHtml}
           </div>
         </article>
       `;
@@ -627,6 +649,52 @@ function wireForoPreviewCompose(card) {
       const slug = card.dataset.cursoSlug;
       activateTab("foro", slug);
     });
+  }
+
+  // Click en cualquier post del preview → navega al foro + scroll al post
+  // (delegated porque los items se re-renderean al refrescar el preview)
+  card.addEventListener("click", (e) => {
+    // No interferir si el click viene del composer (que está dentro del card)
+    if (e.target.closest("[data-foro-preview-compose]")) return;
+    if (e.target.closest("[data-foro-preview-link]")) return;
+    // No interferir con clicks en thumbnails (que abren imagen en nueva pestaña)
+    if (e.target.closest(".foro-preview-item__thumb")) return;
+
+    const item = e.target.closest("[data-post-id]");
+    if (!item) return;
+    const postId = item.dataset.postId;
+    if (!postId) return;
+    const slug = card.dataset.cursoSlug;
+    activateTab("foro", slug);
+    // Esperar a que el foro termine de mountar/render, luego scrollear al post
+    setTimeout(() => scrollToForoPost(postId), 100);
+  });
+
+  // Soporte teclado (Enter/Espacio sobre items) para a11y
+  card.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const item = e.target.closest(".foro-preview-item[data-post-id]");
+    if (!item) return;
+    e.preventDefault();
+    const postId = item.dataset.postId;
+    const slug = card.dataset.cursoSlug;
+    activateTab("foro", slug);
+    setTimeout(() => scrollToForoPost(postId), 100);
+  });
+}
+
+function scrollToForoPost(postId, retries = 12) {
+  if (!postId) return;
+  const post = document.querySelector(`[data-post-id="${CSS.escape(postId)}"].foro-post`);
+  if (post) {
+    post.scrollIntoView({ behavior: "smooth", block: "center" });
+    post.classList.add("is-highlighted");
+    setTimeout(() => post.classList.remove("is-highlighted"), 2200);
+    return;
+  }
+  // El foro está montando aún (red + render): reintentar
+  if (retries > 0) {
+    setTimeout(() => scrollToForoPost(postId, retries - 1), 200);
   }
 }
 
