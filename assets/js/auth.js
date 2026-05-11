@@ -17,13 +17,19 @@ const PENDING_INVITE_KEY = "sophia_pending_invite";
 // 2. User logs in with Google, callback.html runs, claims the token.
 // 3. If claim returns 425 (sync pending), the token stays stashed and
 //    cursos.html will retry on its next page load.
+//
+// IMPORTANTE: usamos localStorage (no sessionStorage) porque el flujo de
+// magic link suele cruzar tabs: el usuario abre el portal en Tab A
+// (donde se captura el invite), recibe el email en Gmail y al hacer click
+// el magic link abre Tab B. sessionStorage NO se comparte entre tabs.
+// localStorage sí. clearPendingInvite() lo borra tras canje exitoso.
 
 export function captureInviteFromUrl() {
   try {
     const url = new URL(location.href);
     const t = url.searchParams.get("invite");
     if (t && /^inv_[A-Za-z0-9_-]{4,40}$/.test(t)) {
-      sessionStorage.setItem(PENDING_INVITE_KEY, t);
+      localStorage.setItem(PENDING_INVITE_KEY, t);
       // Limpiar la URL para que el token no quede visible
       url.searchParams.delete("invite");
       history.replaceState({}, "", url.pathname + url.search + url.hash);
@@ -34,11 +40,11 @@ export function captureInviteFromUrl() {
 }
 
 export function getPendingInvite() {
-  try { return sessionStorage.getItem(PENDING_INVITE_KEY); } catch { return null; }
+  try { return localStorage.getItem(PENDING_INVITE_KEY); } catch { return null; }
 }
 
 export function clearPendingInvite() {
-  try { sessionStorage.removeItem(PENDING_INVITE_KEY); } catch {}
+  try { localStorage.removeItem(PENDING_INVITE_KEY); } catch {}
 }
 
 /**
@@ -176,7 +182,7 @@ export async function bootstrapPersona() {
   // normal sin clickear el link del email), guardamos el token en
   // sessionStorage. tryClaimPendingInvite lo canjeará en el siguiente paso.
   if (persona?.pendingInviteToken && !getPendingInvite()) {
-    sessionStorage.setItem(PENDING_INVITE_KEY, persona.pendingInviteToken);
+    localStorage.setItem(PENDING_INVITE_KEY, persona.pendingInviteToken);
     console.log("[auth] reconciling huérfano invite from email match:", persona.pendingInviteToken);
   }
 

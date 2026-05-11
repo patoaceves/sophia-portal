@@ -816,18 +816,13 @@ function renderTestCajita(ctx) {
     : "";
 
   if (!taken) {
-    const href = testLecc ? `/app/leccion?id=${encodeURIComponent(testLecc.id)}` : "/app/cursos";
     return `
-      <section class="test-cajita test-cajita--cta">
+      <section class="test-cajita test-cajita--locked">
         <div class="test-cajita__header">
           <span class="test-cajita__eyebrow">Tu evaluación inicial</span>
-          <h3 class="test-cajita__title">Test de Felicidad</h3>
+          <h3 class="test-cajita__title">Tu diagrama de felicidad</h3>
         </div>
-        <p class="test-cajita__lead">16 preguntas · 5 min · Análisis personalizado en 8 pilares.</p>
-        <a class="btn btn-accent btn-sm test-cajita__cta" href="${href}">
-          <span>Tomar el test</span>
-          ${icon("arrowRight")}
-        </a>
+        <p class="test-cajita__lead">Termina el Capítulo 1 y obtén tu diagnóstico personalizado en 8 pilares.</p>
       </section>
     `;
   }
