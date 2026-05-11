@@ -428,3 +428,55 @@
   padding-left: 0;
   padding-right: 0;
 }
+
+/* ─── Consentimiento del aviso de privacidad ────────────────────── */
+.consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-3);
+  margin-bottom: var(--s-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.consent-row:hover {
+  border-color: var(--color-accent-soft);
+}
+.consent-row:has(.consent-checkbox:checked) {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent);
+}
+.consent-checkbox {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+.consent-text {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text);
+  user-select: none;
+}
+.consent-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent-soft);
+  text-underline-offset: 2px;
+}
+.consent-link:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+/* Botones deshabilitados (estado pre-consentimiento) */
+.oauth-btn[disabled],
+.email-submit[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}

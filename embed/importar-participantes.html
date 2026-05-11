@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <title>Alta de participantes · SOPHIA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Esta página está diseñada para embedarse vía iframe en GoHighLevel
+       como Custom Menu Link. No requiere autenticación del portal: el token
+       en la constante IMPORT_TOKEN actúa como gating ligero (el webhook
+       de Airtable debe validarlo del lado servidor). -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Source+Sans+3:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Source+Sans+3:wght@400;500;600&display=swap">
+
+  <link rel="stylesheet" href="/assets/css/base.css">
+
+  <style>
+    /* Reset para embed: sin padding del body, sin scroll horizontal */
+    body {
+      margin: 0;
+      padding: var(--s-5) var(--s-4);
+      background: var(--color-bg);
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .importar-page {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .importar-header {
+      margin-bottom: var(--s-5);
+    }
+    .importar-header h1 {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 400;
+      font-variation-settings: "opsz" 144;
+      margin: 0 0 var(--s-2) 0;
+      color: var(--color-text);
+    }
+    .importar-header p {
+      font-size: 0.9375rem;
+      color: var(--color-text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Sección de cohorte destino */
+    .destino-section {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-md);
+      padding: var(--s-4);
+      margin-bottom: var(--s-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    .destino-section__title {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      margin: 0;
+    }
+    .destino-fields {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--s-3);
+    }
+    @media (max-width: 640px) {
+      .destino-fields { grid-template-columns: 1fr; }
+    }
+    .destino-field { display: flex; flex-direction: column; gap: 4px; }
+    .destino-field label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .destino-field input {
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-sm);
+      background: var(--color-bg);
+      color: var(--color-text);
+    }
+    .destino-field input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-soft);
+    }
+    .destino-field input[readonly] {
+      background: var(--color-bg-subtle);
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+    }
+
+    /* Tabla de participantes */
+    .participantes-section { margin-bottom: var(--s-4); }
+    .participantes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--s-3);
+    }
+    .participantes-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
+      font-weight: 400;
+      font-variation-settings: "opsz" 144;
+      margin: 0;
+    }
+    .participantes-counter {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+    }
+
+    .participantes-table {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .participantes-table__row {
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1.8fr 1fr 36px;
+      border-top: 1px solid var(--color-border);
+    }
+    .participantes-table__row:first-child { border-top: none; }
+    .participantes-table__row--header {
+      background: var(--color-bg-subtle);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+    .participantes-table__row--header > div {
+      padding: 10px 12px;
+    }
+    .participantes-table__cell {
+      padding: 0;
+      position: relative;
+    }
+    .participantes-table__cell input,
+    .participantes-table__cell select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.875rem;
+      color: var(--color-text);
+    }
+    .participantes-table__cell input:focus,
+    .participantes-table__cell select:focus {
+      outline: none;
+      background: var(--color-accent-soft);
+    }
+    .participantes-table__cell.has-error input,
+    .participantes-table__cell.has-error select {
+      background: rgba(193, 18, 47, 0.06);
+    }
+    .participantes-table__cell.has-error::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0; height: 2px;
+      background: var(--color-danger);
+    }
+    .participantes-table__delete {
+      background: transparent;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .participantes-table__delete:hover:not(:disabled) {
+      color: var(--color-danger);
+      background: rgba(193, 18, 47, 0.06);
+    }
+    .participantes-table__delete:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .add-row-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px dashed var(--color-border);
+      color: var(--color-text-muted);
+      padding: 10px 16px;
+      margin-top: var(--s-3);
+      border-radius: var(--r-sm);
+      font-family: inherit;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .add-row-btn:hover:not(:disabled) {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .add-row-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Submit + flash */
+    .submit-section {
+      margin-top: var(--s-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    .submit-btn {
+      align-self: flex-end;
+      padding: 12px 24px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      background: var(--color-accent);
+      color: white;
+      border: none;
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      font-family: inherit;
+      transition: filter 0.15s ease;
+    }
+    .submit-btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .flash {
+      padding: 12px 16px;
+      border-radius: var(--r-sm);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      display: none;
+    }
+    .flash.is-visible { display: block; }
+    .flash.is-success {
+      background: var(--color-success-tech-soft);
+      color: #047857;
+      border: 1px solid var(--color-success-tech);
+    }
+    .flash.is-error {
+      background: var(--color-danger-soft);
+      color: var(--color-danger);
+      border: 1px solid var(--color-danger);
+    }
+    .flash.is-info {
+      background: var(--color-bg-subtle);
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+    }
+
+    .config-warning {
+      background: rgba(193, 18, 47, 0.08);
+      border: 1px solid rgba(193, 18, 47, 0.25);
+      color: var(--color-danger);
+      padding: 12px 16px;
+      border-radius: var(--r-sm);
+      font-size: 0.875rem;
+      margin-bottom: var(--s-4);
+    }
+    .config-warning code {
+      background: rgba(255,255,255,0.6);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.8125rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="importar-page">
+    <header class="importar-header">
+      <h1>Alta de participantes</h1>
+      <p>Agrega hasta 15 personas a la vez. Al enviar, SOPHIA registra a cada participante, crea su inscripción al curso y envía el correo de bienvenida con su link de acceso.</p>
+    </header>
+
+    <div id="configWarning" class="config-warning" style="display:none;">
+      <strong>⚠️ Configuración pendiente:</strong> el webhook de Airtable no está configurado en este archivo.
+      Edita la constante <code>WEBHOOK_URL</code> en <code>/embed/importar-participantes.html</code> antes de usar.
+    </div>
+
+    <section class="destino-section">
+      <h2 class="destino-section__title">Curso destino</h2>
+      <div class="destino-fields">
+        <div class="destino-field">
+          <label for="cohorteId">ID de cohorte</label>
+          <input type="text" id="cohorteId" placeholder="recXXXXXXXXXXXX">
+        </div>
+        <div class="destino-field">
+          <label for="cohorteNombre">Nombre de cohorte</label>
+          <input type="text" id="cohorteNombre" placeholder="Ej. Happiness Workshop · Marzo 2026">
+        </div>
+      </div>
+    </section>
+
+    <section class="participantes-section">
+      <div class="participantes-header">
+        <h2>Participantes</h2>
+        <span class="participantes-counter" id="counter">0 de 15</span>
+      </div>
+      <div class="participantes-table" id="participantesTable">
+        <div class="participantes-table__row participantes-table__row--header">
+          <div>Nombre</div>
+          <div>Apellidos</div>
+          <div>Email</div>
+          <div>Rol</div>
+          <div></div>
+        </div>
+        <!-- Filas se insertan dinámicamente -->
+      </div>
+      <button type="button" class="add-row-btn" id="addRowBtn">+ Agregar fila</button>
+    </section>
+
+    <div class="submit-section">
+      <div class="flash" id="flash"></div>
+      <button type="button" class="submit-btn" id="submitBtn" disabled>
+        Enviar 0 participantes
+      </button>
+    </div>
+  </main>
+
+  <script>
+    // ═════════════════════════════════════════════════════════════════
+    // CONFIGURACIÓN — EDITAR AQUÍ después de configurar Airtable
+    // ═════════════════════════════════════════════════════════════════
+
+    // URL del webhook de Airtable Automations que recibe los participantes.
+    // Pato: pega aquí la URL después de crear el Trigger "When webhook received"
+    // en una Automation de Airtable.
+    const WEBHOOK_URL = "";
+
+    // Token de gating ligero. Lo recibe el webhook y debe validarlo en el lado
+    // de Airtable (un IF block en la automation). Si no matchea, rechazar.
+    // Genera uno aleatorio largo (32+ chars) y guárdalo también en Airtable.
+    const IMPORT_TOKEN = "REEMPLAZAR_CON_TOKEN_GENERADO";
+
+    // Roles disponibles (deben matchear los choices de "Rol" en Personas CRM)
+    const ROLES = ["participante", "profesor", "facilitador", "coordinador", "admin"];
+
+    const MAX_FILAS = 15;
+    const INITIAL_FILAS = 3;
+
+    // ═════════════════════════════════════════════════════════════════
+    // ESTADO + DOM
+    // ═════════════════════════════════════════════════════════════════
+
+    const state = {
+      filas: [], // Array<{ id, nombre, apellidos, email, rol }>
+      sending: false,
+    };
+
+    const tableEl = document.getElementById("participantesTable");
+    const counterEl = document.getElementById("counter");
+    const addRowBtn = document.getElementById("addRowBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const flashEl = document.getElementById("flash");
+    const cohorteIdInput = document.getElementById("cohorteId");
+    const cohorteNombreInput = document.getElementById("cohorteNombre");
+    const configWarningEl = document.getElementById("configWarning");
+
+    // ── Inicialización ──────────────────────────────────────────────
+
+    // Si el webhook no está configurado, advertir prominentemente
+    if (!WEBHOOK_URL) {
+      configWarningEl.style.display = "block";
+    }
+
+    // Pre-rellenar cohorte desde query params si vienen
+    // GHL puede configurar diferentes Custom Menu Links, uno por cohorte
+    const qs = new URLSearchParams(location.search);
+    if (qs.get("cohorteId")) {
+      cohorteIdInput.value = qs.get("cohorteId");
+      cohorteIdInput.setAttribute("readonly", "");
+    }
+    if (qs.get("cohorteNombre")) {
+      cohorteNombreInput.value = qs.get("cohorteNombre");
+      cohorteNombreInput.setAttribute("readonly", "");
+    }
+
+    // Filas iniciales vacías
+    for (let i = 0; i < INITIAL_FILAS; i++) addRow();
+
+    cohorteIdInput.addEventListener("input", refreshSubmitState);
+    cohorteNombreInput.addEventListener("input", refreshSubmitState);
+
+    addRowBtn.addEventListener("click", () => {
+      if (state.filas.length >= MAX_FILAS) return;
+      addRow();
+    });
+
+    submitBtn.addEventListener("click", handleSubmit);
+
+    // ── Funciones ──────────────────────────────────────────────────
+
+    function addRow() {
+      const id = "row_" + Math.random().toString(36).slice(2, 9);
+      state.filas.push({ id, nombre: "", apellidos: "", email: "", rol: "participante" });
+      renderRows();
+    }
+
+    function removeRow(id) {
+      state.filas = state.filas.filter(r => r.id !== id);
+      if (state.filas.length === 0) addRow(); // Siempre al menos una fila
+      else renderRows();
+    }
+
+    function renderRows() {
+      // Remover filas existentes (excepto el header que es el primer hijo)
+      const existing = tableEl.querySelectorAll(".participantes-table__row:not(.participantes-table__row--header)");
+      existing.forEach(el => el.remove());
+
+      const onlyOne = state.filas.length === 1;
+
+      for (const fila of state.filas) {
+        const row = document.createElement("div");
+        row.className = "participantes-table__row";
+        row.dataset.rowId = fila.id;
+        row.innerHTML = `
+          <div class="participantes-table__cell" data-field="nombre">
+            <input type="text" placeholder="Nombre" value="${escapeAttr(fila.nombre)}" autocomplete="off">
+          </div>
+          <div class="participantes-table__cell" data-field="apellidos">
+            <input type="text" placeholder="Apellidos" value="${escapeAttr(fila.apellidos)}" autocomplete="off">
+          </div>
+          <div class="participantes-table__cell" data-field="email">
+            <input type="email" placeholder="correo@dominio.com" value="${escapeAttr(fila.email)}" autocomplete="off">
+          </div>
+          <div class="participantes-table__cell" data-field="rol">
+            <select>
+              ${ROLES.map(r => `<option value="${r}" ${r === fila.rol ? "selected" : ""}>${capitalize(r)}</option>`).join("")}
+            </select>
+          </div>
+          <button type="button" class="participantes-table__delete" aria-label="Eliminar fila" ${onlyOne ? "disabled" : ""}>×</button>
+        `;
+        tableEl.appendChild(row);
+      }
+
+      // Wire inputs y delete
+      tableEl.querySelectorAll(".participantes-table__row:not(.participantes-table__row--header)").forEach(row => {
+        const rowId = row.dataset.rowId;
+        row.querySelectorAll("input, select").forEach(input => {
+          input.addEventListener("input", () => {
+            const field = input.closest("[data-field]").dataset.field;
+            const fila = state.filas.find(f => f.id === rowId);
+            if (fila) fila[field] = input.value;
+            // Clear error on edit
+            input.closest(".participantes-table__cell").classList.remove("has-error");
+            refreshSubmitState();
+          });
+        });
+        row.querySelector(".participantes-table__delete").addEventListener("click", () => removeRow(rowId));
+      });
+
+      // Counter + add-row state
+      counterEl.textContent = `${state.filas.length} de ${MAX_FILAS}`;
+      addRowBtn.disabled = state.filas.length >= MAX_FILAS;
+      refreshSubmitState();
+    }
+
+    function validateFila(fila) {
+      const errors = {};
+      if (!fila.nombre.trim()) errors.nombre = true;
+      if (!fila.apellidos.trim()) errors.apellidos = true;
+      const email = fila.email.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = true;
+      if (!ROLES.includes(fila.rol)) errors.rol = true;
+      return errors;
+    }
+
+    function getValidFilas() {
+      // Solo cuentan las filas que tienen AL MENOS un campo lleno (que no son
+      // filas en blanco) Y que pasan validación
+      const filledFilas = state.filas.filter(f =>
+        f.nombre.trim() || f.apellidos.trim() || f.email.trim()
+      );
+      const valid = [];
+      for (const f of filledFilas) {
+        const errors = validateFila(f);
+        if (Object.keys(errors).length === 0) valid.push(f);
+      }
+      return valid;
+    }
+
+    function refreshSubmitState() {
+      const hasCohorte = cohorteIdInput.value.trim() && cohorteNombreInput.value.trim();
+      const validFilas = getValidFilas();
+      const canSubmit = hasCohorte && validFilas.length > 0 && !state.sending && WEBHOOK_URL;
+      submitBtn.disabled = !canSubmit;
+      submitBtn.textContent = `Enviar ${validFilas.length} ${validFilas.length === 1 ? "participante" : "participantes"}`;
+    }
+
+    function showFlash(msg, kind) {
+      flashEl.textContent = msg;
+      flashEl.className = `flash is-visible is-${kind}`;
+    }
+
+    function hideFlash() {
+      flashEl.className = "flash";
+    }
+
+    async function handleSubmit() {
+      if (state.sending) return;
+
+      // Marcar errores en filas filled-but-invalid
+      const filledFilas = state.filas.filter(f =>
+        f.nombre.trim() || f.apellidos.trim() || f.email.trim()
+      );
+      let anyError = false;
+      filledFilas.forEach(fila => {
+        const errors = validateFila(fila);
+        const rowEl = tableEl.querySelector(`[data-row-id="${fila.id}"]`);
+        if (!rowEl) return;
+        for (const field of ["nombre", "apellidos", "email", "rol"]) {
+          const cell = rowEl.querySelector(`[data-field="${field}"]`);
+          if (errors[field]) {
+            cell.classList.add("has-error");
+            anyError = true;
+          } else {
+            cell.classList.remove("has-error");
+          }
+        }
+      });
+
+      const valid = getValidFilas();
+      if (valid.length === 0) {
+        showFlash("Agrega al menos un participante con todos los campos llenos.", "error");
+        return;
+      }
+      if (anyError) {
+        showFlash("Algunas filas tienen errores. Corrige las celdas marcadas en rojo o elimínalas.", "error");
+        return;
+      }
+
+      // Send
+      state.sending = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Enviando…";
+      hideFlash();
+
+      const payload = {
+        token: IMPORT_TOKEN,
+        enviadoEn: new Date().toISOString(),
+        cohorteId: cohorteIdInput.value.trim(),
+        cohorteNombre: cohorteNombreInput.value.trim(),
+        participantes: valid.map(f => ({
+          nombre: f.nombre.trim(),
+          apellidos: f.apellidos.trim(),
+          email: f.email.trim().toLowerCase(),
+          rol: f.rol,
+        })),
+      };
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          throw new Error(text || `Error ${res.status}`);
+        }
+        showFlash(
+          `✓ ${valid.length} ${valid.length === 1 ? "participante enviado" : "participantes enviados"}. ` +
+          `Airtable procesará el registro y enviará los correos de bienvenida en los próximos minutos.`,
+          "success"
+        );
+        // Resetear filas pero conservar cohorte
+        state.filas = [];
+        for (let i = 0; i < INITIAL_FILAS; i++) addRow();
+      } catch (err) {
+        console.error("import POST failed:", err);
+        showFlash(
+          `No pudimos enviar. ${err.message ? "Detalle: " + err.message : "Verifica tu conexión e intenta de nuevo."}`,
+          "error"
+        );
+      } finally {
+        state.sending = false;
+        refreshSubmitState();
+      }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────
+
+    function escapeAttr(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+    function capitalize(s) {
+      return String(s).charAt(0).toUpperCase() + String(s).slice(1);
+    }
+  </script>
+</body>
+</html>

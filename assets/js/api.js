@@ -313,4 +313,27 @@ export const api = {
     cacheSet(cacheKey, roster);
     return roster;
   },
+
+  /**
+   * GET /export-my-data → JSON con todos los datos personales del usuario.
+   * Derecho de Acceso LFPDPPP.
+   */
+  async exportMyData() {
+    const { data } = await callEdge("export-my-data", { method: "GET" });
+    return data;
+  },
+
+  /**
+   * POST /delete-my-account → elimina permanentemente la cuenta + datos.
+   * Derecho de Cancelación LFPDPPP. IRREVERSIBLE.
+   *
+   * @param {string} confirmacion · debe ser exactamente "ELIMINAR MI CUENTA"
+   */
+  async deleteMyAccount(confirmacion) {
+    const { data } = await callEdge("delete-my-account", {
+      method: "POST",
+      body: { confirmacion },
+    });
+    return data;
+  },
 };

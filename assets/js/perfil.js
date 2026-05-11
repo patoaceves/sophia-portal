@@ -122,12 +122,46 @@ const PAISES = [
       <div style="margin-top: var(--s-6);">
         <button class="btn btn-secondary" id="logoutPageBtn" type="button">Cerrar sesión</button>
       </div>
+
+      <section class="perfil-privacy" id="perfilPrivacy">
+        <header class="perfil-privacy__header">
+          <h3 class="perfil-privacy__title">Privacidad y datos</h3>
+          <p class="perfil-privacy__lead">
+            Tienes derecho a acceder a tus datos y a eliminar tu cuenta en cualquier momento,
+            conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).
+          </p>
+        </header>
+        <div class="perfil-privacy__actions">
+          <div class="perfil-privacy__card">
+            <h4 class="perfil-privacy__card-title">Descargar mis datos</h4>
+            <p class="perfil-privacy__card-text">
+              Obtén un archivo JSON con toda la información que SOPHIA tiene sobre ti:
+              perfil, inscripciones, progreso, respuestas y publicaciones.
+            </p>
+            <button type="button" class="btn btn-ghost" id="exportDataBtn">
+              Descargar archivo
+            </button>
+          </div>
+          <div class="perfil-privacy__card perfil-privacy__card--danger">
+            <h4 class="perfil-privacy__card-title">Eliminar mi cuenta</h4>
+            <p class="perfil-privacy__card-text">
+              Elimina permanentemente tu cuenta y todos tus datos personales.
+              Esta acción es irreversible y no se puede deshacer.
+            </p>
+            <button type="button" class="btn btn-danger" id="deleteAccountBtn">
+              Eliminar cuenta
+            </button>
+          </div>
+        </div>
+      </section>
     `,
   });
 
   document.getElementById("logoutPageBtn")?.addEventListener("click", () => {
     if (confirm("¿Cerrar sesión?")) logout();
   });
+
+  wirePrivacySection();
 
   wireProfileForm({ initialPersona: persona, email });
 })();
@@ -344,4 +378,119 @@ function computeIniciales(nombre, apellidos, email) {
   if (fromNames) return fromNames;
   const e = (email || "").trim()[0]?.toUpperCase();
   return e || "S";
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Privacidad y datos (LFPDPPP — sesión S3)
+// Wire de los dos botones: descargar mis datos + eliminar mi cuenta.
+// ─────────────────────────────────────────────────────────────────────
+function wirePrivacySection() {
+  const exportBtn = document.getElementById("exportDataBtn");
+  const deleteBtn = document.getElementById("deleteAccountBtn");
+  if (!exportBtn || !deleteBtn) return;
+
+  // ── Exportar mis datos ────────────────────────────────────────────
+  exportBtn.addEventListener("click", async () => {
+    exportBtn.disabled = true;
+    const originalText = exportBtn.textContent;
+    exportBtn.textContent = "Preparando…";
+    try {
+      const data = await api.exportMyData();
+      // Descargar como archivo JSON
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const fecha = new Date().toISOString().slice(0, 10);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sophia-mis-datos-${fecha}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      exportBtn.textContent = "✓ Descargado";
+      setTimeout(() => { exportBtn.textContent = originalText; exportBtn.disabled = false; }, 2500);
+    } catch (err) {
+      console.error("export failed:", err);
+      alert("No pudimos preparar tu archivo. Intenta de nuevo o contacta soporte.");
+      exportBtn.textContent = originalText;
+      exportBtn.disabled = false;
+    }
+  });
+
+  // ── Eliminar mi cuenta ─────────────────────────────────────────────
+  deleteBtn.addEventListener("click", () => openDeleteAccountModal());
+}
+
+function openDeleteAccountModal() {
+  const EXPECTED = "ELIMINAR MI CUENTA";
+  const overlay = document.createElement("div");
+  overlay.className = "privacy-modal";
+  overlay.innerHTML = `
+    <div class="privacy-modal__card">
+      <h2 class="privacy-modal__title">Eliminar mi cuenta</h2>
+      <p class="privacy-modal__body">
+        Esto borrará permanentemente: tu perfil, inscripciones, progreso de lecciones,
+        respuestas al Test de Felicidad, evaluaciones, fotos y archivos subidos.
+        Tus publicaciones top-level del foro se eliminan; los comentarios se anonimizan
+        para no romper hilos de otras personas.
+      </p>
+      <p class="privacy-modal__body" style="color: var(--color-danger); font-weight: 500;">
+        Esta acción es <strong>irreversible</strong> y no se puede deshacer.
+      </p>
+      <p class="privacy-modal__body">
+        Para confirmar, escribe exactamente: <strong>${EXPECTED}</strong>
+      </p>
+      <input type="text" class="privacy-modal__confirm-input" id="deleteConfirmInput"
+             placeholder="${EXPECTED}" autocomplete="off">
+      <div class="privacy-modal__error" id="deleteError" hidden></div>
+      <div class="privacy-modal__actions">
+        <button type="button" class="btn btn-ghost" id="deleteCancel">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="deleteConfirm" disabled>
+          Eliminar permanentemente
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = "hidden";
+
+  const input = overlay.querySelector("#deleteConfirmInput");
+  const confirm = overlay.querySelector("#deleteConfirm");
+  const cancel = overlay.querySelector("#deleteCancel");
+  const errorEl = overlay.querySelector("#deleteError");
+
+  input.addEventListener("input", () => {
+    confirm.disabled = input.value !== EXPECTED;
+    errorEl.hidden = true;
+  });
+  input.focus();
+
+  cancel.addEventListener("click", () => {
+    overlay.remove();
+    document.body.style.overflow = "";
+  });
+
+  confirm.addEventListener("click", async () => {
+    if (input.value !== EXPECTED) return;
+    confirm.disabled = true;
+    confirm.textContent = "Eliminando…";
+    errorEl.hidden = true;
+    try {
+      const result = await api.deleteMyAccount(input.value);
+      // Limpiar todo el estado local + redirect al login con mensaje
+      try {
+        sessionStorage.clear();
+        localStorage.removeItem("sophia_persona");
+        localStorage.removeItem("sophia_aviso_aceptado");
+      } catch {}
+      const partial = result?.partial ? "?deleted=partial" : "?deleted=ok";
+      location.replace(`/${partial}`);
+    } catch (err) {
+      console.error("delete-my-account failed:", err);
+      errorEl.textContent = "No pudimos eliminar tu cuenta. Si el problema persiste, contacta privacidad@sophiamx.org.";
+      errorEl.hidden = false;
+      confirm.disabled = false;
+      confirm.textContent = "Eliminar permanentemente";
+    }
+  });
 }

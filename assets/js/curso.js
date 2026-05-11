@@ -150,6 +150,14 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
     }
   }
 
+  // Sincronizar altura del foro con la del diagrama de felicidad.
+  // La altura "tope" del row la define el diagrama (más compacto): medimos
+  // su altura con ResizeObserver y la aplicamos al foro como max-height
+  // (via CSS var --resumen-row-height). El foro hace scroll interno si su
+  // contenido excede ese tope. Solo aplica en desktop (>= 901px); en
+  // mobile el grid es de una columna y no tiene sentido limitar.
+  matchResumenColumnHeights();
+
   // Cargar preview del foro en background (la card vive en el resumen,
   // que es el tab default). Si el usuario aterriza en otro tab, igual
   // se carga para que esté listo cuando vuelva al resumen.
@@ -717,6 +725,52 @@ function scrollToForoPost(postId, retries = 12) {
   if (retries > 0) {
     setTimeout(() => scrollToForoPost(postId, retries - 1), 200);
   }
+}
+
+/**
+ * Sincroniza la altura del foro preview con la del diagrama de felicidad.
+ *
+ * Idea: el diagrama es naturalmente más compacto que el foro (que crece con
+ * cada post). Queremos que el alto del row lo defina el diagrama, no el foro.
+ *
+ * Implementación: ResizeObserver mide la altura del .test-cajita--results
+ * y la escribe en --resumen-row-height en el .foro-preview-card. El CSS
+ * usa esa var como max-height + el body es overflow-y: auto.
+ *
+ * Si no hay diagrama (test no completado, falta data), no aplicamos nada
+ * y ambos quedan en altura natural sin scroll.
+ *
+ * Solo desktop (>= 901px): en mobile el grid es 1 columna y matchear
+ * alturas no aplica.
+ */
+function matchResumenColumnHeights() {
+  const diagram = document.querySelector(".test-cajita--results");
+  const foro = document.querySelector(".foro-preview-card");
+  if (!diagram || !foro) return;
+
+  const apply = () => {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      foro.style.removeProperty("--resumen-row-height");
+      return;
+    }
+    const h = Math.round(diagram.getBoundingClientRect().height);
+    if (h > 0) {
+      foro.style.setProperty("--resumen-row-height", `${h}px`);
+    }
+  };
+
+  // Aplicar una vez de entrada (el diagrama puede aún no estar al alto final
+  // si el SVG está rendereándose, pero el ResizeObserver va a re-aplicar).
+  apply();
+
+  // Observar cambios de tamaño del diagrama (resize de ventana, fonts loading)
+  if (typeof ResizeObserver === "function") {
+    const ro = new ResizeObserver(() => apply());
+    ro.observe(diagram);
+  }
+
+  // También resync al cambiar el breakpoint mobile/desktop
+  window.addEventListener("resize", apply);
 }
 
 function displayName(autor) {

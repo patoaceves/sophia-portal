@@ -120,7 +120,24 @@ export async function bootstrapPersona() {
   const cached = getCachedPersona();
   if (cached?.personaId) return cached;
 
-  const persona = await api.bootstrap({});
+  // Leer consent del aviso de privacidad de localStorage para mandarlo al
+  // backend. El edge function lo persiste solo si la persona aún no tiene
+  // ese campo en Airtable (no sobreescribe el timestamp original).
+  let consentPayload = {};
+  try {
+    const raw = localStorage.getItem("sophia_aviso_aceptado");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.version && parsed?.aceptadoEn) {
+        consentPayload = {
+          avisoVersion: String(parsed.version),
+          avisoAceptadoEn: String(parsed.aceptadoEn),
+        };
+      }
+    }
+  } catch {}
+
+  const persona = await api.bootstrap(consentPayload);
   setCachedPersona(persona);
   return persona;
 }
@@ -173,6 +190,23 @@ export async function requireAuth() {
   }
   try {
     const persona = await bootstrapPersona();
+
+    // Gate del aviso de privacidad (LFPDPPP). Si la persona no tiene
+    // avisoVersion registrado, mostramos modal modal bloqueante.
+    // El modal NO se muestra en /app/bienvenida (onboarding) ni en la
+    // página del aviso mismo, para no anidar diálogos.
+    const onAvisoPage = location.pathname.startsWith("/aviso-privacidad");
+    if (!onAvisoPage && !persona?.avisoVersion) {
+      try {
+        const { ensurePrivacyConsent } = await import("./privacy-modal.js");
+        await ensurePrivacyConsent(persona);
+        // Después de aceptar, actualizamos cache local con avisoVersion
+        const updated = { ...persona, avisoVersion: "1.0" };
+        setCachedPersona(updated);
+      } catch (e) {
+        console.warn("privacy modal failed:", e);
+      }
+    }
 
     // Onboarding gate: si la persona aún no marcó perfilCompletado,
     // mandarla a /app/bienvenida (excepto si ya está ahí).

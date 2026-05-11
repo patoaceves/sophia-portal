@@ -30,6 +30,10 @@ const FIELDS = {
     TELEFONO_PAIS: "fld0psZVirGYHs2AQ",
     TELEFONO_NUMERO: "fld3fDQA1tfiNPXN5",
     PERFIL_COMPLETADO: "fldB98L7JqQM27Z9I",
+    // Aviso de privacidad LFPDPPP — campos creados v17.16
+    AVISO_VERSION: "fld7RdS5XJump9Evw",
+    AVISO_ACEPTADO_EN: "fldOg6BzestB8kRqg",
+    AVISO_IP_HASH: "fldS7KySdOGP7BTXA",
   },
 } as const;
 
@@ -185,6 +189,10 @@ interface BootstrapBody {
    *  (incluso si la Persona ya los tenía con valor) — solo en este caso.
    */
   perfilCompletado?: boolean;
+  /** Aviso de privacidad LFPDPPP. Se persiste solo si la Persona NO tiene
+   *  aún registro (no sobreescribimos el timestamp original). */
+  avisoVersion?: string;
+  avisoAceptadoEn?: string;
 }
 
 const DEFAULT_ROL = "participante";
@@ -222,6 +230,22 @@ Deno.serve(async (req) => {
     const meta = userData.user.user_metadata ?? {};
     const body: BootstrapBody = await req.json().catch(() => ({}));
 
+    // Hash truncado de la IP para evidencia del consentimiento (LFPDPPP).
+    // No guardamos la IP completa: tomamos SHA-256 y nos quedamos con 16 chars.
+    // Esto permite probar que "alguien desde ese origen aceptó" sin almacenar
+    // el dato personal completo.
+    let clientIpHash = "";
+    try {
+      const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim()
+              || req.headers.get("cf-connecting-ip")
+              || "unknown";
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
+      const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+      clientIpHash = hex.slice(0, 16);
+    } catch {
+      clientIpHash = "";
+    }
+
     // Try to get name from various sources (Google/MS provider metadata)
     const fullName = (meta.full_name as string) ?? (meta.name as string) ?? "";
     const [firstFromFull, ...restFromFull] = fullName.split(" ");
@@ -253,6 +277,8 @@ Deno.serve(async (req) => {
         telefonoPais: (p.fields[FIELDS.PERSONAS_CRM.TELEFONO_PAIS] ?? "") as string,
         telefonoNumero: (p.fields[FIELDS.PERSONAS_CRM.TELEFONO_NUMERO] ?? "") as string,
         perfilCompletado: !!p.fields[FIELDS.PERSONAS_CRM.PERFIL_COMPLETADO],
+        // Versión del aviso de privacidad aceptado. Vacío si nunca aceptó.
+        avisoVersion: (p.fields[FIELDS.PERSONAS_CRM.AVISO_VERSION] ?? "") as string,
         isNew,
       });
     }
@@ -288,6 +314,17 @@ Deno.serve(async (req) => {
       // Si el caller explicitó perfilCompletado=true, lo seteamos
       if (body.perfilCompletado) {
         updates[FIELDS.PERSONAS_CRM.PERFIL_COMPLETADO] = true;
+      }
+
+      // Aviso de privacidad LFPDPPP — registramos UNA SOLA VEZ, solo si la
+      // Persona no tiene aún consentimiento registrado. No sobreescribimos
+      // el timestamp original aunque el cliente vuelva a mandar el body.
+      if (body.avisoVersion && body.avisoAceptadoEn && !p.fields[FIELDS.PERSONAS_CRM.AVISO_VERSION]) {
+        updates[FIELDS.PERSONAS_CRM.AVISO_VERSION] = String(body.avisoVersion).slice(0, 20);
+        updates[FIELDS.PERSONAS_CRM.AVISO_ACEPTADO_EN] = String(body.avisoAceptadoEn);
+        if (clientIpHash) {
+          updates[FIELDS.PERSONAS_CRM.AVISO_IP_HASH] = clientIpHash;
+        }
       }
 
       return updates;

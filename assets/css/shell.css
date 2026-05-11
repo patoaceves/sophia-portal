@@ -3034,6 +3034,11 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--s-4);
   margin-bottom: var(--s-5);
+  /* No stretch: cada columna toma su altura natural. El JS de curso.js
+     mide la altura del diagrama (test-cajita) y se la aplica al foro
+     como max-height, haciendo el body scrolleable. Así el lado más
+     compacto (diagrama) define el alto del row. */
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -3151,7 +3156,8 @@
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
-  padding: var(--s-4) var(--s-5) var(--s-3);
+  /* Padding más compacto, especialmente vertical (el chart ya respira solo) */
+  padding: var(--s-4) var(--s-5);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -3211,15 +3217,16 @@
 .test-cajita__chart {
   display: grid;
   place-items: center;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 0;
-  margin: calc(var(--s-1) * -1) 0;
+  margin: 0;
   position: relative;
 }
 
 .rueda-svg-preview {
   width: 100%;
-  max-width: 416px;
+  max-width: 380px;
   height: auto;
   display: block;
 }
@@ -3231,6 +3238,7 @@
 
 .test-cajita__link {
   align-self: flex-end;
+  margin-top: auto;
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
@@ -3238,15 +3246,20 @@
   color: var(--color-accent);
   font-weight: 500;
   text-decoration: none;
-  padding: var(--s-2) 0;
-  transition: gap 0.15s ease;
+  padding: var(--s-1) 0 0 0;
 }
 
-.test-cajita__link:hover {
-  gap: var(--s-2);
+.test-cajita__link svg {
+  width: 16px;
+  height: 16px;
+  /* La flecha se desliza a la derecha en hover (texto queda fijo).
+     Consistente con .btn svg en base.css */
+  transition: transform 0.15s ease;
 }
 
-.test-cajita__link svg { width: 16px; height: 16px; }
+.test-cajita__link:hover svg {
+  transform: translateX(3px);
+}
 
 /* Legacy class names (kept for back-compat with other places) */
 
@@ -5160,6 +5173,17 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
+  /* La altura "techo" la define el diagrama de felicidad adyacente:
+     curso.js setea --resumen-row-height vía ResizeObserver. Fallback:
+     altura natural sin tope si el diagrama no existe. */
+  max-height: var(--resumen-row-height, none);
+  min-height: 0;
+}
+
+.foro-preview-card__header,
+.foro-preview-card__compose,
+.foro-preview-card__link {
+  flex-shrink: 0;
 }
 
 .foro-preview-card__header {
@@ -5185,11 +5209,24 @@
 }
 
 .foro-preview-card__body {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
   min-height: 140px;
+  /* Si el card tiene max-height (matched al diagrama), permitir scroll
+     interno. Si no, este overflow no aplica porque el contenido cabe. */
+  overflow-y: auto;
+}
+/* Scrollbar discreto para no romper la estética */
+.foro-preview-card__body::-webkit-scrollbar { width: 6px; }
+.foro-preview-card__body::-webkit-scrollbar-track { background: transparent; }
+.foro-preview-card__body::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+.foro-preview-card__body:hover::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
 }
 
 .foro-preview-card__empty {
@@ -6432,4 +6469,227 @@ button.foro-preview-item__thumb {
   .foro-lightbox__image {
     max-height: 50vh;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * v17.16 · Privacy consent modal (LFPDPPP)
+ * Aparece post-login si la Persona no tiene avisoVersion registrado.
+ * ════════════════════════════════════════════════════════════════════ */
+
+.privacy-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 10, 5, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+  animation: privacy-fade 0.2s ease-out;
+}
+@keyframes privacy-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.privacy-modal__card {
+  background: var(--color-bg-elevated);
+  border-radius: var(--r-lg);
+  max-width: 520px;
+  width: 100%;
+  padding: var(--s-6);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.privacy-modal__title {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 400;
+  font-variation-settings: "opsz" 144;
+  margin: 0 0 var(--s-2) 0;
+  color: var(--color-text);
+}
+
+.privacy-modal__body {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.privacy-modal__link {
+  display: inline-block;
+  color: var(--color-accent);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent-soft);
+  text-underline-offset: 3px;
+  margin: var(--s-1) 0 var(--s-2) 0;
+}
+.privacy-modal__link:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+.privacy-modal__checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  margin-top: var(--s-2);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  user-select: none;
+}
+.privacy-modal__checkbox-row:has(.privacy-modal__checkbox:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-bg-elevated);
+}
+.privacy-modal__checkbox {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.privacy-modal__error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  padding: 8px 12px;
+  background: var(--color-danger-soft);
+  border-radius: var(--r-sm);
+}
+
+.privacy-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+@media (max-width: 540px) {
+  .privacy-modal__card { padding: var(--s-4); }
+  .privacy-modal__actions { flex-direction: column-reverse; }
+  .privacy-modal__actions .btn { width: 100%; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * v17.17 · Privacidad y datos (LFPDPPP — perfil)
+ * Sección de derechos ARCO al final de /app/perfil
+ * ════════════════════════════════════════════════════════════════════ */
+
+.perfil-privacy {
+  margin-top: var(--s-7);
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.perfil-privacy__header {
+  margin-bottom: var(--s-4);
+}
+
+.perfil-privacy__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  font-variation-settings: "opsz" 144;
+  margin: 0 0 var(--s-2) 0;
+  color: var(--color-text);
+}
+
+.perfil-privacy__lead {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.perfil-privacy__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+}
+@media (max-width: 720px) {
+  .perfil-privacy__actions { grid-template-columns: 1fr; }
+}
+
+.perfil-privacy__card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.perfil-privacy__card--danger {
+  border-color: var(--color-danger-soft);
+  background: var(--color-bg-elevated);
+}
+
+.perfil-privacy__card-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.perfil-privacy__card--danger .perfil-privacy__card-title {
+  color: var(--color-danger);
+}
+
+.perfil-privacy__card-text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--s-2) 0;
+  flex: 1;
+}
+
+.perfil-privacy__card .btn {
+  align-self: flex-start;
+}
+
+/* btn-danger: ya existe en base.css si no, definir aquí */
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+  border: 1px solid var(--color-danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  filter: brightness(1.05);
+}
+.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Confirm input dentro del privacy-modal (delete account) */
+.privacy-modal__confirm-input {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  font-size: 0.9375rem;
+  font-family: monospace;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin-top: var(--s-1);
+}
+.privacy-modal__confirm-input:focus {
+  outline: none;
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
 }
