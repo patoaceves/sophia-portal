@@ -24,6 +24,33 @@
   const initialActive = me?.dataset?.active || "";
   const loaderContext = me?.dataset?.loaderContext || "generic";
 
+  // ════════════════════════════════════════════════════════════════════
+  // PRE-CHECK DE SESIÓN
+  // Antes de renderizar NADA del shell, verificamos sincrónicamente que
+  // exista un token de Supabase en localStorage. Si no hay token, redirigir
+  // a / inmediatamente — evita el "flash" de dashboard cuando un usuario
+  // sin sesión navega directo a /app/* (ej: link bookmarkeado, refresh
+  // después de logout, JWT borrado por el browser).
+  //
+  // Si hay token pero está stale (JWT invalidado server-side), el flow
+  // normal de bootstrap detectará el 401 y redirigirá con auth.js
+  // showFatalError → location.replace("/?session_expired=1"). El splash
+  // overlay (ver abajo) sigue tapando la UI durante ese redirect, así que
+  // tampoco hay flash del dashboard.
+  try {
+    const SUPABASE_PROJECT_REF = "ajvjyisplqsrjsessayo";
+    const tokenKey = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
+    const tokenRaw = localStorage.getItem(tokenKey);
+    if (!tokenRaw) {
+      // Guardar destino para volver después del login
+      try {
+        sessionStorage.setItem("sophia_post_login_redirect", location.pathname + location.search);
+      } catch {}
+      location.replace("/");
+      return;
+    }
+  } catch { /* localStorage bloqueado → seguir, el bootstrap manejará */ }
+
   // Pre-flight: si ya tenemos cacheada una Persona y le falta perfilCompletado,
   // redirige a /app/bienvenida ANTES de pintar el shell. Evita el flash de
   // "mis cursos" que el usuario veía cuando todavía debía completar el onboarding.
@@ -32,7 +59,8 @@
   try {
     if (!location.pathname.startsWith("/app/bienvenida")) {
       const cached = JSON.parse(sessionStorage.getItem("sophia_persona") || "null");
-      if (cached && cached.personaId && cached.perfilCompletado === false) {
+      const persona = cached?.persona || cached; // soporta ambos formatos (con wrapper ts y sin él)
+      if (persona && persona.personaId && persona.perfilCompletado === false) {
         location.replace("/app/bienvenida");
         return;
       }
@@ -146,7 +174,19 @@
         </div>
       </div>
     </main>
+    <div class="app-splash" id="appSplash" aria-hidden="true">
+      <div class="app-splash__inner">
+        <img src="/assets/img/brand/logo-vertical-rojo.png" alt="SOPHIA" class="app-splash__logo">
+        <div class="app-splash__spinner" aria-hidden="true"></div>
+      </div>
+    </div>
   `;
+
+  // Marca el tiempo de aparición del splash. renderShell() lo respetará
+  // para garantizar un mínimo de ~400ms visible antes del fade-out, evitando
+  // el glitch de "aparece y desaparece" cuando el bootstrap es muy rápido
+  // (caso típico: cache hit).
+  try { window.__sophiaSplashStart = Date.now(); } catch {}
 
   // Rotate loader messages until the bootstrap script replaces the loader.
   let i = 0;

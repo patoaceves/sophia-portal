@@ -159,6 +159,22 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
   document.getElementById("userMenuBtn")?.addEventListener("click", () => {
     location.href = "/app/perfil";
   });
+
+  // Fade out el splash overlay (si existe). Garantizamos un mínimo de
+  // ~400ms visible para evitar el "blink" cuando el bootstrap es muy
+  // rápido (cache hit típicamente <100ms).
+  const splash = document.getElementById("appSplash");
+  if (splash) {
+    const MIN_DISPLAY_MS = 400;
+    const FADE_MS = 350;
+    const started = window.__sophiaSplashStart || Date.now();
+    const elapsed = Date.now() - started;
+    const delay = Math.max(0, MIN_DISPLAY_MS - elapsed);
+    setTimeout(() => {
+      splash.classList.add("is-fading");
+      setTimeout(() => { splash.remove(); }, FADE_MS + 50);
+    }, delay);
+  }
 }
 
 function renderGroup(group, currentPath) {

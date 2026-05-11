@@ -466,3 +466,56 @@ html:hover {
 
 .page-back svg { transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1); }
 .page-back:hover svg { transform: translateX(-2px); }
+
+/* ════════════════════════════════════════════════════════════════════
+ * Splash de inicio (app shell). Cubre toda la UI mientras el bootstrap
+ * de auth se ejecuta, para evitar el flash del dashboard cuando hay
+ * sesión stale o problemas de carga. shell-skeleton.js lo inyecta, y
+ * ui-shell.js renderShell() lo hace fade out cuando termina de pintar.
+ *
+ * Filosofía: aparece instantáneo (no fade-in), se queda mínimo ~400ms
+ * para evitar glitch en bootstraps rápidos, y sale con fade suave.
+ * ════════════════════════════════════════════════════════════════════ */
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at top, #fdf6ec 0%, #f8f3e9 60%, #f0e8d6 100%);
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.35s ease-out;
+}
+.app-splash.is-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+.app-splash__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  animation: app-splash-fade-in 0.4s ease-out;
+}
+.app-splash__logo {
+  width: 96px;
+  height: auto;
+  filter: drop-shadow(0 2px 8px rgba(193, 18, 47, 0.08));
+}
+.app-splash__spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid rgba(193, 18, 47, 0.15);
+  border-top-color: #c1122f;
+  border-radius: 50%;
+  animation: app-splash-spin 0.8s linear infinite;
+}
+@keyframes app-splash-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes app-splash-spin {
+  to { transform: rotate(360deg); }
+}
