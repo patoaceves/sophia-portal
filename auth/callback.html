@@ -241,32 +241,34 @@
         if (!session) {
           fail("No pudimos verificar tu sesión. El enlace pudo expirar o haber sido usado. Pide uno nuevo desde el portal.");
         } else {
-          if (getPendingInvite()) {
-            $msg.textContent = "Activando tu invitación";
-            try {
-              const result = await tryClaimPendingInvite();
-              if (result.kind === "claimed" || result.kind === "already") {
-                decideAndRedirect();
-              } else if (result.kind === "retry") {
-                console.warn("[claim] sync pending, will retry on cursos.html");
-                decideAndRedirect();
-              } else if (result.kind === "fatal") {
-                console.error("[claim] fatal:", result.error);
+          // Siempre intentar canjear invitaciones: con token de URL si hay,
+          // o si no, por email del usuario (cubre caso de quien entró directo
+          // sin click en el invite link).
+          $msg.textContent = "Verificando tu acceso";
+          try {
+            // Bootstrap PRIMERO: si la persona tiene Invitación huérfana
+            // por email, bootstrapPersona la encuentra y la deposita en
+            // sessionStorage para que tryClaim la procese en el siguiente paso.
+            try { await bootstrapPersona(); } catch (e) {
+              console.warn("[bootstrap] pre-claim failed:", e);
+            }
+            const result = await tryClaimPendingInvite();
+            if (result.kind === "fatal") {
+              console.error("[claim] fatal:", result.error);
+              if (getPendingInvite()) {
                 sessionStorage.setItem(
                   "sophia_invite_error",
                   result.error?.message || "No pudimos activar tu invitación.",
                 );
-                decideAndRedirect();
-              } else {
-                decideAndRedirect();
               }
-            } catch (e) {
-              console.error("[claim] unexpected:", e);
-              decideAndRedirect();
+            } else if (result.kind === "retry") {
+              console.warn("[claim] sync pending, will retry on cursos.html");
             }
-          } else {
-            decideAndRedirect();
+            // kind === "claimed", "already" o "none": todo OK, continuar
+          } catch (e) {
+            console.error("[claim] unexpected:", e);
           }
+          decideAndRedirect();
         }
       }
     } catch (e) {

@@ -10,10 +10,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const BASES = {
   CRM: "app1SbOC98k2OP5m1",
+  PORTAL: "app0S6GrJQ8YatvCc",
 } as const;
 
 const TABLES = {
   PERSONAS: "tbl5XKtg0mRfLeFYH",
+  INVITACIONES: "tblzNARG9ahLsKR9c",
 } as const;
 
 const FIELDS = {
@@ -30,10 +32,14 @@ const FIELDS = {
     TELEFONO_PAIS: "fld0psZVirGYHs2AQ",
     TELEFONO_NUMERO: "fld3fDQA1tfiNPXN5",
     PERFIL_COMPLETADO: "fldB98L7JqQM27Z9I",
-    // Aviso de privacidad LFPDPPP — campos creados v17.16
     AVISO_VERSION: "fld7RdS5XJump9Evw",
     AVISO_ACEPTADO_EN: "fldOg6BzestB8kRqg",
     AVISO_IP_HASH: "fldS7KySdOGP7BTXA",
+  },
+  INVITACIONES: {
+    TOKEN: "fldn1D8JFG7n2RYfA",
+    EMAIL_DESTINATARIO: "fldZK5s5m208cR5r6",
+    ESTATUS: "fldHtt9NUtcU0795f",
   },
 } as const;
 
@@ -265,8 +271,51 @@ Deno.serve(async (req) => {
       "";
     const avatarUrl = (meta.avatar_url as string) ?? (meta.picture as string) ?? "";
 
-    // Helper: construye el response uniforme desde un Persona record
-    function buildResponse(p: AirtableRecord, isNew: boolean) {
+    // Helper: construye el response uniforme desde un Persona record.
+    // ASYNC porque hace lookup de Invitaciones pendientes por email.
+    async function buildResponse(p: AirtableRecord, isNew: boolean) {
+      // Reconciliación de invitaciones huérfanas: si el usuario tiene Invitaciones
+      // pendientes con su email destinatario (porque ventas las creó pero el
+      // usuario no canjeó el link y entró por flujo normal), devolvemos el primer
+      // token. El frontend lo guarda en sessionStorage y dispara tryClaimPendingInvite,
+      // resolviendo el problema de "me inscribí en ventas pero no veo mi curso".
+      let pendingInviteToken = "";
+      try {
+        const personaEmail = (p.fields[FIELDS.PERSONAS_CRM.EMAIL] ?? email) as string;
+        if (personaEmail) {
+          const params = new URLSearchParams();
+          params.set("returnFieldsByFieldId", "true");
+          params.set("maxRecords", "1");
+          params.set(
+            "filterByFormula",
+            `AND(` +
+              `LOWER(TRIM({${FIELDS.INVITACIONES.EMAIL_DESTINATARIO}})) = '${personaEmail.toLowerCase().replace(/'/g, "\\'")}',` +
+              `{${FIELDS.INVITACIONES.ESTATUS}} = 'pendiente'` +
+            `)`,
+          );
+          params.append("fields[]", FIELDS.INVITACIONES.TOKEN);
+          params.append("fields[]", FIELDS.INVITACIONES.ESTATUS);
+          const res = await fetch(
+            `${AIRTABLE_API}/${BASES.PORTAL}/${TABLES.INVITACIONES}?${params}`,
+            { headers: { Authorization: `Bearer ${Deno.env.get("AIRTABLE_PAT") ?? ""}` } },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const record = (data.records ?? [])[0];
+            if (record) {
+              const token = (record.fields?.[FIELDS.INVITACIONES.TOKEN] as string) ?? "";
+              if (token) {
+                pendingInviteToken = token;
+                console.log(`Invitación huérfana detectada para ${personaEmail}: ${token}`);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Reconciliación es best-effort — si falla, no rompe el flow de login
+        console.warn("Pending invite lookup failed:", e);
+      }
+
       return jsonResponse(req, {
         personaId: p.id,
         rol: (p.fields[FIELDS.PERSONAS_CRM.ROL] ?? DEFAULT_ROL) as string,
@@ -277,9 +326,9 @@ Deno.serve(async (req) => {
         telefonoPais: (p.fields[FIELDS.PERSONAS_CRM.TELEFONO_PAIS] ?? "") as string,
         telefonoNumero: (p.fields[FIELDS.PERSONAS_CRM.TELEFONO_NUMERO] ?? "") as string,
         perfilCompletado: !!p.fields[FIELDS.PERSONAS_CRM.PERFIL_COMPLETADO],
-        // Versión del aviso de privacidad aceptado. Vacío si nunca aceptó.
         avisoVersion: (p.fields[FIELDS.PERSONAS_CRM.AVISO_VERSION] ?? "") as string,
         isNew,
+        pendingInviteToken,
       });
     }
 
@@ -345,7 +394,7 @@ Deno.serve(async (req) => {
         );
         Object.assign(p.fields, updates);
       }
-      return buildResponse(p, false);
+      return await buildResponse(p, false);
     }
 
     // 2. Lookup by email
@@ -363,7 +412,7 @@ Deno.serve(async (req) => {
         console.warn("Backfill (email) failed:", e),
       );
       Object.assign(p.fields, updates);
-      return buildResponse(p, false);
+      return await buildResponse(p, false);
     }
 
         // 3. Create new Persona · defensive: try full, fall back to essentials
@@ -422,7 +471,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return buildResponse(newPersona, true);
+    return await buildResponse(newPersona, true);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("auth-bootstrap fatal:", msg);

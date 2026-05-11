@@ -82,7 +82,7 @@ const FLD_FECHA_INICIO = "fldoqWrG9zEdeKWGt";
 const FLD_HORA_INICIO  = "fld65dDf16bS1wR25";
 
 const cohorteRes = await fetch(
-  `https://api.airtable.com/v0/${PORTAL_BASE_ID}/${COHORTES_TABLE}/${cohorteId}?fields[]=${FLD_FECHA_INICIO}&fields[]=${FLD_HORA_INICIO}`,
+  `https://api.airtable.com/v0/${PORTAL_BASE_ID}/${COHORTES_TABLE}/${cohorteId}?returnFieldsByFieldId=true`,
   {
     headers: {
       "Authorization": `Bearer ${portalPat}`,
@@ -114,13 +114,14 @@ if (existing.records.length > 0) {
   personaId = existing.records[0].id;
   console.log(`Persona existente encontrada: ${personaId}`);
 } else {
+  // Solo campos seguros (singleLineText). Origen, Rol, Estatus son
+  // singleSelects en CRM y la Scripting API no tiene typecast — si el
+  // valor no coincide exactamente con una opción existente, falla.
+  // Pato puede setear defaults en Airtable field-level o llenarlos a mano.
   personaId = await PERSONAS_CRM.createRecordAsync({
     [P.NOMBRE]:    nombre,
     [P.APELLIDOS]: apellidos,
     [P.EMAIL]:     email,
-    [P.ROL]:       { name: rol },
-    [P.ORIGEN]:    "Alta manual desde ventas",
-    [P.ESTATUS]:   { name: "activa" },
   });
   console.log(`Nueva Persona CRM creada: ${personaId}`);
 }

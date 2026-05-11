@@ -28,20 +28,20 @@ const LOCAL_COVERS = new Set(["happiness-workshop"]);
     `,
   });
 
-  // Si quedó una invitación sin canjear (ej. sync pendiente desde callback),
-  // intentar canjearla AHORA antes de cargar la lista de cursos. Después del
-  // canje, NO redirigimos al curso específico — dejamos que el usuario vea
-  // su dashboard de cursos y elija a cuál entrar (puede tener varios).
-  if (getPendingInvite()) {
-    const result = await tryClaimPendingInvite();
-    if (result.kind === "retry") {
-      console.warn("[cursos] sync still pending, will retry next visit");
-    } else if (result.kind === "fatal") {
-      console.error("[cursos] claim failed:", result.error);
-    }
-    // kind === "claimed" o "already": el canje se completó, sigue normal y
-    // el curso recién inscrito aparecerá en la grid.
+  // SIEMPRE intentar canjear invitaciones pendientes — con token de URL o
+  // por email del usuario. Esto cubre dos casos:
+  //  (a) sync pendiente quedó desde callback.html y aún no se completó.
+  //  (b) la persona entró directo al portal sin click en invite link, pero
+  //      tiene invitaciones esperándola en Airtable (matched por email).
+  const claimResult = await tryClaimPendingInvite();
+  if (claimResult.kind === "retry") {
+    console.warn("[cursos] claim sync still pending, will retry next visit");
+  } else if (claimResult.kind === "fatal") {
+    console.error("[cursos] claim failed:", claimResult.error);
   }
+  // Si se canjearon nuevos cursos, recarga la lista (clearCachedPersona ya
+  // se llamó dentro de tryClaimPendingInvite, así que la fetch siguiente
+  // traerá data fresca).
 
   // Mostrar error de canje guardado en sessionStorage (si lo hay)
   let inviteErrorMsg = null;

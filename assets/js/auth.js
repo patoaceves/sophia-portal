@@ -52,22 +52,54 @@ export function clearPendingInvite() {
  */
 export async function tryClaimPendingInvite() {
   const token = getPendingInvite();
-  if (!token) return { kind: "none" };
 
-  try {
-    const data = await api.claimInvitation(token);
-    clearPendingInvite();
-    // Limpiar cache de Persona para que cursos.html refresque
-    clearCachedPersona();
-    return { kind: data.alreadyClaimed ? "already" : "claimed", data };
-  } catch (err) {
-    const code = err?.payload?.code;
-    if (code === "sync_pending") {
-      // Mantener el token, reintentaremos
-      return { kind: "retry", error: err };
+  // Path 1: hay token en sessionStorage (entró via invite link)
+  if (token) {
+    try {
+      const data = await api.claimInvitation(token);
+      clearPendingInvite();
+      clearCachedPersona();
+      // Después del claim por token, igual probamos email-based por si hay
+      // OTRAS invitaciones pendientes para el mismo email (caso: persona
+      // tiene 2 cursos pendientes, click en link de uno, el otro queda).
+      tryClaimByEmail().catch(() => {});
+      return { kind: data.alreadyClaimed ? "already" : "claimed", data };
+    } catch (err) {
+      const code = err?.payload?.code;
+      if (code === "sync_pending") {
+        return { kind: "retry", error: err };
+      }
+      clearPendingInvite();
+      return { kind: "fatal", error: err };
     }
-    // Cualquier otro error: borrar token (evita loops infinitos)
-    clearPendingInvite();
+  }
+
+  // Path 2: NO hay token. Buscar invitaciones pendientes por email igual.
+  // Cubre el caso de la persona que recibió el email de invite pero entró
+  // al portal directo via Google/magic link sin hacer click en el invite link.
+  return await tryClaimByEmail();
+}
+
+/**
+ * Intenta canjear invitaciones pendientes que matchean por email del JWT.
+ * Llamado por tryClaimPendingInvite y opcionalmente desde otros lados.
+ */
+async function tryClaimByEmail() {
+  try {
+    const data = await api.claimByEmail();
+    if (data.claimed > 0) {
+      clearCachedPersona(); // forzar refresh
+      return { kind: "claimed", data };
+    }
+    if (data.alreadyEnrolled > 0) {
+      return { kind: "already", data };
+    }
+    if (data.retry) {
+      return { kind: "retry", data };
+    }
+    return { kind: "none", data };
+  } catch (err) {
+    console.warn("[auth] claim-by-email failed:", err);
     return { kind: "fatal", error: err };
   }
 }
@@ -138,7 +170,22 @@ export async function bootstrapPersona() {
   } catch {}
 
   const persona = await api.bootstrap(consentPayload);
-  setCachedPersona(persona);
+
+  // Reconciliación de invitaciones huérfanas: si el backend detectó que
+  // este email tiene una Invitación pendiente que nunca se canjeó (caso
+  // típico: ventas inscribió a la persona pero entró al portal por flujo
+  // normal sin clickear el link del email), guardamos el token en
+  // sessionStorage. tryClaimPendingInvite lo canjeará en el siguiente paso.
+  if (persona?.pendingInviteToken && !getPendingInvite()) {
+    sessionStorage.setItem(PENDING_INVITE_KEY, persona.pendingInviteToken);
+    console.log("[auth] reconciling huérfano invite from email match:", persona.pendingInviteToken);
+  }
+
+  // No cacheamos el token (es one-shot) — eliminarlo antes de persistir
+  // para que llamadas subsecuentes no lo re-disparen.
+  const personaForCache = { ...persona };
+  delete personaForCache.pendingInviteToken;
+  setCachedPersona(personaForCache);
   return persona;
 }
 

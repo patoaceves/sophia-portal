@@ -315,6 +315,17 @@ export const api = {
   },
 
   /**
+   * POST /claim-by-email
+   * Canjea automáticamente cualquier Invitación pendiente que matchea con
+   * el email del usuario autenticado. Cubre el caso de gente que se registra
+   * directamente sin haber hecho click en el invite link.
+   */
+  async claimByEmail() {
+    const { data } = await callEdge("claim-by-email", { method: "POST" });
+    return data;
+  },
+
+  /**
    * GET /export-my-data → JSON con todos los datos personales del usuario.
    * Derecho de Acceso LFPDPPP.
    */

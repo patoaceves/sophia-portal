@@ -186,16 +186,64 @@
       }
       const email = document.getElementById("emailInput").value.trim();
       const btn = document.getElementById("emailSubmit");
+      const input = document.getElementById("emailInput");
       btn.disabled = true;
       btn.textContent = "Enviando…";
       try {
         const { error } = await loginWithMagicLink(email);
         if (error) throw error;
-        showFlash(`Te enviamos un enlace a ${email}. Revisa tu correo.`, "success");
+        // Éxito: tomamos toda la sección email-form y la reemplazamos con
+        // un mensaje muy visible de "Revisa tu bandeja". El usuario no debe
+        // perderse esto.
+        const form = document.getElementById("emailForm");
+        const footer = document.querySelector(".login-footer-note");
+        const divider = document.querySelector(".divider");
+        const googleBtn = document.querySelector(".google-btn");
+        if (form) {
+          form.outerHTML = `
+            <div class="email-sent-state">
+              <div class="email-sent-state__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </div>
+              <h3 class="email-sent-state__title">Revisa tu bandeja</h3>
+              <p class="email-sent-state__text">
+                Te enviamos un enlace de acceso a <strong>${email.replace(/[<>&"']/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&#39;"})[c])}</strong>.
+                Abre el correo y haz clic en el botón para entrar al portal.
+              </p>
+              <p class="email-sent-state__hint">
+                ¿No lo ves? Revisa tu carpeta de <strong>spam</strong> o correos no deseados.
+              </p>
+              <button type="button" class="email-sent-state__resend" id="resendBtn" disabled>
+                Reenviar enlace en 20s
+              </button>
+            </div>
+          `;
+        }
+        if (footer) footer.remove();
+        if (divider) divider.remove();
+        if (googleBtn) googleBtn.parentElement.style.display = "none";
+        // Cuenta regresiva para reenvío
+        let secs = 20;
+        const resendBtn = document.getElementById("resendBtn");
+        const tick = setInterval(() => {
+          secs--;
+          if (secs > 0) {
+            resendBtn.textContent = `Reenviar enlace en ${secs}s`;
+          } else {
+            clearInterval(tick);
+            resendBtn.disabled = false;
+            resendBtn.textContent = "Reenviar enlace";
+            resendBtn.addEventListener("click", () => {
+              location.reload();
+            });
+          }
+        }, 1000);
       } catch (err) {
         console.error("Magic link error:", err);
         showFlash(err.message || "No se pudo enviar el enlace", "error");
-      } finally {
         btn.disabled = false;
         btn.textContent = "Enviar enlace mágico";
       }
