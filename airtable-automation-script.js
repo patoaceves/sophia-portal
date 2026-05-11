@@ -126,9 +126,12 @@ if (existing.records.length > 0) {
 }
 
 // ─── 3. Generar token de invitación ───────────────────────────────
+// El prefijo "inv_" es OBLIGATORIO — el frontend (auth.js captureInviteFromUrl)
+// y el edge function claim-invitation validan el regex /^inv_[A-Za-z0-9_-]{4,40}$/.
+// Sin el prefijo, el link no se canjea aunque se genere correctamente.
 const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-let inviteToken = "";
-for (let i = 0; i < 32; i++) {
+let inviteToken = "inv_";
+for (let i = 0; i < 28; i++) {
   inviteToken += chars[Math.floor(Math.random() * chars.length)];
 }
 

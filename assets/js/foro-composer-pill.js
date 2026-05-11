@@ -223,8 +223,9 @@ export function wireComposerPill(form, opts) {
     if (!roster) {
       try {
         roster = await api.getCursoRoster(cursoId);
+        console.log(`[foro] roster cargado: ${roster.length} personas en cursoId=${cursoId}`);
       } catch (err) {
-        console.warn("getCursoRoster failed:", err);
+        console.error("[foro] getCursoRoster failed para cursoId=" + cursoId + ":", err);
         roster = [];
       }
     }

@@ -29,21 +29,18 @@ const LOCAL_COVERS = new Set(["happiness-workshop"]);
   });
 
   // Si quedó una invitación sin canjear (ej. sync pendiente desde callback),
-  // intentar canjearla AHORA antes de cargar la lista de cursos.
+  // intentar canjearla AHORA antes de cargar la lista de cursos. Después del
+  // canje, NO redirigimos al curso específico — dejamos que el usuario vea
+  // su dashboard de cursos y elija a cuál entrar (puede tener varios).
   if (getPendingInvite()) {
     const result = await tryClaimPendingInvite();
-    if (result.kind === "claimed" || result.kind === "already") {
-      const slug = result.data?.cursoSlug;
-      if (slug && result.kind === "claimed") {
-        // Si recién acabamos de canjear, mandarlo al curso
-        location.replace(`/app/curso?slug=${encodeURIComponent(slug)}&welcome=1`);
-        return;
-      }
-    } else if (result.kind === "retry") {
+    if (result.kind === "retry") {
       console.warn("[cursos] sync still pending, will retry next visit");
     } else if (result.kind === "fatal") {
       console.error("[cursos] claim failed:", result.error);
     }
+    // kind === "claimed" o "already": el canje se completó, sigue normal y
+    // el curso recién inscrito aparecerá en la grid.
   }
 
   // Mostrar error de canje guardado en sessionStorage (si lo hay)

@@ -301,17 +301,17 @@ export const api = {
    * GET /get-curso-roster?cursoId=...
    * Devuelve los inscritos del curso (Persona Portal info), para alimentar
    * el autocomplete de menciones en el composer del foro.
+   *
+   * Sin cache: las inscripciones cambian frecuentemente (cuando ventas
+   * inscribe gente nueva), y si cacheamos puede mostrar una lista vieja
+   * que excluye personas recién agregadas. Roster es ~10-50 records típicos,
+   * llamada es rápida.
    */
   async getCursoRoster(cursoId) {
-    const cacheKey = `api:roster:${cursoId}`;
-    const hit = cacheGet(cacheKey);
-    if (hit) return hit;
     const { data } = await callEdge(`get-curso-roster?cursoId=${encodeURIComponent(cursoId)}`, {
       method: "GET",
     });
-    const roster = data?.roster ?? [];
-    cacheSet(cacheKey, roster);
-    return roster;
+    return data?.roster ?? [];
   },
 
   /**
