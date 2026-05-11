@@ -173,9 +173,7 @@ function renderPonenteHeader(state) {
   return `
     <div class="eval-ponente-header">
       ${photoUrl ? `
-        <div class="eval-ponente-header__photo">
-          <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(state.ponente)}" onerror="this.parentElement.innerHTML='${initials}'; this.parentElement.classList.add('eval-ponente-header__photo--initials');">
-        </div>
+        <img class="eval-ponente-header__photo" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(state.ponente)}" onerror="this.outerHTML='<div class=&quot;eval-ponente-header__photo eval-ponente-header__photo--initials&quot;>${initials}</div>';">
       ` : `
         <div class="eval-ponente-header__photo eval-ponente-header__photo--initials">${initials}</div>
       `}

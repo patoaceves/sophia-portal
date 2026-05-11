@@ -223,7 +223,11 @@ export function wireComposerPill(form, opts) {
     if (!roster) {
       try {
         roster = await api.getCursoRoster(cursoId);
-        console.log(`[foro] roster cargado: ${roster.length} personas en cursoId=${cursoId}`);
+        if (roster.length === 0) {
+          console.warn(`[foro] roster VACÍO para cursoId=${cursoId}. Posibles causas: (1) eres el único inscrito al curso, (2) error de Persona Portal sync. Verifica /functions/v1/get-curso-roster?cursoId=${cursoId}`);
+        } else {
+          console.log(`[foro] roster cargado: ${roster.length} personas en cursoId=${cursoId}`, roster.map(p => `${p.nombre} ${p.apellidos}`));
+        }
       } catch (err) {
         console.error("[foro] getCursoRoster failed para cursoId=" + cursoId + ":", err);
         roster = [];

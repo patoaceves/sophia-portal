@@ -6134,23 +6134,23 @@ button.foro-preview-card__link {
   border-radius: var(--r-md);
 }
 
+/* IMG directa para foto del ponente. Patrón idéntico al .leccion-html
+   .claustro-photo (que sabemos que funciona bien). Si no hay foto, se
+   usa el selector `.eval-ponente-header__photo--initials` que aplica
+   el mismo tamaño/redondez al <div> con las iniciales. */
 .eval-ponente-header__photo {
   flex-shrink: 0;
   width: 96px;
   height: 96px;
   border-radius: var(--r-full);
-  overflow: hidden;
-  background: var(--color-accent-soft);
-  display: grid;
-  place-items: center;
-}
-.eval-ponente-header__photo img {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
+  background: var(--color-bg-subtle);
   display: block;
 }
 .eval-ponente-header__photo--initials {
+  display: grid;
+  place-items: center;
+  background: var(--color-accent-soft);
   color: var(--color-accent);
   font-weight: 400;
   font-size: 1.5rem;
