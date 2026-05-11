@@ -4,6 +4,7 @@ import { requireAuth } from "./auth.js";
 import { api, ApiError } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
+import { loaderHtml } from "./loader.js";
 
 (async () => {
   const persona = await requireAuth();
@@ -31,7 +32,7 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
     persona,
     title: "Cargando temario…",
     activePath: "/app/cursos",
-    contentHtml: `<div class="spinner spinner--wheel" style="margin: 60px auto;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>`,
+    contentHtml: loaderHtml(),
   });
 
   try {

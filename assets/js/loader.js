@@ -1,23 +1,21 @@
-// SOPHIA Portal · Loader inline con logo SOPHIA
+// SOPHIA Portal · Loader fullscreen con logo SOPHIA
 //
-// Antes había un box con spinner + texto rotativo ("Cargando tu curso..."
-// etc.). Pato pidió usar el splash con logo SOPHIA en todos los loaders,
-// así que esta versión devuelve el mismo visual del splash inicial:
-// logo vertical rojo + spinner pequeño.
+// Antes había un box con spinner + texto rotativo. Pato pidió usar SIEMPRE
+// el splash fullscreen (mismo visual del bootstrap inicial) — cubre toda
+// la pantalla con gradiente crema + logo SOPHIA vertical + spinner rojo.
 //
-// Las funciones startLoaderRotation / attachLoader siguen exportadas para
-// no romper imports existentes, pero startLoaderRotation ahora es noop
-// porque el loader no tiene mensaje rotativo.
+// Aunque este markup se inyecta dentro de `<main>` por sus consumers
+// (curso.js, leccion.js, etc.), la clase .app-splash usa `position: fixed;
+// inset: 0; z-index: 9999`, así que escapa de su contenedor y cubre toda
+// la viewport. Al re-renderear el contenedor con el contenido real, el
+// nodo del splash se elimina del DOM y la overlay desaparece automáticamente.
 
-export function loaderHtml({ fullPage = false } = {}) {
-  const inlineStyle = fullPage
-    ? ` style="min-height: calc(100vh - var(--header-h, 64px));"`
-    : "";
+export function loaderHtml() {
   return `
-    <div class="inline-splash"${inlineStyle}>
-      <div class="inline-splash__inner">
-        <img src="/assets/img/brand/logo-vertical-rojo.png" alt="SOPHIA" class="inline-splash__logo">
-        <div class="inline-splash__spinner" aria-hidden="true"></div>
+    <div class="app-splash" aria-hidden="true">
+      <div class="app-splash__inner">
+        <img src="/assets/img/brand/logo-vertical-rojo.png" alt="SOPHIA" class="app-splash__logo">
+        <div class="app-splash__spinner" aria-hidden="true"></div>
       </div>
     </div>
   `;
@@ -28,9 +26,9 @@ export function startLoaderRotation() {
   return () => {};
 }
 
-export function attachLoader(container, opts = {}) {
+export function attachLoader(container) {
   if (typeof container === "string") container = document.querySelector(container);
   if (!container) return () => {};
-  container.innerHTML = loaderHtml(opts);
+  container.innerHTML = loaderHtml();
   return () => {};
 }
