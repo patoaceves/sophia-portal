@@ -246,9 +246,12 @@
           // sin click en el invite link).
           $msg.textContent = "Verificando tu acceso";
           try {
-            // Bootstrap PRIMERO: si la persona tiene Invitación huérfana
-            // por email, bootstrapPersona la encuentra y la deposita en
-            // sessionStorage para que tryClaim la procese en el siguiente paso.
+            // CRÍTICO: invalidar cache de Persona antes del bootstrap.
+            // bootstrapPersona() retorna early si hay cache, lo cual saltaría
+            // la lógica de reconciliación de invites huérfanos. En callback
+            // (login fresh) queremos SIEMPRE consultar el backend para
+            // detectar invitaciones pendientes por email.
+            try { sessionStorage.removeItem("sophia_persona"); } catch {}
             try { await bootstrapPersona(); } catch (e) {
               console.warn("[bootstrap] pre-claim failed:", e);
             }

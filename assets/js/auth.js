@@ -113,11 +113,25 @@ export async function getSession() {
   return data.session;
 }
 
+// TTL del cache de Persona. Si pasaron más de 60s desde el último fetch,
+// re-bootstrap para que la reconciliación de invites huérfanos funcione
+// (auth-bootstrap busca Invitaciones pendientes por email). Cache demasiado
+// largo evita que se descubran invites recién creados desde ventas.
+const PERSONA_CACHE_TTL_MS = 60 * 1000;
+
 export function getCachedPersona() {
   try {
     const raw = sessionStorage.getItem(PERSONA_CACHE_KEY);
     if (!raw) return null;
-    const persona = JSON.parse(raw);
+    const wrapper = JSON.parse(raw);
+    // Compatibilidad con formato viejo (sin ts): tratar como expirado
+    if (!wrapper || !wrapper.ts || !wrapper.persona) return null;
+    if (Date.now() - wrapper.ts > PERSONA_CACHE_TTL_MS) {
+      // Expirado: limpiar y forzar refetch
+      sessionStorage.removeItem(PERSONA_CACHE_KEY);
+      return null;
+    }
+    const persona = wrapper.persona;
     if (typeof window !== "undefined") window.__sophiaPersona = persona;
     return persona;
   } catch {
@@ -127,9 +141,8 @@ export function getCachedPersona() {
 
 function setCachedPersona(persona) {
   try {
-    sessionStorage.setItem(PERSONA_CACHE_KEY, JSON.stringify(persona));
-    // También exponer en window para módulos que necesiten acceso rápido
-    // (ej: foro-lightbox abierto desde el preview del resumen).
+    const wrapper = { ts: Date.now(), persona };
+    sessionStorage.setItem(PERSONA_CACHE_KEY, JSON.stringify(wrapper));
     if (typeof window !== "undefined") {
       window.__sophiaPersona = persona;
     }

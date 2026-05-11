@@ -54,7 +54,7 @@ const HORA_FIN    = "21:30";
         <h2 class="page-title">Calendario</h2>
         <p class="page-subtitle">
           Las sesiones en vivo del Happiness Workshop. Los martes de
-          ${HORA_INICIO} a ${HORA_FIN}, hora Monterrey, México.
+          ${HORA_INICIO} a ${HORA_FIN}, hora Monterrey, Nuevo León, MX.
         </p>
       </header>
 

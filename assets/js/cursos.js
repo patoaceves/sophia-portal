@@ -1,6 +1,6 @@
 // SOPHIA Portal · Mis Cursos page logic
 
-import { requireAuth, tryClaimPendingInvite, getPendingInvite } from "./auth.js";
+import { requireAuth, tryClaimPendingInvite, getPendingInvite, bootstrapPersona } from "./auth.js";
 import { callEdge } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 
@@ -28,20 +28,29 @@ const LOCAL_COVERS = new Set(["happiness-workshop"]);
     `,
   });
 
-  // SIEMPRE intentar canjear invitaciones pendientes — con token de URL o
-  // por email del usuario. Esto cubre dos casos:
-  //  (a) sync pendiente quedó desde callback.html y aún no se completó.
-  //  (b) la persona entró directo al portal sin click en invite link, pero
-  //      tiene invitaciones esperándola en Airtable (matched por email).
+  // RECONCILIACIÓN DE INVITES HUÉRFANOS:
+  // 1. Invalidamos cache de Persona y re-bootstrap para que auth-bootstrap
+  //    consulte si hay Invitaciones pendientes para el email del usuario.
+  //    Esto cubre el caso: ventas inscribe → email no llegó / no clickeó →
+  //    usuario entra al portal por flujo normal → bootstrap encuentra
+  //    invite huérfano y lo deposita en sessionStorage.
+  // 2. Luego tryClaimPendingInvite() consume el token de sessionStorage
+  //    (sea de URL, de callback, o del recién detectado por bootstrap).
+  try { sessionStorage.removeItem("sophia_persona"); } catch {}
+  try {
+    await bootstrapPersona();
+  } catch (e) {
+    console.warn("[cursos] fresh bootstrap failed:", e);
+  }
+
   const claimResult = await tryClaimPendingInvite();
   if (claimResult.kind === "retry") {
     console.warn("[cursos] claim sync still pending, will retry next visit");
   } else if (claimResult.kind === "fatal") {
     console.error("[cursos] claim failed:", claimResult.error);
+  } else if (claimResult.kind === "claimed") {
+    console.log("[cursos] invite huérfano canjeado, recargando lista");
   }
-  // Si se canjearon nuevos cursos, recarga la lista (clearCachedPersona ya
-  // se llamó dentro de tryClaimPendingInvite, así que la fetch siguiente
-  // traerá data fresca).
 
   // Mostrar error de canje guardado en sessionStorage (si lo hay)
   let inviteErrorMsg = null;
