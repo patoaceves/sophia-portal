@@ -51,7 +51,24 @@ const PAISES = [
 ];
 
 (async () => {
-  const persona = await requireAuth();
+  // Defensa contra spinner colgado: en móvil hemos visto casos donde
+  // requireAuth() se queda esperando indefinidamente (fetch en pending,
+  // session no se establece a tiempo, etc.). Si después de 12s no hay
+  // respuesta, mostramos UI con opciones de recovery.
+  const TIMEOUT_MS = 12000;
+  let persona;
+  try {
+    persona = await Promise.race([
+      requireAuth(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS),
+      ),
+    ]);
+  } catch (err) {
+    console.error("[bienvenida] init failed or timed out:", err);
+    showBienvenidaInitError(err?.message === "timeout");
+    return;
+  }
   if (!persona) return;
 
   // Caso edge: el usuario navegó a /app/bienvenida pero ya completó
@@ -67,6 +84,48 @@ const PAISES = [
   document.body.innerHTML = renderForm(persona, email);
   wireForm(persona);
 })();
+
+function showBienvenidaInitError(isTimeout) {
+  document.body.style.cssText =
+    "background:#faf6ee;font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;color:#1f1a14;";
+  document.body.innerHTML = `
+    <div style="width:100%;max-width:420px;background:#fff;border-radius:16px;padding:32px 28px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06);text-align:center;">
+      <div style="width:48px;height:48px;border-radius:50%;background:#fdecec;color:#c1122f;display:grid;place-items:center;margin:0 auto 18px;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h1 style="font-family:Georgia,serif;font-size:1.375rem;line-height:1.25;margin:0 0 10px;font-weight:500;">
+        ${isTimeout ? "La conexión está lenta" : "Algo no salió bien"}
+      </h1>
+      <p style="color:#6b5f50;margin:0 0 22px;line-height:1.55;font-size:0.9375rem;">
+        ${isTimeout
+          ? "No pudimos cargar tu perfil. Verifica tu conexión a internet y reintenta."
+          : "Tu sesión inició, pero hubo un problema al cargar tu perfil."}
+      </p>
+      <button id="retryBtn" style="width:100%;padding:13px 20px;border-radius:10px;background:#c1122f;color:#fff;border:none;font-weight:600;font-size:0.9375rem;cursor:pointer;font-family:inherit;margin-bottom:8px;">
+        Reintentar
+      </button>
+      <button id="logoutBtn" style="width:100%;padding:13px 20px;border-radius:10px;background:transparent;color:#6b5f50;border:1px solid #d8cfbf;font-weight:500;font-size:0.9375rem;cursor:pointer;font-family:inherit;">
+        Cerrar sesión
+      </button>
+    </div>
+  `;
+  document.getElementById("retryBtn").onclick = () => {
+    try { sessionStorage.removeItem("sophia_persona"); } catch {}
+    location.reload();
+  };
+  document.getElementById("logoutBtn").onclick = async () => {
+    try {
+      const { logout } = await import("./auth.js");
+      await logout();
+    } catch {
+      location.replace("/");
+    }
+  };
+}
 
 function redirectToTarget() {
   const target =
