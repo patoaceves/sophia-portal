@@ -513,6 +513,11 @@
     // Endpoint público de cursos (edge function Supabase)
     const CURSOS_ENDPOINT = "https://ajvjyisplqsrjsessayo.supabase.co/functions/v1/list-cursos-publico";
 
+    // Anon key de Supabase. Es pública (vive también en el frontend del
+    // portal); Supabase requiere apikey o JWT para llamar al edge function
+    // aunque sea de auth pública, si no, devuelve 401 a nivel plataforma.
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqdmp5aXNwbHFzcmpzZXNzYXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMTA2NDIsImV4cCI6MjA5MzU4NjY0Mn0.Q9nnRffenm78Qil6Q2Tu3kpTI4m3JolW2S8iM6PMlfA";
+
     // URL del webhook de Airtable Automations que recibe los participantes.
     const WEBHOOK_URL = "https://hooks.airtable.com/workflows/v1/genericWebhook/app1SbOC98k2OP5m1/wflk2BNdgWtN1TsbI/wtrpA67IMYGNAhshA";
 
@@ -591,7 +596,12 @@
       }
       try {
         const url = `${CURSOS_ENDPOINT}?token=${encodeURIComponent(PUBLIC_TOKEN)}`;
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          headers: {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        });
         const data = await res.json();
         if (!res.ok || !data.ok) {
           throw new Error(data.error || `Error ${res.status}`);
