@@ -491,7 +491,7 @@
   align-items: center;
   text-align: center;
   padding: var(--s-4) 0;
-  animation: email-sent-fade 0.3s ease-out;
+  animation: email-sent-fade 0.3s ease-out forwards;
 }
 @keyframes email-sent-fade {
   from { opacity: 0; transform: translateY(8px); }
