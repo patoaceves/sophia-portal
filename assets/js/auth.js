@@ -165,24 +165,10 @@ export async function bootstrapPersona() {
   const cached = getCachedPersona();
   if (cached?.personaId) return cached;
 
-  // Leer consent del aviso de privacidad de localStorage para mandarlo al
-  // backend. El edge function lo persiste solo si la persona aún no tiene
-  // ese campo en Airtable (no sobreescribe el timestamp original).
-  let consentPayload = {};
-  try {
-    const raw = localStorage.getItem("sophia_aviso_aceptado");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.version && parsed?.aceptadoEn) {
-        consentPayload = {
-          avisoVersion: String(parsed.version),
-          avisoAceptadoEn: String(parsed.aceptadoEn),
-        };
-      }
-    }
-  } catch {}
-
-  const persona = await api.bootstrap(consentPayload);
+  // El consent del Aviso de Privacidad ya no se captura en login. Se captura
+  // en /app/bienvenida junto con el resto de los datos del perfil. Aquí
+  // simplemente llamamos a bootstrap sin payload de aviso.
+  const persona = await api.bootstrap({});
 
   // Reconciliación de invitaciones huérfanas: si el backend detectó que
   // este email tiene una Invitación pendiente que nunca se canjeó (caso
@@ -304,7 +290,9 @@ async function showFatalError(err) {
   if (isStaleSession) {
     console.warn("[auth] stale session detected, clearing and redirecting to login");
     try { sessionStorage.clear(); } catch {}
-    try { localStorage.removeItem("sophia_aviso_aceptado"); } catch {}
+    // NO borrar localStorage.sophia_aviso_aceptado — el usuario ya aceptó
+    // el aviso; borrarlo dejaría el checkbox de consentimiento sin marcar
+    // y los botones de login disabled hasta que reacepte.
     try { await supabase.auth.signOut(); } catch {}
     location.replace("/?session_expired=1");
     return;

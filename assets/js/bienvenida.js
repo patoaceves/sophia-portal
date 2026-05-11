@@ -198,7 +198,16 @@ function renderForm(persona, email) {
               >
             </div>
 
-            <button class="btn btn-primary email-submit" type="submit" id="onboardingSubmit" style="margin-top: var(--s-5);">
+            <!-- Consentimiento del aviso de privacidad (LFPDPPP) -->
+            <label class="consent-row" id="consentRow" style="margin-top: var(--s-5);">
+              <input type="checkbox" id="consentCheckbox" class="consent-checkbox">
+              <span class="consent-text">
+                He leído y acepto el
+                <a href="/aviso-privacidad.html" target="_blank" rel="noopener noreferrer" class="consent-link">Aviso de Privacidad</a>.
+              </span>
+            </label>
+
+            <button class="btn btn-primary email-submit" type="submit" id="onboardingSubmit" style="margin-top: var(--s-4);" disabled>
               Continuar al portal
             </button>
           </form>
@@ -219,6 +228,7 @@ function wireForm(persona) {
   const form = document.getElementById("onboardingForm");
   const submit = document.getElementById("onboardingSubmit");
   const logoutLink = document.getElementById("logoutLink");
+  const consentCheckbox = document.getElementById("consentCheckbox");
 
   const avatarPreview = document.getElementById("avatarPreview");
   const avatarActions = document.getElementById("avatarActions");
@@ -227,6 +237,17 @@ function wireForm(persona) {
 
   let currentAvatarUrl = persona.avatarUrl || "";
   let isUploadingAvatar = false;
+
+  // Si la Persona ya tiene aviso aceptado en CRM (caso típico: existing user
+  // que aceptó antes en el viejo flow del login), pre-marcar el checkbox y
+  // habilitar el botón. No le hacemos volver a aceptar.
+  if (persona.avisoVersion) {
+    consentCheckbox.checked = true;
+    submit.disabled = false;
+  }
+  consentCheckbox.addEventListener("change", () => {
+    submit.disabled = !consentCheckbox.checked;
+  });
 
   function showFlash(msg, kind = "error") {
     flash.textContent = msg;
@@ -356,12 +377,23 @@ function wireForm(persona) {
       showFlash("El número telefónico no parece válido. Solo dígitos, espacios, guiones y paréntesis.");
       return;
     }
+    if (!consentCheckbox.checked) {
+      showFlash("Acepta el Aviso de Privacidad para continuar.");
+      return;
+    }
 
     submit.disabled = true;
     submit.textContent = "Guardando…";
     clearFlash();
 
     try {
+      // Solo mandamos los campos de aviso si la Persona aún no tiene
+      // consentimiento registrado en CRM. El backend ignora updates si
+      // ya existe avisoVersion (idempotente), pero igual evitamos enviarlo.
+      const avisoPayload = persona.avisoVersion
+        ? {}
+        : { avisoVersion: "1.0", avisoAceptadoEn: new Date().toISOString() };
+
       await updatePersonaProfile({
         nombre,
         apellidos,
@@ -369,6 +401,7 @@ function wireForm(persona) {
         telefonoPais,
         telefonoNumero: telefonoNumero || "",
         perfilCompletado: true,
+        ...avisoPayload,
       });
       submit.textContent = "Listo. Redirigiendo…";
       redirectToTarget();
