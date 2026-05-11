@@ -135,17 +135,29 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
               <div class="sidebar__user-role">${escapeHtml(persona.rol || "participante")}</div>
             </div>
           </button>
+          <button class="sidebar__logout-mobile" id="logoutBtnMobile" type="button">
+            ${sidebarIcon("logout")}
+            <span>Salir</span>
+          </button>
         </div>
       </aside>
       <header class="app-header">
+        <button class="app-header__hamburger" id="hamburgerBtn" type="button" aria-label="Abrir menú">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
         <h1 class="app-header__title">${escapeHtml(title)}</h1>
         <div class="app-header__actions">
-          <button class="btn btn-ghost" id="logoutBtn" type="button">
+          <button class="btn btn-ghost app-header__logout-desktop" id="logoutBtn" type="button">
             ${sidebarIcon("logout")}
             <span>Salir</span>
           </button>
         </div>
       </header>
+      <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
       <main class="app-main">
         ${contentHtml}
       </main>
@@ -156,9 +168,33 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
     if (confirm("¿Cerrar sesión?")) logout();
   });
+  document.getElementById("logoutBtnMobile")?.addEventListener("click", () => {
+    if (confirm("¿Cerrar sesión?")) logout();
+  });
   document.getElementById("userMenuBtn")?.addEventListener("click", () => {
     location.href = "/app/perfil";
   });
+
+  // Hamburguesa móvil: toggle del sidebar como drawer + backdrop
+  const hamburger = document.getElementById("hamburgerBtn");
+  const sidebar = document.querySelector(".sidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  function openDrawer() {
+    sidebar?.classList.add("is-open");
+    backdrop?.classList.add("is-visible");
+    document.body.classList.add("sidebar-open");
+  }
+  function closeDrawer() {
+    sidebar?.classList.remove("is-open");
+    backdrop?.classList.remove("is-visible");
+    document.body.classList.remove("sidebar-open");
+  }
+  hamburger?.addEventListener("click", openDrawer);
+  backdrop?.addEventListener("click", closeDrawer);
+  // Cerrar drawer al clickear cualquier link del sidebar (excepto el user btn)
+  sidebar?.querySelectorAll(".sidebar__link").forEach((a) =>
+    a.addEventListener("click", closeDrawer),
+  );
 
   // Fade out el splash overlay (si existe). Garantizamos un mínimo de
   // ~400ms visible para evitar el "blink" cuando el bootstrap es muy

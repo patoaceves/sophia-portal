@@ -153,17 +153,29 @@
             <div class="sidebar__user-role sidebar__user-role--placeholder"></div>
           </div>
         </button>
+        <button class="sidebar__logout-mobile" id="logoutBtnMobile" type="button">
+          ${ICONS.logout}
+          <span>Salir</span>
+        </button>
       </div>
     </aside>
     <header class="app-header">
+      <button class="app-header__hamburger" id="hamburgerBtn" type="button" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <h1 class="app-header__title">${initialTitle}</h1>
       <div class="app-header__actions">
-        <button class="btn btn-ghost" id="logoutBtn" type="button">
+        <button class="btn btn-ghost app-header__logout-desktop" id="logoutBtn" type="button">
           <span class="sidebar__icon">${ICONS.logout}</span>
           <span>Salir</span>
         </button>
       </div>
     </header>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
     <main class="app-main">
       <div class="page-loader" data-context="${loaderContext}">
         <div class="page-loader__inner">

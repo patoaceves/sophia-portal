@@ -458,6 +458,43 @@
 .skeleton-line--medium { width: 75%; }
 
 /* Mobile */
+/* ════════════════════════════════════════════════════════════════════
+ * Hamburguesa + drawer móvil
+ * Desktop: oculta el hamburguesa, sidebar siempre visible, "Salir" en header
+ * Mobile (≤880px): hamburguesa visible, sidebar como drawer slide-in,
+ *   "Salir" se mueve al bottom del sidebar drawer
+ * ════════════════════════════════════════════════════════════════════ */
+.app-header__hamburger {
+  display: none; /* hidden on desktop */
+  background: transparent;
+  border: none;
+  padding: 8px;
+  margin-right: var(--s-3);
+  cursor: pointer;
+  color: var(--color-text);
+  border-radius: var(--r-md);
+  align-items: center;
+  justify-content: center;
+}
+.app-header__hamburger:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.sidebar-backdrop.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (max-width: 880px) {
   .shell {
     grid-template-columns: 1fr;
@@ -465,8 +502,38 @@
       "header"
       "main";
   }
+  /* Sidebar pasa a ser drawer fijo overlay; oculto por default */
   .sidebar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+  /* Mostrar el backdrop solo cuando el drawer está abierto */
+  .sidebar-backdrop {
+    display: block;
+  }
+  /* Mostrar hamburguesa, ocultar "Salir" del header (queda en el drawer
+     vía el botón user que va a perfil + opción de salir desde ahí) */
+  .app-header__hamburger {
+    display: inline-flex;
+  }
+  .app-header__logout-desktop {
     display: none;
+  }
+  /* Evitar scroll del body cuando el drawer está abierto */
+  body.sidebar-open {
+    overflow: hidden;
   }
   .app-main {
     padding: var(--s-6) var(--s-4);
@@ -6692,4 +6759,37 @@ button.foro-preview-item__thumb {
   outline: none;
   border-color: var(--color-danger);
   box-shadow: 0 0 0 3px var(--color-danger-soft);
+}
+
+/* Botón Salir dentro del sidebar drawer — solo visible en mobile.
+   En desktop el "Salir" vive en el app-header, en mobile vive en el
+   footer del sidebar (debajo del user button). */
+.sidebar__logout-mobile {
+  display: none;
+}
+@media (max-width: 880px) {
+  .sidebar__logout-mobile {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    width: 100%;
+    padding: 10px var(--s-3);
+    margin-top: var(--s-2);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .sidebar__logout-mobile:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .sidebar__logout-mobile svg {
+    width: 18px;
+    height: 18px;
+  }
 }
