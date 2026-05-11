@@ -519,7 +519,10 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqdmp5aXNwbHFzcmpzZXNzYXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMTA2NDIsImV4cCI6MjA5MzU4NjY0Mn0.Q9nnRffenm78Qil6Q2Tu3kpTI4m3JolW2S8iM6PMlfA";
 
     // URL del webhook de Airtable Automations que recibe los participantes.
-    const WEBHOOK_URL = "https://hooks.airtable.com/workflows/v1/genericWebhook/app1SbOC98k2OP5m1/wflk2BNdgWtN1TsbI/wtrpA67IMYGNAhshA";
+    // ⚠️  NO llamar hooks.airtable.com directamente desde el browser —
+    // Airtable no sirve headers CORS y el navegador bloquea la request.
+    // Usamos nuestro propio edge function como proxy server-side.
+    const WEBHOOK_URL = "https://ajvjyisplqsrjsessayo.supabase.co/functions/v1/proxy-inscripcion";
 
     // Token estático compartido. DEBE coincidir con:
     //   1. La env var IMPORT_PUBLIC_TOKEN en Supabase (la usa list-cursos-publico)
@@ -563,7 +566,7 @@
 
     // ── Init ──────────────────────────────────────────────────────────
 
-    if (!WEBHOOK_URL || !PUBLIC_TOKEN) {
+    if (!PUBLIC_TOKEN) {
       configWarningEl.style.display = "block";
     }
 
@@ -708,7 +711,7 @@
 
     function refreshSubmitState() {
       const validFilas = getValidFilas();
-      const canSubmit = state.cursoSeleccionado && validFilas.length > 0 && !state.sending && WEBHOOK_URL && PUBLIC_TOKEN;
+      const canSubmit = state.cursoSeleccionado && validFilas.length > 0 && !state.sending && !!PUBLIC_TOKEN;
       submitBtn.disabled = !canSubmit;
       submitLabel.textContent = `Enviar ${validFilas.length} ${validFilas.length === 1 ? "participante" : "participantes"}`;
     }
@@ -769,7 +772,11 @@
       try {
         const res = await fetch(WEBHOOK_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
