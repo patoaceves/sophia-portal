@@ -20,6 +20,7 @@ const FIELDS = {
     ESTATUS: "fld87QVcZl6GvQg2k",
     FECHA_INICIO: "fldoqWrG9zEdeKWGt",
     FECHA_FIN: "fldnm9B7nvIjyKZre",
+    HORA_INICIO: "fld65dDf16bS1wR25",
   },
 } as const;
 
@@ -84,6 +85,7 @@ Deno.serve(async (req) => {
     params.append("fields[]", FIELDS.COHORTES.ESTATUS);
     params.append("fields[]", FIELDS.COHORTES.FECHA_INICIO);
     params.append("fields[]", FIELDS.COHORTES.FECHA_FIN);
+    params.append("fields[]", FIELDS.COHORTES.HORA_INICIO);
 
     const data = await airtableFetch(`/${BASES.PORTAL}/${TABLES.COHORTES}?${params}`);
     const records = (data.records ?? []) as Array<{ id: string; fields: Record<string, unknown> }>;
@@ -93,6 +95,7 @@ Deno.serve(async (req) => {
       nombre: (r.fields[FIELDS.COHORTES.NOMBRE] as string) ?? "",
       fechaInicio: (r.fields[FIELDS.COHORTES.FECHA_INICIO] as string) ?? "",
       fechaFin: (r.fields[FIELDS.COHORTES.FECHA_FIN] as string) ?? "",
+      horaInicio: (r.fields[FIELDS.COHORTES.HORA_INICIO] as string) ?? "",
     }));
 
     // Orden alfabético por nombre (que típicamente tiene fecha al final)

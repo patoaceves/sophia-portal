@@ -300,18 +300,20 @@
       font-family: inherit;
       font-size: 0.9375rem;
       font-weight: 500;
-      background: var(--color-text);
-      color: var(--color-bg);
-      border: 1px solid var(--color-text);
+      background: var(--color-accent);
+      color: #fff;
+      border: 1px solid var(--color-accent);
       border-radius: var(--r-md);
       cursor: pointer;
-      transition: opacity 0.15s ease, transform 0.15s ease;
+      transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
     .btn-submit:hover:not(:disabled) {
-      opacity: 0.92;
+      background: #c0392b;
+      border-color: #c0392b;
+      box-shadow: 0 2px 8px rgba(211,47,47,0.25);
     }
     .btn-submit:disabled {
-      opacity: 0.4;
+      opacity: 0.45;
       cursor: not-allowed;
     }
     .btn-submit svg {
@@ -761,6 +763,8 @@
         enviadoEn: new Date().toISOString(),
         cohorteId: state.cursoSeleccionado.id,
         cohorteNombre: state.cursoSeleccionado.nombre,
+        primeraSesionFecha: state.cursoSeleccionado.fechaInicio ?? "",
+        primeraSesionHora: state.cursoSeleccionado.horaInicio ?? "",
         participantes: valid.map(f => ({
           nombre: f.nombre.trim(),
           apellidos: f.apellidos.trim(),
