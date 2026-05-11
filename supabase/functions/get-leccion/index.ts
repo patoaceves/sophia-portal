@@ -8,6 +8,105 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // ============================================================================
+// HTML SANITIZER (inlined for self-contained deploy)
+// Defensa contra XSS en `contenidoHTML` que viene de Airtable. Mantener
+// sincronizado con supabase/functions/_shared/html-sanitizer.ts (referencia
+// canónica + 17 tests). Cualquier cambio aquí debe ir también al _shared.
+// ============================================================================
+
+const SANITIZER_ALLOWED_TAGS = new Set([
+  "p", "br", "hr", "div", "span", "article", "section", "header", "footer",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "ul", "ol", "li",
+  "strong", "em", "b", "i", "u", "s", "mark", "small", "sub", "sup",
+  "blockquote", "code", "pre", "kbd",
+  "a", "img", "figure", "figcaption",
+  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption",
+  "details", "summary",
+]);
+const SANITIZER_GLOBAL_ATTRS = new Set(["class", "id", "title", "lang", "dir"]);
+const SANITIZER_TAG_ATTRS: Record<string, Set<string>> = {
+  a: new Set(["href", "target", "rel"]),
+  img: new Set(["src", "alt", "width", "height", "loading", "decoding"]),
+  table: new Set(["border", "cellpadding", "cellspacing"]),
+  td: new Set(["colspan", "rowspan", "headers"]),
+  th: new Set(["colspan", "rowspan", "scope", "headers"]),
+  ol: new Set(["start", "type", "reversed"]),
+  details: new Set(["open"]),
+};
+const SANITIZER_DANGEROUS_TAGS = new Set([
+  "script", "style", "iframe", "object", "embed", "link", "meta",
+  "form", "input", "button", "select", "textarea", "option",
+  "base", "applet", "audio", "video", "source", "track", "noscript",
+  "frame", "frameset", "svg", "math",
+]);
+
+function _decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+
+function _isSafeUrl(rawValue: string): boolean {
+  const decoded = _decodeEntities(rawValue).trim().toLowerCase();
+  const schemeMatch = decoded.match(/^([a-z][a-z0-9+.\-]*):/);
+  if (!schemeMatch) return true; // sin scheme → relativo/absoluto/fragment
+  const scheme = schemeMatch[1];
+  if (scheme === "http" || scheme === "https" || scheme === "mailto" || scheme === "tel") return true;
+  if (scheme === "data" && decoded.startsWith("data:image/")) return true;
+  return false; // javascript:, vbscript:, file:, data:text/..., etc.
+}
+
+function _sanitizeAttrs(tagName: string, rawAttrs: string): string {
+  if (!rawAttrs || !rawAttrs.trim()) return "";
+  const allowedForTag = SANITIZER_TAG_ATTRS[tagName] ?? new Set<string>();
+  const result: string[] = [];
+  const attrRe = /([a-zA-Z_:][a-zA-Z0-9_:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+  let m: RegExpExecArray | null;
+  while ((m = attrRe.exec(rawAttrs)) !== null) {
+    const name = m[1].toLowerCase();
+    const value = m[2] ?? m[3] ?? m[4] ?? "";
+    if (name.startsWith("on")) continue;
+    if (name === "style" || name === "formaction" || name === "srcdoc" || name === "background") continue;
+    if (!SANITIZER_GLOBAL_ATTRS.has(name) && !allowedForTag.has(name)) continue;
+    if ((name === "href" || name === "src") && !_isSafeUrl(value)) continue;
+    if (name === "target" && tagName === "a" && value.toLowerCase() === "_blank") {
+      result.push(`target="_blank"`);
+      continue;
+    }
+    const escaped = value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (value === "" && !m[0].includes("=")) result.push(name);
+    else result.push(`${name}="${escaped}"`);
+  }
+  const hasTargetBlank = result.some(a => a === `target="_blank"`);
+  const hasRel = result.some(a => a.startsWith("rel="));
+  if (hasTargetBlank && !hasRel && tagName === "a") {
+    result.push(`rel="noopener noreferrer"`);
+  }
+  return result.length > 0 ? " " + result.join(" ") : "";
+}
+
+function sanitizeHtml(html: string): string {
+  if (!html || typeof html !== "string") return "";
+  let out = html.replace(/<!--[\s\S]*?-->/g, "");
+  for (const tag of SANITIZER_DANGEROUS_TAGS) {
+    const blockRe = new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, "gi");
+    out = out.replace(blockRe, "");
+    const selfRe = new RegExp(`<${tag}\\b[^>]*\\/?>`, "gi");
+    out = out.replace(selfRe, "");
+  }
+  out = out.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9-]*)\b([^>]*)>/g, (_m, slash, tagName, attrs) => {
+    const tag = tagName.toLowerCase();
+    if (!SANITIZER_ALLOWED_TAGS.has(tag)) return "";
+    if (slash === "/") return `</${tag}>`;
+    return `<${tag}${_sanitizeAttrs(tag, attrs)}>`;
+  });
+  return out;
+}
+
+// ============================================================================
 // AIRTABLE CONSTANTS & HELPERS
 // ============================================================================
 
@@ -436,7 +535,7 @@ Deno.serve(async (req) => {
         orden: (lf[FIELDS.LECCIONES.ORDEN] as number) ?? 0,
         tipo: (lf[FIELDS.LECCIONES.TIPO] as string) ?? "texto",
         etiqueta: (lf[FIELDS.LECCIONES.ETIQUETA] as string) ?? "",
-        contenidoHTML: (lf[FIELDS.LECCIONES.CONTENIDO_HTML] as string) ?? "",
+        contenidoHTML: sanitizeHtml((lf[FIELDS.LECCIONES.CONTENIDO_HTML] as string) ?? ""),
         urlVideo: (lf[FIELDS.LECCIONES.URL_VIDEO] as string) ?? null,
         urlExterna: (lf[FIELDS.LECCIONES.URL_EXTERNA] as string) ?? null,
         archivoUrl,

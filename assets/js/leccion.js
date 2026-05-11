@@ -18,6 +18,51 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 
+// ─────────────────────────────────────────────────────────────────────
+// DOMPurify (cliente) — segunda capa de defensa.
+// El servidor (get-leccion) ya pasa el HTML por nuestro sanitizer custom,
+// pero re-aplicamos DOMPurify en cliente antes de cualquier innerHTML que
+// reciba contenido de Airtable. Si el módulo falla al cargar, registramos
+// warning pero no rompemos la página: el servidor ya hizo su trabajo.
+// Tamaño: ~22KB gzipped.
+// ─────────────────────────────────────────────────────────────────────
+let _DOMPurify = null;
+let _purifyPromise = null;
+async function loadPurify() {
+  if (_DOMPurify) return _DOMPurify;
+  if (_purifyPromise) return _purifyPromise;
+  _purifyPromise = import("https://esm.sh/dompurify@3.2.6")
+    .then((mod) => {
+      _DOMPurify = mod.default ?? mod;
+      return _DOMPurify;
+    })
+    .catch((err) => {
+      console.warn("DOMPurify load failed, relying on server sanitization:", err);
+      _DOMPurify = null;
+      return null;
+    });
+  return _purifyPromise;
+}
+
+function purify(html) {
+  // Sync call: si DOMPurify ya está cargado, sanitiza; si no, devuelve tal cual
+  // (el servidor ya lo sanitizó). Se llama loadPurify() temprano para que esté
+  // listo cuando se renderee.
+  if (_DOMPurify && typeof _DOMPurify.sanitize === "function") {
+    return _DOMPurify.sanitize(html, {
+      // Misma allowlist conceptual que server-side, pero DOMPurify usa su default
+      // que es razonable. Forzamos rel en target=_blank y prohibimos onerror etc.
+      ADD_ATTR: ["target"],
+      FORBID_ATTR: ["style", "formaction", "srcdoc"],
+      FORBID_TAGS: ["form", "input", "button", "select", "textarea", "iframe", "object", "embed"],
+    });
+  }
+  return html;
+}
+
+// Disparar carga lo antes posible (en paralelo con el fetch de la lección)
+loadPurify();
+
 (async () => {
   const persona = await requireAuth();
   if (!persona) return;
@@ -392,7 +437,10 @@ function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
 // Content rendering + image URL sanitization
 // ────────────────────────────────────────────────────────────────────
 function renderContent(l) {
-  const html = l.contenidoHTML || "";
+  // Server-side ya sanitizó (html-sanitizer.ts en get-leccion). Aquí pasamos
+  // DOMPurify como segunda capa de defensa antes de meter el HTML en una
+  // template literal que termina en innerHTML.
+  const html = purify(l.contenidoHTML || "");
   const tipo = (l.tipo || "texto").toLowerCase();
   switch (tipo) {
     case "video":

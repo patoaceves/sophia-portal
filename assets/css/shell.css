@@ -6111,8 +6111,6 @@ button.foro-preview-card__link {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Para fotos verticales tipo retrato, centrar arriba evita cortar la cabeza */
-  object-position: center 20%;
   display: block;
 }
 .eval-ponente-header__photo--initials {
