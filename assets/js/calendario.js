@@ -11,15 +11,15 @@ import { icon } from "./icons.js";
 // Sesiones del Happiness Workshop (hardcoded por ahora; idealmente vendría
 // de una tabla "Sesiones" en Airtable con FK al Curso).
 const SESIONES_HW = [
-  { num: 1, fecha: "2026-05-12", titulo: "Introducción: Hablemos de Felicidad",   ponente: "Mariana Riojas" },
+  { num: 1, fecha: "2026-05-12", titulo: "Introducción: Hablemos de Felicidad",   ponente: "José González" },
   { num: 2, fecha: "2026-05-19", titulo: "Autoconocimiento",                       ponente: "Mary Carmen Tena" },
   { num: 3, fecha: "2026-05-26", titulo: "Bienestar Físico",                       ponente: "Nancy Moreno" },
   { num: 4, fecha: "2026-06-02", titulo: "Presencia Consciente",                   ponente: "Pedro Mariscal" },
   { num: 5, fecha: "2026-06-09", titulo: "Bienestar Emocional",                    ponente: "Nancy Moreno" },
   { num: 6, fecha: "2026-06-16", titulo: "Trabajo con Propósito",                  ponente: "José González" },
-  { num: 7, fecha: "2026-06-23", titulo: "Estética Existencial",                   ponente: "Mariana Riojas" },
-  { num: 8, fecha: "2026-06-30", titulo: "Vínculos Vitales",                       ponente: "Mary Carmen Tena" },
-  { num: 9, fecha: "2026-07-07", titulo: "Fe y Filosofía de Vida",                 ponente: "Mateo Villarreal" },
+  { num: 7, fecha: "2026-06-23", titulo: "Estética Existencial",                   ponente: "Mateo Villarreal" },
+  { num: 8, fecha: "2026-06-30", titulo: "Vínculos Vitales",                       ponente: "Mariana Riojas" },
+  { num: 9, fecha: "2026-07-07", titulo: "Fe y Filosofía de Vida",                 ponente: "Pedro Mariscal" },
 ];
 
 const HORA_INICIO = "19:30";

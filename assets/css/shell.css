@@ -479,6 +479,10 @@
 .app-header__hamburger:hover {
   background: rgba(0, 0, 0, 0.04);
 }
+.app-header__hamburger svg {
+  width: 22px;
+  height: 22px;
+}
 
 .sidebar-backdrop {
   display: none;
@@ -527,9 +531,29 @@
      vía el botón user que va a perfil + opción de salir desde ahí) */
   .app-header__hamburger {
     display: inline-flex;
+    padding: 10px;
+  }
+  .app-header__hamburger svg {
+    width: 28px;
+    height: 28px;
   }
   .app-header__logout-desktop {
     display: none;
+  }
+  /* En mobile el título queda alineado a la izquierda (no centrado) — el
+     space-between empujaba el title al centro porque "Salir" desaparecía. */
+  .app-header {
+    justify-content: flex-start;
+  }
+  .app-header__title {
+    flex: 1;
+    text-align: left;
+    font-size: 1.25rem;
+    /* Truncate si el título es muy largo, evita wrap a dos líneas */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   /* Evitar scroll del body cuando el drawer está abierto */
   body.sidebar-open {
@@ -1558,8 +1582,8 @@
 .leccion-cta {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-5);
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
   border: 1.5px solid var(--color-border-strong);
   background: var(--color-bg-elevated);
   color: var(--color-text);
@@ -6791,5 +6815,32 @@ button.foro-preview-item__thumb {
   .sidebar__logout-mobile svg {
     width: 18px;
     height: 18px;
+  }
+}
+
+/* Lección CTA — versión compacta en mobile para que entre en la misma
+   línea que el botón "Anterior" */
+.leccion-cta__label-full { display: inline; }
+.leccion-cta__label-short { display: none; }
+@media (max-width: 600px) {
+  .leccion-cta {
+    padding: var(--s-2) var(--s-3);
+    font-size: 0.875rem;
+    gap: var(--s-2);
+  }
+  .leccion-cta__check-box {
+    width: 18px;
+    height: 18px;
+  }
+  .leccion-cta__label-full { display: none; }
+  .leccion-cta__label-short { display: inline; }
+  .leccion-page__footer {
+    flex-wrap: nowrap; /* forzar misma línea */
+    gap: var(--s-2);
+  }
+  /* "Anterior" también compacto en mobile */
+  .leccion-page__footer .btn-ghost {
+    padding: var(--s-2) var(--s-3);
+    font-size: 0.875rem;
   }
 }

@@ -123,19 +123,6 @@
     `;
   }
 
-  // Loader content (matches loader.js output but inline + sync)
-  const LOADER_MESSAGES = {
-    generic:   ["Cargando", "Un momento"],
-    portal:    ["Cargando tu progreso", "Preparando tus cursos", "Casi listo"],
-    curso:     ["Cargando el curso", "Buscando tus avances"],
-    leccion:   ["Cargando la lección", "Preparando el contenido"],
-    test:      ["Preparando el test", "Cargando preguntas"],
-    resultados:["Cargando tus resultados", "Construyendo tu rueda"],
-    progreso:  ["Cargando tu progreso", "Sumando tus avances"],
-    calendario:["Cargando tu calendario", "Buscando próximas sesiones"],
-  };
-  const msgs = LOADER_MESSAGES[loaderContext] || LOADER_MESSAGES.generic;
-
   document.body.className = "shell shell--skeleton";
   document.body.innerHTML = `
     <aside class="sidebar">
@@ -176,16 +163,7 @@
       </div>
     </header>
     <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
-    <main class="app-main">
-      <div class="page-loader" data-context="${loaderContext}">
-        <div class="page-loader__inner">
-          <div class="spinner" role="status" aria-live="polite"></div>
-          <div class="page-loader__text">
-            <span class="page-loader__msg" id="bootMsg">${msgs[0]}</span><span class="page-loader__dots"><span>.</span><span>.</span><span>.</span></span>
-          </div>
-        </div>
-      </div>
-    </main>
+    <main class="app-main"></main>
     <div class="app-splash" id="appSplash" aria-hidden="true">
       <div class="app-splash__inner">
         <img src="/assets/img/brand/logo-vertical-rojo.png" alt="SOPHIA" class="app-splash__logo">
@@ -199,15 +177,4 @@
   // el glitch de "aparece y desaparece" cuando el bootstrap es muy rápido
   // (caso típico: cache hit).
   try { window.__sophiaSplashStart = Date.now(); } catch {}
-
-  // Rotate loader messages until the bootstrap script replaces the loader.
-  let i = 0;
-  const el = document.getElementById("bootMsg");
-  const iv = setInterval(function () {
-    if (!el || !document.body.contains(el)) { clearInterval(iv); return; }
-    i = (i + 1) % msgs.length;
-    el.style.transition = "opacity 0.22s ease";
-    el.style.opacity = "0";
-    setTimeout(function () { if (el) { el.textContent = msgs[i]; el.style.opacity = "1"; } }, 220);
-  }, 2200);
 })();

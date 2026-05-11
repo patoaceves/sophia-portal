@@ -822,7 +822,7 @@ function renderTestCajita(ctx) {
           <span class="test-cajita__eyebrow">Tu evaluación inicial</span>
           <h3 class="test-cajita__title">Tu diagrama de felicidad</h3>
         </div>
-        <p class="test-cajita__lead">Termina el Capítulo 1 y obtén tu diagnóstico personalizado en 8 pilares.</p>
+        <p class="test-cajita__lead">Completa el Capítulo 1 y obtén tu diagnóstico personalizado en 8 pilares.</p>
       </section>
     `;
   }

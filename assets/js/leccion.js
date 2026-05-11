@@ -365,11 +365,11 @@ function renderCta(leccion, nextId, backHref) {
         </span>
       </span>
       <span class="leccion-cta__label">
-        ${completada ? escapeHtml(advanceLabel) : "Marcar como completada"}
+        ${completada
+          ? `<span class="leccion-cta__label-full">${escapeHtml(advanceLabel)}</span><span class="leccion-cta__label-short">${escapeHtml(advanceLabel)}</span>`
+          : `<span class="leccion-cta__label-full">Marcar como completada</span><span class="leccion-cta__label-short">Completar</span>`}
       </span>
-      <span class="leccion-cta__arrow" aria-hidden="true">
-        ${completada ? icon("arrowRight") : ""}
-      </span>
+      ${completada ? `<span class="leccion-cta__arrow" aria-hidden="true">${icon("arrowRight")}</span>` : ""}
     </button>
   `;
 }
