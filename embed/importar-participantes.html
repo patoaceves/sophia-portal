@@ -675,6 +675,11 @@
             input.closest(".participantes-table__cell").classList.remove("has-error");
             refreshSubmitState();
           });
+          // Paste handler para soportar copy/paste de Excel/Sheets (TSV)
+          input.addEventListener("paste", (e) => {
+            const field = input.closest("[data-field]").dataset.field;
+            handlePastedTable(e, rowId, field);
+          });
         });
         row.querySelector(".participantes-table__delete").addEventListener("click", () => removeRow(rowId));
       });
@@ -780,6 +785,100 @@
         );
         state.sending = false;
         refreshSubmitState();
+      }
+    }
+
+    /**
+     * Soporta copy/paste de Excel, Google Sheets, Numbers, etc. al pegar
+     * sobre cualquier celda de la tabla.
+     *
+     * Comportamiento:
+     *  - Pegar 1 celda (sin tabs/newlines): paste normal, no interferimos.
+     *  - Pegar N celdas en 1 fila (TSV): rellena desde la columna actual
+     *    hacia la derecha.
+     *  - Pegar N filas (newlines): crea nuevas filas hasta MAX_FILAS,
+     *    rellenando empezando por la fila/columna actual.
+     *  - Si la primera fila pegada parece header ("nombre"/"email"/etc.),
+     *    se descarta para no contaminar la primera fila de datos.
+     */
+    function handlePastedTable(e, currentRowId, currentField) {
+      const text = (e.clipboardData || window.clipboardData)?.getData("text/plain");
+      if (!text) return;
+      // Si no es tabular (sin tabs y sin newlines), dejar el paste normal
+      if (!text.includes("\t") && !/[\r\n]/.test(text)) return;
+
+      e.preventDefault();
+
+      // Parsear como TSV (Excel/Sheets nativo). Líneas vacías al final se ignoran.
+      const lines = text.split(/\r\n|\r|\n/).filter(l => l.length > 0);
+      if (lines.length === 0) return;
+      let rows = lines.map(l => l.split("\t"));
+
+      // Heurística: si la primera fila parece header (todas sus celdas son
+      // labels conocidos), descartarla.
+      const headerKeywords = ["nombre", "apellido", "apellidos", "email", "correo", "rol"];
+      const firstRowIsHeader = rows[0].every(c => {
+        const v = c.trim().toLowerCase();
+        return headerKeywords.some(k => v === k || v.includes(k));
+      });
+      if (firstRowIsHeader && rows.length > 1) rows = rows.slice(1);
+
+      // Orden de columnas en la tabla (mismo orden que el render)
+      const COLS = ["nombre", "apellidos", "email", "rol"];
+      const startColIdx = COLS.indexOf(currentField);
+      if (startColIdx < 0) return;
+
+      // Índice de la fila actual en state.filas
+      const startRowIdx = state.filas.findIndex(f => f.id === currentRowId);
+      if (startRowIdx < 0) return;
+
+      // Aplicar paste: por cada fila del clipboard, mapear las celdas a las
+      // columnas correspondientes empezando desde startColIdx
+      let truncated = false;
+      for (let i = 0; i < rows.length; i++) {
+        const targetIdx = startRowIdx + i;
+        // Crear filas adicionales si no existen, hasta MAX_FILAS
+        if (targetIdx >= state.filas.length) {
+          if (state.filas.length >= MAX_FILAS) {
+            truncated = true;
+            break;
+          }
+          state.filas.push({
+            id: "row_" + Math.random().toString(36).slice(2, 9),
+            nombre: "", apellidos: "", email: "", rol: "participante",
+          });
+        }
+        const fila = state.filas[targetIdx];
+        const cells = rows[i];
+        // Llenar cada celda en su columna correspondiente
+        for (let c = 0; c < cells.length; c++) {
+          const colIdx = startColIdx + c;
+          if (colIdx >= COLS.length) break; // Sobrante de columnas: ignorar
+          const col = COLS[colIdx];
+          const value = cells[c].trim();
+          if (col === "rol") {
+            // Normalizar a lowercase y validar contra ROLES
+            const normalized = value.toLowerCase();
+            const match = ROLES.find(r => r.value === normalized || r.label.toLowerCase() === normalized);
+            fila[col] = match ? match.value : "participante";
+          } else {
+            fila[col] = value;
+          }
+        }
+      }
+
+      renderRows();
+      // Devolver foco a la celda donde se hizo paste (mejor UX para seguir editando)
+      const refocusInput = tableEl.querySelector(
+        `[data-row-id="${state.filas[startRowIdx].id}"] [data-field="${currentField}"] input, ` +
+        `[data-row-id="${state.filas[startRowIdx].id}"] [data-field="${currentField}"] select`
+      );
+      if (refocusInput) refocusInput.focus();
+
+      if (truncated) {
+        showFlash(`Se pegaron ${MAX_FILAS - startRowIdx} filas. El resto se omitió porque excede el máximo de ${MAX_FILAS}.`, "info");
+      } else {
+        hideFlash();
       }
     }
 

@@ -33,7 +33,7 @@ function corsHeaders(): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN_HEADER,
     "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "content-type",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
     "Access-Control-Max-Age": "86400",
   };
 }
