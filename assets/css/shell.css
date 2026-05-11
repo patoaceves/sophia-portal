@@ -506,6 +506,11 @@
       "header"
       "main";
   }
+  /* Header con padding-left reducido para que el hamburguesa quede pegado
+     al borde izq de la pantalla */
+  .app-header {
+    padding: 0 var(--s-4);
+  }
   /* Sidebar pasa a ser drawer fijo overlay; oculto por default */
   .sidebar {
     display: flex;
@@ -532,6 +537,7 @@
   .app-header__hamburger {
     display: inline-flex;
     padding: 10px;
+    margin-left: -8px; /* tirar el icon más cerca del borde izq */
   }
   .app-header__hamburger svg {
     width: 28px;
@@ -548,7 +554,8 @@
   .app-header__title {
     flex: 1;
     text-align: left;
-    font-size: 1.25rem;
+    /* +2pt vs antes (1.25rem → 1.375rem ~ 22px) */
+    font-size: 1.375rem;
     /* Truncate si el título es muy largo, evita wrap a dos líneas */
     white-space: nowrap;
     overflow: hidden;
