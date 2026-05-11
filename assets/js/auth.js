@@ -281,42 +281,77 @@ export async function requireAuth() {
     return persona;
   } catch (e) {
     console.error("bootstrapPersona failed:", e);
-    showFatalError(e);
+    await showFatalError(e);
     return null;
   }
 }
 
-function showFatalError(err) {
+async function showFatalError(err) {
   const msg = err?.message || "Unknown error";
-  const status = err?.status || "-";
+  const status = err?.status || 0;
   const payload = err?.payload ? JSON.stringify(err.payload, null, 2) : "";
 
+  // ─── Auto-recovery: sesión stale ─────────────────────────────────
+  // Caso típico: el usuario tenía sesión persistida en localStorage,
+  // pero su Auth user fue borrado (delete-my-account, admin action, etc).
+  // El JWT existe localmente pero ya no es válido en el servidor.
+  // En lugar de mostrarle al usuario un error críptico, limpiamos la
+  // sesión silenciosamente y lo regresamos al login.
+  const isStaleSession =
+    status === 401 ||
+    /invalid jwt|user from sub claim|not authenticated|jwt expired/i.test(msg) ||
+    /user from sub claim|invalid jwt/i.test(payload);
+  if (isStaleSession) {
+    console.warn("[auth] stale session detected, clearing and redirecting to login");
+    try { sessionStorage.clear(); } catch {}
+    try { localStorage.removeItem("sophia_aviso_aceptado"); } catch {}
+    try { await supabase.auth.signOut(); } catch {}
+    location.replace("/?session_expired=1");
+    return;
+  }
+
+  // ─── Error page rediseñada ───────────────────────────────────────
   document.body.style.cssText =
-    "background:#faf6ee;font-family:system-ui,sans-serif;padding:32px;color:#1f1a14;margin:0;min-height:100vh;";
+    "background:#faf6ee;font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;color:#1f1a14;";
   document.body.innerHTML = `
-    <div style="max-width:560px;margin:60px auto;background:#fff;border:1px solid #e8dfd0;border-radius:14px;padding:32px;">
-      <h1 style="font-family:Georgia,serif;font-size:1.5rem;margin:0 0 16px;font-weight:500;">No pudimos completar tu acceso</h1>
-      <p style="color:#6b5f50;margin:0 0 16px;line-height:1.5;">
-        Iniciaste sesión correctamente, pero algo falló al registrar tu cuenta en la base de datos.
-      </p>
-      <div style="background:#f7ecdb;border-radius:8px;padding:12px;font-family:ui-monospace,monospace;font-size:0.8125rem;margin-bottom:16px;line-height:1.4;">
-        <div><strong>Error:</strong> ${escapeHtml(msg)}</div>
-        <div><strong>Status:</strong> ${escapeHtml(String(status))}</div>
-        ${payload ? `<pre style="margin:8px 0 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(payload)}</pre>` : ""}
+    <div style="width:100%;max-width:480px;background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06);">
+      <div style="width:48px;height:48px;border-radius:50%;background:#fdecec;color:#c1122f;display:grid;place-items:center;margin-bottom:20px;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
       </div>
-      <p style="font-size:0.875rem;color:#9a8e7e;margin:0 0 20px;line-height:1.5;">
-        Si eres administrador, revisa los logs de la Edge Function <code>auth-bootstrap</code> en Supabase.
+      <h1 style="font-family:Georgia,serif;font-size:1.5rem;line-height:1.25;margin:0 0 12px;font-weight:500;">
+        Algo no salió bien
+      </h1>
+      <p style="color:#6b5f50;margin:0 0 24px;line-height:1.55;font-size:0.9375rem;">
+        Tu sesión inició, pero hubo un problema al cargar tu perfil. Intenta de nuevo en unos segundos.
       </p>
-      <button id="retryBtn" style="padding:10px 20px;border-radius:8px;background:#1f1a14;color:#faf6ee;border:none;font-weight:500;cursor:pointer;margin-right:8px;font-family:inherit;">
-        Reintentar
-      </button>
-      <button id="logoutBtn" style="padding:10px 20px;border-radius:8px;background:transparent;color:#6b5f50;border:1px solid #e8dfd0;font-weight:500;cursor:pointer;font-family:inherit;">
-        Cerrar sesión
-      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;">
+        <button id="retryBtn" style="flex:1;min-width:140px;padding:12px 20px;border-radius:10px;background:#c1122f;color:#fff;border:none;font-weight:600;font-size:0.9375rem;cursor:pointer;font-family:inherit;">
+          Reintentar
+        </button>
+        <button id="logoutBtn" style="flex:1;min-width:140px;padding:12px 20px;border-radius:10px;background:transparent;color:#6b5f50;border:1px solid #d8cfbf;font-weight:500;font-size:0.9375rem;cursor:pointer;font-family:inherit;">
+          Cerrar sesión
+        </button>
+      </div>
+      <p style="font-size:0.8125rem;color:#9a8e7e;margin:0 0 12px;line-height:1.5;">
+        Si el problema persiste, escribe a
+        <a href="mailto:contacto@sophiamx.org" style="color:#c1122f;text-decoration:none;">contacto@sophiamx.org</a>.
+      </p>
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer;font-size:0.8125rem;color:#9a8e7e;user-select:none;">Detalles técnicos</summary>
+        <div style="background:#f8f3e9;border-radius:8px;padding:12px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:0.75rem;margin-top:10px;line-height:1.5;color:#3d3631;overflow:auto;">
+          <div><strong>Error:</strong> ${escapeHtml(msg)}</div>
+          <div><strong>Status:</strong> ${escapeHtml(String(status || "-"))}</div>
+          ${payload ? `<pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(payload)}</pre>` : ""}
+        </div>
+      </details>
     </div>
   `;
   document.getElementById("retryBtn").onclick = () => {
-    sessionStorage.removeItem(PERSONA_CACHE_KEY);
+    try { sessionStorage.removeItem(PERSONA_CACHE_KEY); } catch {}
     location.reload();
   };
   document.getElementById("logoutBtn").onclick = () => logout();

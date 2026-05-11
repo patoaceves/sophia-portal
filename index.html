@@ -123,6 +123,11 @@
       showFlash("Tus datos fueron eliminados parcialmente. Contacta privacidad@sophiamx.org si necesitas asistencia.", "error");
     }
 
+    // Sesión expirada (auth-bootstrap detectó JWT inválido y nos redirigió aquí)
+    if (new URLSearchParams(location.search).get("session_expired") === "1") {
+      showFlash("Tu sesión expiró. Vuelve a iniciar sesión para continuar.", "success");
+    }
+
     // ─── 1. Registrar handlers PRIMERO (antes de cualquier await) ──────
     // Si lo hicieramos después de redirectIfAuthed(), el usuario podría
     // hacer click antes de que los handlers existan → "el botón no hace nada".
