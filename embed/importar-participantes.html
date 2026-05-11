@@ -2,14 +2,11 @@
 <html lang="es-MX">
 <head>
   <meta charset="UTF-8">
-  <title>Alta de participantes · SOPHIA</title>
+  <title>Alta de participantes - SOPHIA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
 
-  <!-- Esta página está diseñada para embedarse vía iframe en GoHighLevel
-       como Custom Menu Link. No requiere autenticación del portal: el token
-       en la constante IMPORT_TOKEN actúa como gating ligero (el webhook
-       de Airtable debe validarlo del lado servidor). -->
+  <link rel="icon" type="image/png" href="/assets/img/brand/favicon-sophia.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,143 +16,204 @@
   <link rel="stylesheet" href="/assets/css/base.css">
 
   <style>
-    /* Reset para embed: sin padding del body, sin scroll horizontal */
     body {
       margin: 0;
-      padding: var(--s-5) var(--s-4);
+      padding: 0;
       background: var(--color-bg);
       min-height: 100vh;
-      box-sizing: border-box;
-    }
-
-    .importar-page {
-      max-width: 920px;
-      margin: 0 auto;
-    }
-
-    .importar-header {
-      margin-bottom: var(--s-5);
-    }
-    .importar-header h1 {
-      font-family: var(--font-display);
-      font-size: 1.75rem;
-      font-weight: 400;
-      font-variation-settings: "opsz" 144;
-      margin: 0 0 var(--s-2) 0;
+      font-family: var(--font-body);
       color: var(--color-text);
     }
-    .importar-header p {
-      font-size: 0.9375rem;
-      color: var(--color-text-muted);
-      margin: 0;
-      line-height: 1.5;
+
+    .embed-shell {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: var(--s-6) var(--s-5) var(--s-7);
     }
 
-    /* Sección de cohorte destino */
-    .destino-section {
-      background: var(--color-bg-elevated);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r-md);
-      padding: var(--s-4);
-      margin-bottom: var(--s-5);
+    /* ─── Header (logo + título) ──────────────────────────────────── */
+    .embed-header {
       display: flex;
-      flex-direction: column;
+      align-items: center;
       gap: var(--s-3);
+      margin-bottom: var(--s-6);
+      padding-bottom: var(--s-4);
+      border-bottom: 1px solid var(--color-border);
     }
-    .destino-section__title {
+    .embed-header__logo {
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+    .embed-header__brand {
+      flex: 1;
       font-size: 0.6875rem;
-      text-transform: uppercase;
       letter-spacing: 0.14em;
+      text-transform: uppercase;
       color: var(--color-text-muted);
       font-weight: 500;
-      margin: 0;
     }
-    .destino-fields {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: var(--s-3);
+
+    /* ─── Hero ─────────────────────────────────────────────────────── */
+    .embed-hero {
+      margin-bottom: var(--s-6);
+    }
+    .embed-hero__eyebrow {
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      font-weight: 500;
+      margin: 0 0 var(--s-2) 0;
+    }
+    .embed-hero__title {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 400;
+      font-variation-settings: "opsz" 144;
+      margin: 0 0 var(--s-3) 0;
+      line-height: 1.1;
+      color: var(--color-text);
     }
     @media (max-width: 640px) {
-      .destino-fields { grid-template-columns: 1fr; }
+      .embed-hero__title { font-size: 1.875rem; }
     }
-    .destino-field { display: flex; flex-direction: column; gap: 4px; }
-    .destino-field label {
+    .embed-hero__lead {
+      font-size: 1rem;
+      line-height: 1.55;
+      color: var(--color-text-muted);
+      max-width: 640px;
+      margin: 0;
+    }
+
+    /* ─── Card del curso destino ──────────────────────────────────── */
+    .form-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-lg);
+      padding: var(--s-5);
+      margin-bottom: var(--s-4);
+    }
+    .form-card__title {
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      font-weight: 500;
+      margin: 0 0 var(--s-3) 0;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-field__label {
       font-size: 0.8125rem;
       font-weight: 500;
       color: var(--color-text);
     }
-    .destino-field input {
-      padding: 8px 12px;
+    .form-field__hint {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+
+    /* Select y input estilo portal */
+    select.form-control,
+    input.form-control {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
       font-family: inherit;
       font-size: 0.9375rem;
       border: 1px solid var(--color-border);
-      border-radius: var(--r-sm);
+      border-radius: var(--r-md);
       background: var(--color-bg);
       color: var(--color-text);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .destino-field input:focus {
+    select.form-control:focus,
+    input.form-control:focus {
       outline: none;
       border-color: var(--color-accent);
       box-shadow: 0 0 0 3px var(--color-accent-soft);
     }
-    .destino-field input[readonly] {
-      background: var(--color-bg-subtle);
+    select.form-control {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b6258' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 38px;
+    }
+    select.form-control:disabled {
+      background-color: var(--color-bg-subtle);
       color: var(--color-text-muted);
       cursor: not-allowed;
     }
 
-    /* Tabla de participantes */
-    .participantes-section { margin-bottom: var(--s-4); }
+    /* ─── Sección participantes ───────────────────────────────────── */
+    .participantes-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-lg);
+      padding: var(--s-5);
+      margin-bottom: var(--s-5);
+    }
     .participantes-header {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: var(--s-3);
+      margin-bottom: var(--s-4);
     }
-    .participantes-header h2 {
-      font-family: var(--font-display);
-      font-size: 1.125rem;
-      font-weight: 400;
-      font-variation-settings: "opsz" 144;
+    .participantes-header__title {
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      font-weight: 500;
       margin: 0;
     }
-    .participantes-counter {
+    .participantes-header__counter {
       font-size: 0.8125rem;
       color: var(--color-text-muted);
+      font-feature-settings: "tnum";
     }
 
     .participantes-table {
-      background: var(--color-bg-elevated);
       border: 1px solid var(--color-border);
       border-radius: var(--r-md);
       overflow: hidden;
     }
     .participantes-table__row {
       display: grid;
-      grid-template-columns: 1.2fr 1.2fr 1.8fr 1fr 36px;
+      grid-template-columns: 1.2fr 1.2fr 1.8fr 1fr 44px;
       border-top: 1px solid var(--color-border);
     }
     .participantes-table__row:first-child { border-top: none; }
     .participantes-table__row--header {
       background: var(--color-bg-subtle);
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       color: var(--color-text-muted);
       font-weight: 500;
     }
     .participantes-table__row--header > div {
-      padding: 10px 12px;
+      padding: 12px 14px;
     }
     .participantes-table__cell {
       padding: 0;
       position: relative;
+      background: var(--color-bg-elevated);
+      transition: background 0.15s ease;
     }
     .participantes-table__cell input,
     .participantes-table__cell select {
       width: 100%;
       box-sizing: border-box;
-      padding: 12px;
+      padding: 12px 14px;
       border: none;
       background: transparent;
       font-family: inherit;
@@ -165,17 +223,26 @@
     .participantes-table__cell input:focus,
     .participantes-table__cell select:focus {
       outline: none;
+    }
+    .participantes-table__cell:focus-within {
       background: var(--color-accent-soft);
     }
-    .participantes-table__cell.has-error input,
-    .participantes-table__cell.has-error select {
-      background: rgba(193, 18, 47, 0.06);
+    .participantes-table__cell.has-error {
+      background: rgba(193, 18, 47, 0.05);
     }
     .participantes-table__cell.has-error::after {
       content: "";
       position: absolute;
       left: 0; right: 0; bottom: 0; height: 2px;
-      background: var(--color-danger);
+      background: var(--color-accent);
+    }
+    .participantes-table__cell select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b6258' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 30px;
     }
     .participantes-table__delete {
       background: transparent;
@@ -189,7 +256,7 @@
       transition: color 0.15s ease, background 0.15s ease;
     }
     .participantes-table__delete:hover:not(:disabled) {
-      color: var(--color-danger);
+      color: var(--color-accent);
       background: rgba(193, 18, 47, 0.06);
     }
     .participantes-table__delete:disabled {
@@ -204,9 +271,9 @@
       background: transparent;
       border: 1px dashed var(--color-border);
       color: var(--color-text-muted);
-      padding: 10px 16px;
+      padding: 10px 18px;
       margin-top: var(--s-3);
-      border-radius: var(--r-sm);
+      border-radius: var(--r-md);
       font-family: inherit;
       font-size: 0.875rem;
       cursor: pointer;
@@ -218,32 +285,46 @@
     }
     .add-row-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Submit + flash */
-    .submit-section {
-      margin-top: var(--s-5);
+    /* ─── Submit + flash ──────────────────────────────────────────── */
+    .submit-row {
       display: flex;
       flex-direction: column;
       gap: var(--s-3);
     }
-    .submit-btn {
+    .btn-submit {
       align-self: flex-end;
-      padding: 12px 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-2);
+      padding: 14px 28px;
+      font-family: inherit;
       font-size: 0.9375rem;
       font-weight: 500;
-      background: var(--color-accent);
-      color: white;
-      border: none;
-      border-radius: var(--r-sm);
+      background: var(--color-text);
+      color: var(--color-bg);
+      border: 1px solid var(--color-text);
+      border-radius: var(--r-md);
       cursor: pointer;
-      font-family: inherit;
-      transition: filter 0.15s ease;
+      transition: opacity 0.15s ease, transform 0.15s ease;
     }
-    .submit-btn:hover:not(:disabled) { filter: brightness(1.05); }
-    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-submit:hover:not(:disabled) {
+      opacity: 0.92;
+    }
+    .btn-submit:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-submit svg {
+      transition: transform 0.15s ease;
+    }
+    .btn-submit:hover:not(:disabled) svg {
+      transform: translateX(3px);
+    }
 
+    /* ─── Flashes ─────────────────────────────────────────────────── */
     .flash {
-      padding: 12px 16px;
-      border-radius: var(--r-sm);
+      padding: var(--s-3) var(--s-4);
+      border-radius: var(--r-md);
       font-size: 0.875rem;
       line-height: 1.5;
       display: none;
@@ -269,8 +350,8 @@
       background: rgba(193, 18, 47, 0.08);
       border: 1px solid rgba(193, 18, 47, 0.25);
       color: var(--color-danger);
-      padding: 12px 16px;
-      border-radius: var(--r-sm);
+      padding: var(--s-3) var(--s-4);
+      border-radius: var(--r-md);
       font-size: 0.875rem;
       margin-bottom: var(--s-4);
     }
@@ -279,78 +360,175 @@
       padding: 1px 6px;
       border-radius: 3px;
       font-size: 0.8125rem;
+      font-family: ui-monospace, "SF Mono", Monaco, monospace;
+    }
+
+    /* ─── Success state pleno ──────────────────────────────────────── */
+    .success-state {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-success-tech);
+      border-radius: var(--r-lg);
+      padding: var(--s-6);
+      text-align: center;
+      animation: success-fade 0.3s ease-out;
+    }
+    @keyframes success-fade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .success-state__icon {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--r-full);
+      background: var(--color-success-tech-soft);
+      color: var(--color-success-tech);
+      display: inline-grid;
+      place-items: center;
+      margin-bottom: var(--s-3);
+    }
+    .success-state__icon svg { width: 32px; height: 32px; }
+    .success-state__title {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 400;
+      font-variation-settings: "opsz" 144;
+      margin: 0 0 var(--s-2) 0;
+    }
+    .success-state__text {
+      font-size: 0.9375rem;
+      color: var(--color-text-muted);
+      max-width: 480px;
+      margin: 0 auto var(--s-5) auto;
+      line-height: 1.55;
+    }
+    .success-state__reset {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: 10px 20px;
+      border-radius: var(--r-md);
+      font-family: inherit;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .success-state__reset:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    @media (max-width: 720px) {
+      .participantes-table__row {
+        grid-template-columns: 1fr;
+      }
+      .participantes-table__row--header { display: none; }
+      .participantes-table__cell {
+        border-top: 1px solid var(--color-border);
+      }
+      .participantes-table__cell:first-child { border-top: none; }
+      .btn-submit { align-self: stretch; justify-content: center; }
     }
   </style>
 </head>
 <body>
-  <main class="importar-page">
-    <header class="importar-header">
-      <h1>Alta de participantes</h1>
-      <p>Agrega hasta 15 personas a la vez. Al enviar, SOPHIA registra a cada participante, crea su inscripción al curso y envía el correo de bienvenida con su link de acceso.</p>
+  <main class="embed-shell">
+    <!-- Header con logo del portal -->
+    <header class="embed-header">
+      <img src="/assets/img/brand/logo-horizontal-rojo.png" alt="SOPHIA" class="embed-header__logo">
+      <span class="embed-header__brand">Equipo de Ventas</span>
     </header>
 
+    <!-- Hero -->
+    <section class="embed-hero">
+      <p class="embed-hero__eyebrow">Alta de participantes</p>
+      <h1 class="embed-hero__title">Inscribir participantes a un curso</h1>
+      <p class="embed-hero__lead">
+        Agrega hasta 15 personas a la vez. Cada una recibirá su correo de bienvenida
+        con el link de acceso al portal en los próximos minutos.
+      </p>
+    </section>
+
+    <!-- Warning si config falta -->
     <div id="configWarning" class="config-warning" style="display:none;">
-      <strong>⚠️ Configuración pendiente:</strong> el webhook de Airtable no está configurado en este archivo.
-      Edita la constante <code>WEBHOOK_URL</code> en <code>/embed/importar-participantes.html</code> antes de usar.
+      <strong>⚠️ Configuración pendiente:</strong>
+      la URL del webhook y/o el token de cursos no están configurados en este archivo.
+      Edita las constantes <code>WEBHOOK_URL</code> y <code>PUBLIC_TOKEN</code>
+      en <code>/embed/importar-participantes.html</code>.
     </div>
 
-    <section class="destino-section">
-      <h2 class="destino-section__title">Curso destino</h2>
-      <div class="destino-fields">
-        <div class="destino-field">
-          <label for="cohorteId">ID de cohorte</label>
-          <input type="text" id="cohorteId" placeholder="recXXXXXXXXXXXX">
+    <!-- Form principal (se oculta al mostrar success-state) -->
+    <div id="formContainer">
+      <!-- Card 1: Curso destino -->
+      <section class="form-card">
+        <h2 class="form-card__title">Curso</h2>
+        <div class="form-field">
+          <label class="form-field__label" for="cursoSelect">Selecciona el curso al que quieres inscribir</label>
+          <select id="cursoSelect" class="form-control" disabled>
+            <option value="">Cargando cursos…</option>
+          </select>
+          <p class="form-field__hint" id="cursoHint">Solo aparecen los cursos con inscripciones abiertas.</p>
         </div>
-        <div class="destino-field">
-          <label for="cohorteNombre">Nombre de cohorte</label>
-          <input type="text" id="cohorteNombre" placeholder="Ej. Happiness Workshop · Marzo 2026">
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="participantes-section">
-      <div class="participantes-header">
-        <h2>Participantes</h2>
-        <span class="participantes-counter" id="counter">0 de 15</span>
-      </div>
-      <div class="participantes-table" id="participantesTable">
-        <div class="participantes-table__row participantes-table__row--header">
-          <div>Nombre</div>
-          <div>Apellidos</div>
-          <div>Email</div>
-          <div>Rol</div>
-          <div></div>
+      <!-- Card 2: Participantes -->
+      <section class="participantes-card">
+        <div class="participantes-header">
+          <h2 class="participantes-header__title">Participantes</h2>
+          <span class="participantes-header__counter" id="counter">0 de 15</span>
         </div>
-        <!-- Filas se insertan dinámicamente -->
-      </div>
-      <button type="button" class="add-row-btn" id="addRowBtn">+ Agregar fila</button>
-    </section>
+        <div class="participantes-table" id="participantesTable">
+          <div class="participantes-table__row participantes-table__row--header">
+            <div>Nombre</div>
+            <div>Apellidos</div>
+            <div>Email</div>
+            <div>Rol</div>
+            <div></div>
+          </div>
+          <!-- Filas dinámicas -->
+        </div>
+        <button type="button" class="add-row-btn" id="addRowBtn">+ Agregar otra persona</button>
+      </section>
 
-    <div class="submit-section">
-      <div class="flash" id="flash"></div>
-      <button type="button" class="submit-btn" id="submitBtn" disabled>
-        Enviar 0 participantes
-      </button>
+      <div class="submit-row">
+        <div class="flash" id="flash"></div>
+        <button type="button" class="btn-submit" id="submitBtn" disabled>
+          <span id="submitLabel">Enviar 0 participantes</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
     </div>
+
+    <!-- Success state (se muestra después de envío exitoso) -->
+    <div id="successContainer" style="display:none;"></div>
   </main>
 
   <script>
     // ═════════════════════════════════════════════════════════════════
-    // CONFIGURACIÓN — EDITAR AQUÍ después de configurar Airtable
+    // CONFIGURACIÓN — EDITAR AQUÍ
     // ═════════════════════════════════════════════════════════════════
 
+    // Endpoint público de cursos (edge function Supabase)
+    const CURSOS_ENDPOINT = "https://ajvjyisplqsrjsessayo.supabase.co/functions/v1/list-cursos-publico";
+
     // URL del webhook de Airtable Automations que recibe los participantes.
-    // Pato: pega aquí la URL después de crear el Trigger "When webhook received"
-    // en una Automation de Airtable.
-    const WEBHOOK_URL = "";
+    const WEBHOOK_URL = "https://hooks.airtable.com/workflows/v1/genericWebhook/app1SbOC98k2OP5m1/wflk2BNdgWtN1TsbI/wtrpA67IMYGNAhshA";
 
-    // Token de gating ligero. Lo recibe el webhook y debe validarlo en el lado
-    // de Airtable (un IF block en la automation). Si no matchea, rechazar.
-    // Genera uno aleatorio largo (32+ chars) y guárdalo también en Airtable.
-    const IMPORT_TOKEN = "REEMPLAZAR_CON_TOKEN_GENERADO";
+    // Token estático compartido. DEBE coincidir con:
+    //   1. La env var IMPORT_PUBLIC_TOKEN en Supabase (la usa list-cursos-publico)
+    //   2. El IF check del primer step de tu Automation de Airtable
+    // Genera uno aleatorio largo (32+ chars) con: openssl rand -hex 32
+    const PUBLIC_TOKEN = "8f3a2c1d9e7b6a4f5028c1d3e9b7a6f48f3a2c1d9e7b6a4f5028c1d3e9b7a6f4";
 
-    // Roles disponibles (deben matchear los choices de "Rol" en Personas CRM)
-    const ROLES = ["participante", "profesor", "facilitador", "coordinador", "admin"];
+    const ROLES = [
+      { value: "participante", label: "Participante" },
+      { value: "profesor",     label: "Profesor" },
+      { value: "facilitador",  label: "Facilitador" },
+      { value: "coordinador",  label: "Coordinador" },
+      { value: "admin",        label: "Admin" },
+    ];
 
     const MAX_FILAS = 15;
     const INITIAL_FILAS = 3;
@@ -360,7 +538,9 @@
     // ═════════════════════════════════════════════════════════════════
 
     const state = {
-      filas: [], // Array<{ id, nombre, apellidos, email, rol }>
+      filas: [],
+      cursos: [],
+      cursoSeleccionado: null,
       sending: false,
     };
 
@@ -368,35 +548,30 @@
     const counterEl = document.getElementById("counter");
     const addRowBtn = document.getElementById("addRowBtn");
     const submitBtn = document.getElementById("submitBtn");
+    const submitLabel = document.getElementById("submitLabel");
     const flashEl = document.getElementById("flash");
-    const cohorteIdInput = document.getElementById("cohorteId");
-    const cohorteNombreInput = document.getElementById("cohorteNombre");
+    const cursoSelect = document.getElementById("cursoSelect");
+    const cursoHint = document.getElementById("cursoHint");
     const configWarningEl = document.getElementById("configWarning");
+    const formContainer = document.getElementById("formContainer");
+    const successContainer = document.getElementById("successContainer");
 
-    // ── Inicialización ──────────────────────────────────────────────
+    // ── Init ──────────────────────────────────────────────────────────
 
-    // Si el webhook no está configurado, advertir prominentemente
-    if (!WEBHOOK_URL) {
+    if (!WEBHOOK_URL || !PUBLIC_TOKEN) {
       configWarningEl.style.display = "block";
     }
 
-    // Pre-rellenar cohorte desde query params si vienen
-    // GHL puede configurar diferentes Custom Menu Links, uno por cohorte
-    const qs = new URLSearchParams(location.search);
-    if (qs.get("cohorteId")) {
-      cohorteIdInput.value = qs.get("cohorteId");
-      cohorteIdInput.setAttribute("readonly", "");
-    }
-    if (qs.get("cohorteNombre")) {
-      cohorteNombreInput.value = qs.get("cohorteNombre");
-      cohorteNombreInput.setAttribute("readonly", "");
-    }
+    // Cargar cursos para el dropdown
+    loadCursos();
 
-    // Filas iniciales vacías
+    // Filas iniciales
     for (let i = 0; i < INITIAL_FILAS; i++) addRow();
 
-    cohorteIdInput.addEventListener("input", refreshSubmitState);
-    cohorteNombreInput.addEventListener("input", refreshSubmitState);
+    cursoSelect.addEventListener("change", () => {
+      state.cursoSeleccionado = state.cursos.find(c => c.id === cursoSelect.value) ?? null;
+      refreshSubmitState();
+    });
 
     addRowBtn.addEventListener("click", () => {
       if (state.filas.length >= MAX_FILAS) return;
@@ -405,7 +580,38 @@
 
     submitBtn.addEventListener("click", handleSubmit);
 
-    // ── Funciones ──────────────────────────────────────────────────
+    // ── Funciones ────────────────────────────────────────────────────
+
+    async function loadCursos() {
+      if (!PUBLIC_TOKEN) {
+        cursoSelect.innerHTML = `<option value="">Configuración pendiente</option>`;
+        cursoHint.textContent = "Falta configurar PUBLIC_TOKEN en el archivo.";
+        cursoHint.style.color = "var(--color-danger)";
+        return;
+      }
+      try {
+        const url = `${CURSOS_ENDPOINT}?token=${encodeURIComponent(PUBLIC_TOKEN)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || `Error ${res.status}`);
+        }
+        state.cursos = data.cursos ?? [];
+        if (state.cursos.length === 0) {
+          cursoSelect.innerHTML = `<option value="">No hay cursos abiertos</option>`;
+          cursoHint.textContent = "Contacta al equipo de SOPHIA si esperabas ver cursos activos aquí.";
+          return;
+        }
+        cursoSelect.innerHTML = `<option value="">Selecciona un curso…</option>` +
+          state.cursos.map(c => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.nombre)}</option>`).join("");
+        cursoSelect.disabled = false;
+      } catch (err) {
+        console.error("loadCursos failed:", err);
+        cursoSelect.innerHTML = `<option value="">No pudimos cargar los cursos</option>`;
+        cursoHint.textContent = `Detalle: ${err.message || "verifica tu conexión"}`;
+        cursoHint.style.color = "var(--color-danger)";
+      }
+    }
 
     function addRow() {
       const id = "row_" + Math.random().toString(36).slice(2, 9);
@@ -415,12 +621,11 @@
 
     function removeRow(id) {
       state.filas = state.filas.filter(r => r.id !== id);
-      if (state.filas.length === 0) addRow(); // Siempre al menos una fila
+      if (state.filas.length === 0) addRow();
       else renderRows();
     }
 
     function renderRows() {
-      // Remover filas existentes (excepto el header que es el primer hijo)
       const existing = tableEl.querySelectorAll(".participantes-table__row:not(.participantes-table__row--header)");
       existing.forEach(el => el.remove());
 
@@ -432,17 +637,17 @@
         row.dataset.rowId = fila.id;
         row.innerHTML = `
           <div class="participantes-table__cell" data-field="nombre">
-            <input type="text" placeholder="Nombre" value="${escapeAttr(fila.nombre)}" autocomplete="off">
+            <input type="text" placeholder="Nombre" value="${escapeAttr(fila.nombre)}" autocomplete="off" aria-label="Nombre">
           </div>
           <div class="participantes-table__cell" data-field="apellidos">
-            <input type="text" placeholder="Apellidos" value="${escapeAttr(fila.apellidos)}" autocomplete="off">
+            <input type="text" placeholder="Apellidos" value="${escapeAttr(fila.apellidos)}" autocomplete="off" aria-label="Apellidos">
           </div>
           <div class="participantes-table__cell" data-field="email">
-            <input type="email" placeholder="correo@dominio.com" value="${escapeAttr(fila.email)}" autocomplete="off">
+            <input type="email" placeholder="correo@dominio.com" value="${escapeAttr(fila.email)}" autocomplete="off" aria-label="Email">
           </div>
           <div class="participantes-table__cell" data-field="rol">
-            <select>
-              ${ROLES.map(r => `<option value="${r}" ${r === fila.rol ? "selected" : ""}>${capitalize(r)}</option>`).join("")}
+            <select aria-label="Rol">
+              ${ROLES.map(r => `<option value="${r.value}" ${r.value === fila.rol ? "selected" : ""}>${r.label}</option>`).join("")}
             </select>
           </div>
           <button type="button" class="participantes-table__delete" aria-label="Eliminar fila" ${onlyOne ? "disabled" : ""}>×</button>
@@ -450,7 +655,6 @@
         tableEl.appendChild(row);
       }
 
-      // Wire inputs y delete
       tableEl.querySelectorAll(".participantes-table__row:not(.participantes-table__row--header)").forEach(row => {
         const rowId = row.dataset.rowId;
         row.querySelectorAll("input, select").forEach(input => {
@@ -458,7 +662,6 @@
             const field = input.closest("[data-field]").dataset.field;
             const fila = state.filas.find(f => f.id === rowId);
             if (fila) fila[field] = input.value;
-            // Clear error on edit
             input.closest(".participantes-table__cell").classList.remove("has-error");
             refreshSubmitState();
           });
@@ -466,7 +669,6 @@
         row.querySelector(".participantes-table__delete").addEventListener("click", () => removeRow(rowId));
       });
 
-      // Counter + add-row state
       counterEl.textContent = `${state.filas.length} de ${MAX_FILAS}`;
       addRowBtn.disabled = state.filas.length >= MAX_FILAS;
       refreshSubmitState();
@@ -478,40 +680,29 @@
       if (!fila.apellidos.trim()) errors.apellidos = true;
       const email = fila.email.trim();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = true;
-      if (!ROLES.includes(fila.rol)) errors.rol = true;
+      if (!ROLES.some(r => r.value === fila.rol)) errors.rol = true;
       return errors;
     }
 
     function getValidFilas() {
-      // Solo cuentan las filas que tienen AL MENOS un campo lleno (que no son
-      // filas en blanco) Y que pasan validación
-      const filledFilas = state.filas.filter(f =>
+      const filled = state.filas.filter(f =>
         f.nombre.trim() || f.apellidos.trim() || f.email.trim()
       );
-      const valid = [];
-      for (const f of filledFilas) {
-        const errors = validateFila(f);
-        if (Object.keys(errors).length === 0) valid.push(f);
-      }
-      return valid;
+      return filled.filter(f => Object.keys(validateFila(f)).length === 0);
     }
 
     function refreshSubmitState() {
-      const hasCohorte = cohorteIdInput.value.trim() && cohorteNombreInput.value.trim();
       const validFilas = getValidFilas();
-      const canSubmit = hasCohorte && validFilas.length > 0 && !state.sending && WEBHOOK_URL;
+      const canSubmit = state.cursoSeleccionado && validFilas.length > 0 && !state.sending && WEBHOOK_URL && PUBLIC_TOKEN;
       submitBtn.disabled = !canSubmit;
-      submitBtn.textContent = `Enviar ${validFilas.length} ${validFilas.length === 1 ? "participante" : "participantes"}`;
+      submitLabel.textContent = `Enviar ${validFilas.length} ${validFilas.length === 1 ? "participante" : "participantes"}`;
     }
 
     function showFlash(msg, kind) {
       flashEl.textContent = msg;
       flashEl.className = `flash is-visible is-${kind}`;
     }
-
-    function hideFlash() {
-      flashEl.className = "flash";
-    }
+    function hideFlash() { flashEl.className = "flash"; }
 
     async function handleSubmit() {
       if (state.sending) return;
@@ -527,12 +718,8 @@
         if (!rowEl) return;
         for (const field of ["nombre", "apellidos", "email", "rol"]) {
           const cell = rowEl.querySelector(`[data-field="${field}"]`);
-          if (errors[field]) {
-            cell.classList.add("has-error");
-            anyError = true;
-          } else {
-            cell.classList.remove("has-error");
-          }
+          if (errors[field]) { cell.classList.add("has-error"); anyError = true; }
+          else cell.classList.remove("has-error");
         }
       });
 
@@ -542,21 +729,20 @@
         return;
       }
       if (anyError) {
-        showFlash("Algunas filas tienen errores. Corrige las celdas marcadas en rojo o elimínalas.", "error");
+        showFlash("Algunas filas tienen errores. Corrige las celdas marcadas o elimina las filas incompletas.", "error");
         return;
       }
 
-      // Send
       state.sending = true;
       submitBtn.disabled = true;
-      submitBtn.textContent = "Enviando…";
+      submitLabel.textContent = "Enviando…";
       hideFlash();
 
       const payload = {
-        token: IMPORT_TOKEN,
+        token: PUBLIC_TOKEN,
         enviadoEn: new Date().toISOString(),
-        cohorteId: cohorteIdInput.value.trim(),
-        cohorteNombre: cohorteNombreInput.value.trim(),
+        cohorteId: state.cursoSeleccionado.id,
+        cohorteNombre: state.cursoSeleccionado.nombre,
         participantes: valid.map(f => ({
           nombre: f.nombre.trim(),
           apellidos: f.apellidos.trim(),
@@ -575,37 +761,62 @@
           const text = await res.text().catch(() => "");
           throw new Error(text || `Error ${res.status}`);
         }
-        showFlash(
-          `✓ ${valid.length} ${valid.length === 1 ? "participante enviado" : "participantes enviados"}. ` +
-          `Airtable procesará el registro y enviará los correos de bienvenida en los próximos minutos.`,
-          "success"
-        );
-        // Resetear filas pero conservar cohorte
-        state.filas = [];
-        for (let i = 0; i < INITIAL_FILAS; i++) addRow();
+        showSuccessState(valid.length, state.cursoSeleccionado.nombre);
       } catch (err) {
         console.error("import POST failed:", err);
         showFlash(
           `No pudimos enviar. ${err.message ? "Detalle: " + err.message : "Verifica tu conexión e intenta de nuevo."}`,
           "error"
         );
-      } finally {
         state.sending = false;
         refreshSubmitState();
       }
     }
 
-    // ── Helpers ────────────────────────────────────────────────────
+    function showSuccessState(count, cursoNombre) {
+      formContainer.style.display = "none";
+      successContainer.style.display = "block";
+      successContainer.innerHTML = `
+        <div class="success-state">
+          <div class="success-state__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h2 class="success-state__title">${count === 1 ? "Participante enviado" : count + " participantes enviados"}</h2>
+          <p class="success-state__text">
+            ${count === 1 ? "Se inscribirá" : "Se inscribirán"} a <strong>${escapeHtml(cursoNombre)}</strong>.
+            ${count === 1 ? "Recibirá" : "Recibirán"} su correo de bienvenida con el link de acceso al portal en los próximos minutos.
+          </p>
+          <button type="button" class="success-state__reset" id="resetBtn">Inscribir más participantes</button>
+        </div>
+      `;
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        // Reset state
+        state.filas = [];
+        state.sending = false;
+        for (let i = 0; i < INITIAL_FILAS; i++) addRow();
+        hideFlash();
+        // Mantener curso seleccionado (común inscribir más al mismo curso)
+        successContainer.style.display = "none";
+        successContainer.innerHTML = "";
+        formContainer.style.display = "block";
+        refreshSubmitState();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────
 
     function escapeAttr(s) {
       return String(s ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+        .replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-    function capitalize(s) {
-      return String(s).charAt(0).toUpperCase() + String(s).slice(1);
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
   </script>
 </body>
