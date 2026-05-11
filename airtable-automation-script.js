@@ -79,6 +79,28 @@ function generateToken() {
   return t;
 }
 
+// Formatea "2026-05-12" → "Martes, 12 de mayo de 2026" para que se vea
+// bonito en el email de GHL. Si la fecha es inválida, devuelve "" para no
+// romper el correo (queda solo la hora).
+//
+// OJO con zonas horarias: Airtable guarda dates como ISO sin hora. Si
+// hacemos new Date("2026-05-12") se interpreta como UTC midnight, lo que
+// en MX (UTC-6) es May 11 a las 18:00. Para evitar shift, parseamos a
+// mediodía UTC y leemos con getUTC*().
+function formatFechaEs(isoDate) {
+  if (!isoDate) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!m) return isoDate; // fallback: devolver tal cual si no es ISO
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0));
+  const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const dia = dias[date.getUTCDay()];
+  const numero = date.getUTCDate();
+  const mes = meses[date.getUTCMonth()];
+  const ano = date.getUTCFullYear();
+  return `${dia}, ${numero} de ${mes} de ${ano}`;
+}
+
 // ─── Extraer y normalizar inputs ─────────────────────────────────
 const nombres    = toArray(config.nombre);
 const apellidos  = toArray(config.apellidos);
@@ -112,7 +134,8 @@ try {
   );
   if (cohorteRes.ok) {
     const cohorteData = await cohorteRes.json();
-    primeraSesionFecha = String(cohorteData.fields?.[FLD_FECHA_INICIO] || "").trim();
+    const rawFecha = String(cohorteData.fields?.[FLD_FECHA_INICIO] || "").trim();
+    primeraSesionFecha = formatFechaEs(rawFecha);
     primeraSesionHora  = String(cohorteData.fields?.[FLD_HORA_INICIO]  || "").trim();
     console.log(`Cohorte: fecha=${primeraSesionFecha} hora=${primeraSesionHora}`);
   } else {

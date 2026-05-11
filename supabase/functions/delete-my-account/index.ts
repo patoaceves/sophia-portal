@@ -339,8 +339,14 @@ Deno.serve(async (req) => {
     }
 
     // 7) Airtable: Persona Portal
+    // OJO: esta tabla es synced desde Personas CRM. Airtable NO permite
+    // borrar records directamente en una tabla sync — devuelve 422
+    // "INVALID_REQUEST_UNKNOWN_FIELD" o similar. El borrado real ocurre
+    // automáticamente cuando se borra el record fuente en CRM (paso 8) y
+    // el sync de Airtable replica la eliminación (~minutos).
+    // Solo logueamos por trazabilidad.
     if (personaPortalId) {
-      await deleteRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, [personaPortalId]);
+      console.log(`Skipping Persona Portal delete (synced table). Will be removed by Airtable sync after CRM delete: ${personaPortalId}`);
     }
 
     // 8) Airtable: Persona CRM

@@ -198,7 +198,7 @@
         const form = document.getElementById("emailForm");
         const footer = document.querySelector(".login-footer-note");
         const divider = document.querySelector(".divider");
-        const googleBtn = document.querySelector(".google-btn");
+        const oauthButtons = document.querySelector(".oauth-buttons");
         if (form) {
           form.outerHTML = `
             <div class="email-sent-state">
@@ -224,7 +224,7 @@
         }
         if (footer) footer.remove();
         if (divider) divider.remove();
-        if (googleBtn) googleBtn.parentElement.style.display = "none";
+        if (oauthButtons) oauthButtons.style.display = "none";
         // Cuenta regresiva para reenvío
         let secs = 20;
         const resendBtn = document.getElementById("resendBtn");
