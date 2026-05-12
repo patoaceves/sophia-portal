@@ -244,11 +244,16 @@ export async function requireAuth() {
     const persona = await bootstrapPersona();
 
     // Gate del aviso de privacidad (LFPDPPP). Si la persona no tiene
-    // avisoVersion registrado, mostramos modal modal bloqueante.
-    // El modal NO se muestra en /app/bienvenida (onboarding) ni en la
-    // página del aviso mismo, para no anidar diálogos.
+    // avisoVersion registrado, mostramos modal bloqueante.
+    //
+    // EXCLUSIONES:
+    // - /aviso-privacidad: para no anidar (la página ES el aviso)
+    // - /app/bienvenida: el form de onboarding ya tiene su propio checkbox
+    //   de aviso, y el modal queda OCULTO detrás del splash (z-index 9999)
+    //   provocando un hang infinito para usuarios nuevos.
     const onAvisoPage = location.pathname.startsWith("/aviso-privacidad");
-    if (!onAvisoPage && !persona?.avisoVersion) {
+    const onBienvenidaPage = location.pathname.startsWith("/app/bienvenida");
+    if (!onAvisoPage && !onBienvenidaPage && !persona?.avisoVersion) {
       try {
         const { ensurePrivacyConsent } = await import("./privacy-modal.js");
         await ensurePrivacyConsent(persona);

@@ -279,6 +279,10 @@ Deno.serve(async (req) => {
       // usuario no canjeó el link y entró por flujo normal), devolvemos el primer
       // token. El frontend lo guarda en sessionStorage y dispara tryClaimPendingInvite,
       // resolviendo el problema de "me inscribí en ventas pero no veo mi curso".
+      //
+      // Bounded a 5s con AbortController: si Airtable está lento, no bloqueamos
+      // el bootstrap entero (el reconcile es best-effort; si falla, claim-by-email
+      // server-side y la propia ruta del invite token URL cubren el caso).
       let pendingInviteToken = "";
       try {
         const personaEmail = (p.fields[FIELDS.PERSONAS_CRM.EMAIL] ?? email) as string;
@@ -295,10 +299,16 @@ Deno.serve(async (req) => {
           );
           params.append("fields[]", FIELDS.INVITACIONES.TOKEN);
           params.append("fields[]", FIELDS.INVITACIONES.ESTATUS);
+          const reconcileController = new AbortController();
+          const reconcileTimeout = setTimeout(() => reconcileController.abort(), 5000);
           const res = await fetch(
             `${AIRTABLE_API}/${BASES.PORTAL}/${TABLES.INVITACIONES}?${params}`,
-            { headers: { Authorization: `Bearer ${Deno.env.get("AIRTABLE_PAT") ?? ""}` } },
+            {
+              headers: { Authorization: `Bearer ${Deno.env.get("AIRTABLE_PAT") ?? ""}` },
+              signal: reconcileController.signal,
+            },
           );
+          clearTimeout(reconcileTimeout);
           if (res.ok) {
             const data = await res.json();
             const record = (data.records ?? [])[0];
@@ -312,8 +322,9 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) {
-        // Reconciliación es best-effort — si falla, no rompe el flow de login
-        console.warn("Pending invite lookup failed:", e);
+        // Reconciliación es best-effort — si falla o se aborta por timeout,
+        // no rompe el flow de login.
+        console.warn("Pending invite lookup failed or timed out:", e);
       }
 
       return jsonResponse(req, {

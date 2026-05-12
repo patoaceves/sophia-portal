@@ -53,9 +53,10 @@ const PAISES = [
 (async () => {
   // Defensa contra spinner colgado: en móvil hemos visto casos donde
   // requireAuth() se queda esperando indefinidamente (fetch en pending,
-  // session no se establece a tiempo, etc.). Si después de 12s no hay
-  // respuesta, mostramos UI con opciones de recovery.
-  const TIMEOUT_MS = 12000;
+  // session no se establece a tiempo, cold start de edge function, etc.).
+  // Subimos el timeout a 25s para cubrir cold starts típicos de Supabase
+  // Edge Functions (5-8s en el primer hit del día) + Airtable lento.
+  const TIMEOUT_MS = 25000;
   let persona;
   try {
     persona = await Promise.race([
