@@ -1,12 +1,19 @@
 // SOPHIA Portal · Calendario
 //
 // Vista de las próximas sesiones de los cursos en los que el alumno está
-// inscrito. Por ahora hardcodeamos las sesiones del Happiness Workshop;
-// más adelante se conectará a una tabla de Sesiones en Airtable.
+// inscrito. Por ahora solo el Happiness Workshop tiene sesiones definidas
+// (hardcodeadas abajo); si el usuario no está inscrito a ese curso, le
+// mostramos un empty state en lugar del calendario.
+// Cuando haya más cursos con sesiones, esto debe migrar a una tabla de
+// Sesiones en Airtable filtrada por las inscripciones del usuario.
 
 import { requireAuth } from "./auth.js";
+import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon } from "./icons.js";
+import { loaderHtml } from "./loader.js";
+
+const HAPPINESS_WORKSHOP_SLUG = "happiness-workshop";
 
 // Sesiones del Happiness Workshop (hardcoded por ahora; idealmente vendría
 // de una tabla "Sesiones" en Airtable con FK al Curso).
@@ -29,6 +36,47 @@ const HORA_FIN    = "21:30";
   const persona = await requireAuth();
   if (!persona) return;
 
+  // Render shell con loader mientras consultamos las inscripciones del usuario
+  renderShell({
+    persona,
+    title: "Calendario",
+    activePath: "/app/calendario",
+    contentHtml: loaderHtml(),
+  });
+
+  // Consultar cursos del usuario. Si no está inscrito al Happiness Workshop,
+  // mostramos empty state (todavía no hay otros cursos con calendario propio).
+  let inscritoAHappiness = false;
+  try {
+    const data = await api.misCursos();
+    const cursos = data?.cursos || data?.misCursos || [];
+    inscritoAHappiness = cursos.some(
+      (c) => c.slug === HAPPINESS_WORKSHOP_SLUG || c.cursoSlug === HAPPINESS_WORKSHOP_SLUG,
+    );
+  } catch (e) {
+    console.error("[calendario] failed to load cursos:", e);
+  }
+
+  if (!inscritoAHappiness) {
+    document.querySelector(".app-main").innerHTML = `
+      <header class="page-header">
+        <span class="page-eyebrow">Tu agenda</span>
+        <h2 class="page-title">Calendario</h2>
+      </header>
+      <section class="empty-state">
+        <div class="empty-state__icon">${icon("calendario")}</div>
+        <h3 class="empty-state__title">Aún no tienes sesiones en tu calendario</h3>
+        <p class="empty-state__desc">
+          Cuando te inscribas a un curso con sesiones en vivo, las verás aquí
+          con la fecha, hora y opción para añadirlas a Google Calendar.
+        </p>
+        <a class="btn btn-ghost" href="/app/cursos">${icon("arrowLeft")}<span>Volver a mis cursos</span></a>
+      </section>
+    `;
+    return;
+  }
+
+  // Usuario inscrito al Happiness Workshop: renderear calendario completo
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -44,33 +92,28 @@ const HORA_FIN    = "21:30";
   // Find the next upcoming session for the hero card
   const proxima = sesiones.find((s) => !s.isPast);
 
-  renderShell({
-    persona,
-    title: "Calendario",
-    activePath: "/app/calendario",
-    contentHtml: `
-      <header class="page-header">
-        <span class="page-eyebrow">Tus sesiones programadas</span>
-        <h2 class="page-title">Calendario</h2>
-        <p class="page-subtitle">
-          Las sesiones en vivo del Happiness Workshop. Los martes de
-          ${HORA_INICIO} a ${HORA_FIN}, hora Monterrey, Nuevo León, MX.
-        </p>
+  document.querySelector(".app-main").innerHTML = `
+    <header class="page-header">
+      <span class="page-eyebrow">Tus sesiones programadas</span>
+      <h2 class="page-title">Calendario</h2>
+      <p class="page-subtitle">
+        Las sesiones en vivo del Happiness Workshop. Los martes de
+        ${HORA_INICIO} a ${HORA_FIN}, hora Monterrey, Nuevo León, MX.
+      </p>
+    </header>
+
+    ${proxima ? renderProximaCard(proxima) : ""}
+
+    <section class="cal-list">
+      <header class="cal-list__header">
+        <h3 class="cal-list__title">Todas las sesiones</h3>
+        <span class="cal-list__count">9 sesiones · 9 semanas</span>
       </header>
-
-      ${proxima ? renderProximaCard(proxima) : ""}
-
-      <section class="cal-list">
-        <header class="cal-list__header">
-          <h3 class="cal-list__title">Todas las sesiones</h3>
-          <span class="cal-list__count">9 sesiones · 9 semanas</span>
-        </header>
-        <ol class="cal-list__items">
-          ${sesiones.map(renderSesionItem).join("")}
-        </ol>
-      </section>
-    `,
-  });
+      <ol class="cal-list__items">
+        ${sesiones.map(renderSesionItem).join("")}
+      </ol>
+    </section>
+  `;
 })();
 
 function renderProximaCard(s) {

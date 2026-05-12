@@ -155,7 +155,7 @@ function renderForm(persona, email) {
           <img src="/assets/img/brand/logo-horizontal-rojo.png" alt="SOPHIA" class="login-hero__logo">
         </div>
         <div class="login-hero__content">
-          <span class="login-hero__eyebrow">Bienvenida a SOPHIA</span>
+          <span class="login-hero__eyebrow">Bienvenido a SOPHIA</span>
           <h1 class="login-hero__title">Confirma tus datos <em>antes de comenzar</em>.</h1>
           <p class="login-hero__lead">
             Solo lo necesario para personalizar tu experiencia y que el equipo

@@ -404,10 +404,19 @@ function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
 
         const labelEl = btn.querySelector(".leccion-cta__label");
         const boxEl = btn.querySelector(".leccion-cta__check-box");
-        const arrowEl = btn.querySelector(".leccion-cta__arrow");
-
         labelEl.textContent = nextId ? "Avanzar" : "Volver al temario";
         boxEl.innerHTML = icon("check");
+
+        // El span del arrow NO existe en estado "no completado" (lo removí
+        // en v19b para eliminar gap fantasma). Lo creamos aquí cuando la
+        // lección pasa al estado completado.
+        let arrowEl = btn.querySelector(".leccion-cta__arrow");
+        if (!arrowEl) {
+          arrowEl = document.createElement("span");
+          arrowEl.className = "leccion-cta__arrow";
+          arrowEl.setAttribute("aria-hidden", "true");
+          btn.appendChild(arrowEl);
+        }
         arrowEl.innerHTML = icon("arrowRight");
 
         // If the user clicked the checkbox, stay (let them admire the change).
