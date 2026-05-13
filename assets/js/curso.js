@@ -72,12 +72,13 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
   const stopLoader = startLoaderRotation();
 
   try {
-    const [data, resultadoTest] = await Promise.all([
+    const [data, resultadoTest, resultadoAutoconocimiento] = await Promise.all([
       api.curso(slug),
       api.resultadosTest().catch(() => null),
+      api.resultadosAutoconocimiento().catch(() => null),
     ]);
     stopLoader();
-    renderDashboard(persona, slug, tab, data, resultadoTest);
+    renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento);
   } catch (e) {
     stopLoader();
     console.error("get-curso failed:", e);
@@ -92,7 +93,7 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
 })();
 
 // ────────────────────────────────────────────────────────────────────
-function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
+function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento) {
   const { curso, inscripcion, capitulos } = payload;
 
   const totalLecc = capitulos.reduce((s, c) => s + c.lecciones.length, 0);
@@ -106,7 +107,7 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest) {
   const coverUrl = curso.coverUrl
     || (LOCAL_COVERS.has(slug) ? `/assets/img/${slug}/portada.png` : null);
 
-  const ctx = { persona, slug, curso, inscripcion, capitulos, totalLecc, completadas, progresoPct, next, resultadoTest };
+  const ctx = { persona, slug, curso, inscripcion, capitulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento };
 
   const panels = {
     resumen:  renderResumenTab(ctx),
@@ -421,6 +422,8 @@ function renderResumenTab(ctx) {
       ${renderForoPreviewCard(ctx)}
       ${renderTestCajita(ctx)}
     </div>
+
+    ${renderAutoconocimientoCajita(ctx)}
 
     <section class="pillar-grid">
       <header class="pillar-grid__header">
@@ -886,6 +889,95 @@ function renderPillarIcon(pillar, idx, capitulos) {
       `}
     </article>
   `;
+}
+
+/**
+ * Cajita de la Autoevaluación VIA · Autoconocimiento en el Resumen.
+ *
+ * - Si NO ha tomado el VIA: card de invitación (sólo si el cap 2 ya está
+ *   publicado, sino la ocultamos para no confundir).
+ * - Si SÍ lo tomó: card con sus 3 fortalezas firma + link "Ver mis resultados".
+ *
+ * Vive en su propia fila debajo del resumen-row para mantener el alto
+ * matched entre foro y rueda de felicidad.
+ */
+function renderAutoconocimientoCajita(ctx) {
+  const { capitulos, resultadoAutoconocimiento, slug } = ctx;
+
+  // Localizar capítulo de autoconocimiento (orden 2 según PILARES)
+  const cap2 = capitulos.find(c => c.orden === 2);
+  if (!cap2) return ""; // capítulo aún no publicado → no mostrar la cajita
+
+  const taken = !!resultadoAutoconocimiento?.tieneResultados;
+  const fecha = taken && resultadoAutoconocimiento.completedAt
+    ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  // Buscar la lección de autoeval dentro del capítulo
+  const autoevalLecc = cap2.lecciones.find(l => l.tipo === "autoeval");
+  const ctaHref = autoevalLecc
+    ? `/app/leccion?id=${encodeURIComponent(autoevalLecc.id)}`
+    : `/app/curso?slug=${encodeURIComponent(slug)}&tab=temario`;
+
+  if (!taken) {
+    return `
+      <section class="via-cajita via-cajita--locked">
+        <div class="via-cajita__header">
+          <span class="via-cajita__eyebrow">Tu autoevaluación · Capítulo 2</span>
+          <h3 class="via-cajita__title">Tus fortalezas de carácter</h3>
+        </div>
+        <p class="via-cajita__lead">
+          Descubre tus 5 <em>fortalezas firma</em> con la clasificación VIA de
+          Peterson y Seligman: 24 preguntas, ~7 min.
+        </p>
+        <a class="via-cajita__cta btn btn-accent" href="${ctaHref}">
+          <span>Comenzar autoevaluación VIA</span>
+          ${icon("arrowRight")}
+        </a>
+      </section>
+    `;
+  }
+
+  // Has results: show top 3 signature strengths + link
+  const top3 = (resultadoAutoconocimiento.signatureStrengths || []).slice(0, 3);
+  return `
+    <section class="via-cajita via-cajita--results">
+      <div class="via-cajita__header">
+        <span class="via-cajita__eyebrow">Tu autoevaluación VIA · ${escapeHtml(fecha)}</span>
+        <h3 class="via-cajita__title">Tus 3 fortalezas firma</h3>
+      </div>
+      <ol class="via-cajita__top3">
+        ${top3.map((f, i) => `
+          <li class="via-cajita__top3-item">
+            <span class="via-cajita__top3-rank">#${i + 1}</span>
+            <div class="via-cajita__top3-body">
+              <span class="via-cajita__top3-fortaleza">${escapeHtml(f.fortaleza)}</span>
+              <span class="via-cajita__top3-virtud">${escapeHtml(virtudLabel(f.virtud, resultadoAutoconocimiento.virtudNombres))}</span>
+            </div>
+            <span class="via-cajita__top3-score">${f.score}/5</span>
+          </li>
+        `).join("")}
+      </ol>
+      <a class="via-cajita__link" href="/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug)}">
+        <span>Ver el ranking completo de las 24</span>
+        ${icon("arrowRight")}
+      </a>
+    </section>
+  `;
+}
+
+function virtudLabel(key, nombres) {
+  if (nombres && nombres[key]) return nombres[key];
+  // Fallback simple si el server no devolvió el mapa
+  const map = {
+    sabiduria: "Sabiduría y Conocimiento",
+    coraje: "Coraje",
+    humanidad: "Humanidad",
+    justicia: "Justicia",
+    moderacion: "Moderación",
+    trascendencia: "Trascendencia",
+  };
+  return map[key] || key;
 }
 
 // ────────────────────────────────────────────────────────────────────

@@ -173,6 +173,31 @@ export const api = {
   },
 
   /**
+   * POST /submit-test-autoconocimiento
+   * Autoevaluación VIA · 24 preguntas Likert (S1..T5).
+   * → { respuestaId, ranking, signatureStrengths, virtudes, virtudNombres, completedAt }
+   */
+  async submitAutoconocimiento(inscripcionId, respuestas) {
+    const { data } = await callEdge("submit-test-autoconocimiento", {
+      method: "POST",
+      body: { inscripcionId, respuestas },
+    });
+    return data;
+  },
+
+  /**
+   * GET /get-resultados-autoconocimiento
+   * - resultadosAutoconocimiento()              → último intento del usuario
+   * - resultadosAutoconocimiento(respuestaId)   → intento específico
+   * → { tieneResultados, respuestaId, ranking, signatureStrengths, virtudes, ... }
+   */
+  async resultadosAutoconocimiento(respuestaId) {
+    const query = respuestaId ? { id: respuestaId } : undefined;
+    const { data } = await callEdge("get-resultados-autoconocimiento", { query });
+    return data;
+  },
+
+  /**
    * POST /claim-invitation, devuelve
    *   { ok, isNew, cohorteId, cursoSlug, inscripcionId, alreadyClaimed }
    *

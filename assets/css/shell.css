@@ -6851,3 +6851,522 @@ button.foro-preview-item__thumb {
     font-size: 0.875rem;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Capítulo 2 · Autoevaluación VIA (autoconocimiento)
+ *
+ * Visual lenguaje:
+ *  - Cada virtud tiene un color (`--virtud-color` se setea inline en
+ *    cada card). Lo usamos como acento muy puntual: borde-izquierda en
+ *    las cards firma, fill de la barra, borde superior del card de virtud.
+ *  - El layout sigue las convenciones de Test de Felicidad: bg-elevated,
+ *    border var(--color-border), radio var(--r-lg), padding var(--s-5).
+ *  - Spacing entre secciones var(--s-6).
+ * ────────────────────────────────────────────────────────────────────*/
+
+/* ── Top 5 Fortalezas firma ─────────────────────────────────────── */
+
+.via-signature {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  margin-top: var(--s-6);
+}
+
+.via-signature__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+}
+
+.via-signature__eyebrow,
+.via-virtudes__eyebrow,
+.via-ranking__eyebrow,
+.via-reflexion__eyebrow,
+.via-cajita__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.via-signature__title,
+.via-virtudes__title,
+.via-ranking__title,
+.via-cajita__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.via-signature__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--s-3);
+}
+
+@media (max-width: 900px) {
+  .via-signature__grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+.via-sig-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--virtud-color, var(--color-accent));
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-height: 120px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.via-sig-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--virtud-color, var(--color-accent));
+}
+
+.via-sig-card__rank {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--virtud-color);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.via-sig-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+}
+
+.via-sig-card__virtud {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.via-sig-card__fortaleza {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+.via-sig-card__score {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--s-1);
+}
+
+/* ── Panel de 6 virtudes ────────────────────────────────────────── */
+
+.via-virtudes {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  margin-top: var(--s-6);
+}
+
+.via-virtudes__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+}
+
+.via-virtudes__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-3);
+}
+
+@media (max-width: 720px) {
+  .via-virtudes__grid { grid-template-columns: 1fr; }
+}
+
+.via-virtud-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--virtud-color, var(--color-accent));
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.via-virtud-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.via-virtud-card__name {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.via-virtud-card__badge {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  color: var(--virtud-color);
+  background: color-mix(in srgb, var(--virtud-color) 12%, transparent);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.via-virtud-card__bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.via-virtud-card__fill {
+  height: 100%;
+  background: var(--virtud-color, var(--color-accent));
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.via-virtud-card__score {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.via-virtud-card__analisis {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: var(--s-1) 0 0 0;
+}
+
+/* ── Ranking completo de las 24 ─────────────────────────────────── */
+
+.via-ranking {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  margin-top: var(--s-6);
+}
+
+.via-ranking__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+}
+
+.via-ranking__sub {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: var(--s-1) 0 0 0;
+}
+
+.via-ranking__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  counter-reset: via-rank;
+}
+
+.via-rank-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.via-rank-row.is-shown {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.via-rank-row:last-child { border-bottom: none; }
+
+.via-rank-row.is-signature .via-rank-row__num {
+  background: var(--virtud-color);
+  color: white;
+}
+
+.via-rank-row__num {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  transition: background 0.2s ease, color 0.2s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.via-rank-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.via-rank-row__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.via-rank-row__fortaleza {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.via-rank-row.is-signature .via-rank-row__fortaleza {
+  font-weight: 600;
+}
+
+.via-rank-row__virtud {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.via-rank-row__bar {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: var(--s-1);
+}
+
+.via-rank-row__fill {
+  height: 100%;
+  background: var(--virtud-color, var(--color-accent));
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  width: 0%;
+}
+
+.via-rank-row.is-shown .via-rank-row__fill {
+  /* Width is set inline; this rule just ensures animation triggers
+     when the row becomes visible. */
+}
+
+.via-rank-row__score {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.via-rank-row.is-signature .via-rank-row__score {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .via-rank-row {
+    grid-template-columns: 28px 1fr auto;
+    gap: var(--s-2);
+  }
+  .via-rank-row__num {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8125rem;
+  }
+  .via-rank-row__virtud {
+    /* En mobile, dejar que el eyebrow ceda espacio al título de la fortaleza */
+    width: 100%;
+    order: 2;
+  }
+}
+
+/* ── Reflexión final ─────────────────────────────────────────────── */
+
+.via-reflexion {
+  margin-top: var(--s-6);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-elevated)) 0%,
+    var(--color-bg-elevated) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+}
+
+.via-reflexion__inner {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.via-reflexion__text {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  font-variation-settings: "opsz" 144;
+  color: var(--color-text);
+  margin: var(--s-2) 0 var(--s-2) 0;
+  line-height: 1.3;
+}
+
+.via-reflexion__hint {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── Cajita de Autoconocimiento en el dashboard Resumen ─────────── */
+
+.via-cajita {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  position: relative;
+  overflow: hidden;
+  margin-top: var(--s-4);
+  transition: border-color 0.2s ease;
+}
+
+.via-cajita:hover {
+  border-color: var(--color-border-strong);
+}
+
+.via-cajita__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.via-cajita__lead {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.via-cajita__cta {
+  align-self: flex-start;
+  margin-top: var(--s-2);
+}
+
+.via-cajita__top3 {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-3);
+}
+
+@media (max-width: 720px) {
+  .via-cajita__top3 { grid-template-columns: 1fr; }
+}
+
+.via-cajita__top3-item {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.via-cajita__top3-rank {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  line-height: 1;
+  min-width: 28px;
+}
+
+.via-cajita__top3-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.via-cajita__top3-fortaleza {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.via-cajita__top3-virtud {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.via-cajita__top3-score {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.via-cajita__link {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+  padding: var(--s-1) 0 0 0;
+}
+
+.via-cajita__link svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s ease;
+}
+
+.via-cajita__link:hover svg {
+  transform: translateX(3px);
+}

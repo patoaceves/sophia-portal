@@ -171,6 +171,19 @@ Tabla canónica. `auth-bootstrap` crea/actualiza acá. La sync propaga a Portal.
 
 Sin cambios respecto a v8: Capítulos, Lecciones, ProgresoLecciones, Tests, Tareas, Autoevaluaciones, Sesiones, Anuncios, Certificados, Organizaciones.
 
+> **v17 · Capítulo 2 · Autoconocimiento.** La tabla `Autoevaluaciones` debe tener
+> dos registros conocidos por las edge functions:
+>
+> | Título | Tipo | Record ID | Edge functions que lo usan |
+> |---|---|---|---|
+> | Test de Felicidad | evalfelicidad | `recjMR4P4TFLvFQ4A` | submit-test-felicidad, get-resultados-test, get-leccion |
+> | Autoevaluación VIA: Fortalezas de carácter | custom | `recDLCMOgTZChS6Yf` | submit-test-autoconocimiento, get-resultados-autoconocimiento, get-leccion |
+>
+> El portal usa estos record IDs como discriminadores en `get-leccion.KNOWN_AUTOEVAL_IDS`
+> para decidir qué wizard montar (felicidad vs autoconocimiento). Si añades un
+> nuevo Autoeval, hay que registrarlo también en ese mapa (y crear las
+> edge functions correspondientes).
+
 ---
 
 ## Patrones de filterByFormula

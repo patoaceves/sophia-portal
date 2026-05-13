@@ -16,6 +16,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
+import { mountWizard as mountAutoconocimientoWizard } from "./test-autoconocimiento.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -228,20 +229,37 @@ function renderLeccion(persona, payload, cursoContext) {
 
   // After render: post-process content (sanitize image URLs)
   if (isTest) {
-    // Mount the test wizard embedded
+    // Mount the right wizard depending on which autoeval is linked.
+    // - "autoconocimiento" → VIA · 24 fortalezas, results en /app/test-autoconocimiento/resultados
+    // - "felicidad" (o ausente, por compat) → Test de Felicidad
     const container = document.getElementById("testEmbed");
-    mountTestWizard({
-      container,
-      inscripcionId,
-      leccionId: leccion.id,
-      cursoSlug,
-      embedded: true,
-      onComplete: (result) => {
-        // After submitting, navigate to results within the same UX feel.
-        // The lesson is already marked completed by the wizard.
-        location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
-      },
-    });
+    const autoevalTipo = leccion.autoevalTipo || "felicidad";
+
+    if (autoevalTipo === "autoconocimiento") {
+      mountAutoconocimientoWizard({
+        container,
+        inscripcionId,
+        leccionId: leccion.id,
+        cursoSlug,
+        embedded: true,
+        onComplete: (result) => {
+          location.href = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
+        },
+      });
+    } else {
+      mountTestWizard({
+        container,
+        inscripcionId,
+        leccionId: leccion.id,
+        cursoSlug,
+        embedded: true,
+        onComplete: (result) => {
+          // After submitting, navigate to results within the same UX feel.
+          // The lesson is already marked completed by the wizard.
+          location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
+        },
+      });
+    }
   } else if (isEvaluacion) {
     // Mount evaluación nativa (reemplaza el iframe del Google Form)
     const container = document.getElementById("evalEmbed");
@@ -573,6 +591,9 @@ function sanitizeLessonContent() {
     [/^(intro-hw[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
     [/^(modelo-felicidad-[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
     [/^(portada[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
+    // Capítulo 2 · Autoconocimiento — Martin Seligman portrait + VIA table
+    [/^(martin-seligman[^"\s]*)$/i, "/assets/img/happiness-workshop/autoconocimiento/$1"],
+    [/^(fortalezas-de-caracter[^"\s]*)$/i, "/assets/img/happiness-workshop/autoconocimiento/$1"],
   ];
 
   const imgs = root.querySelectorAll("img");

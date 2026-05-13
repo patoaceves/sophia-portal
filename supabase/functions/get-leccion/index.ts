@@ -168,6 +168,16 @@ const FIELDS = {
   },
 } as const;
 
+// Map de record IDs de Autoevaluaciones → "tipo" que el frontend usa para
+// montar el wizard correcto (test-felicidad vs test-autoconocimiento).
+// Mantener sincronizado con KNOWN_IDS en submit-test-felicidad y
+// submit-test-autoconocimiento. Si autoevalId no está en este mapa, el
+// frontend cae al wizard de felicidad por compat con lecciones existentes.
+const KNOWN_AUTOEVAL_IDS: Record<string, "felicidad" | "autoconocimiento"> = {
+  "recjMR4P4TFLvFQ4A": "felicidad",
+  "recDLCMOgTZChS6Yf": "autoconocimiento",
+};
+
 const AIRTABLE_API = "https://api.airtable.com/v0";
 
 interface AirtableRecord {
@@ -527,6 +537,7 @@ Deno.serve(async (req) => {
 
     const autoevalLinks = (lf[FIELDS.LECCIONES.AUTOEVAL] as string[]) ?? [];
     const autoevalId = autoevalLinks[0] ?? null;
+    const autoevalTipo = autoevalId ? (KNOWN_AUTOEVAL_IDS[autoevalId] ?? null) : null;
 
     return jsonResponse(req, {
       leccion: {
@@ -541,6 +552,7 @@ Deno.serve(async (req) => {
         archivoUrl,
         archivoNombre,
         autoevalId,
+        autoevalTipo,
         completada,
         completadaEn,
       },
