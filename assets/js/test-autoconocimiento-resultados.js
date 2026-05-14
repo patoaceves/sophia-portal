@@ -93,7 +93,6 @@ function renderResultados(persona, data, cursoSlug) {
       </div>
       <div class="autoeval-result__body">
         <div class="autoeval-band-tag" data-band="${escapeHtml(banda)}">
-          <span class="autoeval-band-dot"></span>
           ${escapeHtml(banda)}
         </div>
         <h3 class="autoeval-result__title">Autoconocimiento</h3>

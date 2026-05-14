@@ -1799,7 +1799,7 @@
 
 .test-progress__fill {
   height: 100%;
-  background: var(--color-accent);
+  background: var(--wizard-accent, var(--color-accent));
   border-radius: var(--r-full);
   transition: width 0.4s cubic-bezier(0.65, 0, 0.35, 1);
 }
@@ -1847,7 +1847,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--color-accent);
+  color: var(--wizard-accent, var(--color-accent));
   font-weight: 500;
   display: block;
   margin-bottom: var(--s-3);
@@ -1880,8 +1880,8 @@
 .test-intro__pillar {
   font-size: 0.8125rem;
   padding: var(--s-1) var(--s-3);
-  background: var(--color-accent-faint);
-  color: var(--color-accent);
+  background: color-mix(in srgb, var(--wizard-accent, var(--color-accent)) 12%, transparent);
+  color: var(--wizard-accent, var(--color-accent));
   border-radius: var(--r-full);
   font-weight: 500;
 }
@@ -1903,7 +1903,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--color-accent);
+  color: var(--wizard-accent, var(--color-accent));
   font-weight: 500;
   margin-bottom: var(--s-3);
   text-align: center;
@@ -1959,7 +1959,7 @@
 }
 
 .dot-option:hover .dot-option__circle {
-  border-color: var(--color-accent);
+  border-color: var(--wizard-accent, var(--color-accent));
   transform: scale(1.1);
 }
 
@@ -1983,10 +1983,12 @@
 .dot-option__circle--5 { width: 42px; height: 42px; }
 
 .dot-option.is-active .dot-option__circle {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--wizard-accent, var(--color-accent));
+  border-color: var(--wizard-accent, var(--color-accent));
   /* Stronger visual emphasis when selected: ring + slight scale */
-  box-shadow: 0 0 0 5px var(--color-accent-faint), 0 4px 12px rgba(193, 18, 47, 0.18);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--wizard-accent, var(--color-accent)) 18%, transparent),
+    0 4px 12px color-mix(in srgb, var(--wizard-accent, var(--color-accent)) 22%, transparent);
   transform: scale(1.08);
 }
 
@@ -2010,6 +2012,16 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--s-3);
+}
+
+/* Wizard de autoevaluación teñido por pilar: el botón Enviar/Empezar usa
+   --wizard-accent. Si el wizard no define la var (ej. Test de Felicidad),
+   cae al rojo de marca — comportamiento idéntico al anterior. */
+.test-wizard .btn-accent {
+  background: var(--wizard-accent, var(--color-accent));
+}
+.test-wizard .btn-accent:hover {
+  background: color-mix(in srgb, var(--wizard-accent, var(--color-accent)) 86%, #000);
 }
 
 /* Review screen */
@@ -3513,14 +3525,21 @@
   /* FIXED to the viewport, anchored between the sidebar's right edge
      and the viewport's right edge. Independent of .app-main's
      max-width so it always reaches both edges identically, same
-     dimensions with or without page scroll. */
+     dimensions with or without page scroll.
+
+     Composición visual idéntica al .app-header: mismo fondo translúcido
+     + blur, para que header y checkpoint-bar se lean como UNA sola
+     capa sticky y el header no parezca "empalmarse" encima al hacer
+     scroll. */
   position: fixed;
-  top: var(--header-h, 56px);
+  top: var(--header-h, 64px);
   left: var(--sidebar-w, 264px);
   right: 0;
-  background: var(--color-bg);
+  background: rgba(250, 246, 238, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 9;
-  padding: var(--s-5) var(--s-10);
+  padding: var(--s-5) var(--s-8);
   border-bottom: 1px solid var(--color-border);
   box-sizing: border-box;
 }
@@ -4970,6 +4989,58 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Figuras de lección · clases para imágenes en HTML de Airtable.
+ * El sanitizer borra `style=` inline, así que el tamaño/posición se
+ * controla con estas clases (el atributo `class` sí sobrevive).
+ * Single-dash igual que .claustro-* (Airtable rompe los __ como italic).
+ * ────────────────────────────────────────────────────────────────── */
+
+/* Avatar circular centrado — ej. foto de la creadora del programa */
+.leccion-html .hw-figure-avatar {
+  text-align: center;
+  max-width: 160px;
+  margin: var(--s-6) auto;
+}
+.leccion-html .hw-figure-avatar img {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--r-full);
+  object-fit: cover;
+  margin: 0 auto;
+  display: block;
+}
+.leccion-html .hw-figure-avatar figcaption {
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-top: var(--s-2);
+}
+
+/* Retrato flotado con marco de color — ej. Martin Seligman.
+   El color del marco se controla con --hw-frame (default: azul
+   Autoconocimiento). Otras lecciones pueden setear la var. */
+.leccion-html .hw-figure-portrait {
+  float: right;
+  max-width: 110px;
+  margin: 0 0 var(--s-4) var(--s-6);
+  padding: 4px;
+  background: var(--hw-frame, #66a3f4);
+}
+.leccion-html .hw-figure-portrait img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+}
+@media (max-width: 480px) {
+  .leccion-html .hw-figure-portrait {
+    float: none;
+    margin: var(--s-4) auto;
   }
 }
 
@@ -6977,7 +7048,6 @@ button.foro-preview-item__thumb {
 .autoeval-band-tag {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-2);
   padding: 5px 12px;
   border-radius: 999px;
   border: 1.5px solid currentColor;
@@ -6986,14 +7056,6 @@ button.foro-preview-item__thumb {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   align-self: flex-start;
-}
-
-.autoeval-band-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  display: inline-block;
 }
 
 /* Default color por banda. El JS sobrescribe con style="color:..." */

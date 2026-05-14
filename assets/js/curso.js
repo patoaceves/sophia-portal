@@ -958,7 +958,6 @@ function renderAutoconocimientoCajita(ctx) {
           <span class="autoeval-cajita__eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
           <h3 class="autoeval-cajita__title">Autoconocimiento</h3>
           <div class="autoeval-band-tag" style="color: ${bandaColor};">
-            <span class="autoeval-band-dot"></span>
             ${escapeHtml(banda)}
           </div>
           <a class="autoeval-cajita__link" href="/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug)}">

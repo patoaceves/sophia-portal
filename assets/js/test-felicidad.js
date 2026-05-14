@@ -183,7 +183,7 @@ function renderPregunta(idx, respuestas) {
     `;
   }).join("");
 
-  const nextLabel = isLast ? "Ver resultados" : "Siguiente"; // legacy, kept for back-compat
+  const nextLabel = isLast ? "Enviar" : "Siguiente"; // legacy, kept for back-compat
 
   return `
     <article class="test-question">
@@ -203,7 +203,7 @@ function renderPregunta(idx, respuestas) {
         </button>
         ${isLast && selected ? `
           <button class="btn btn-accent" data-test-action="next" type="button">
-            <span>Ver resultados</span>
+            <span>Enviar</span>
             ${icon("arrowRight")}
           </button>
         ` : `<span></span>`}
@@ -238,19 +238,11 @@ async function clickHandler(state, e) {
     }
 
     // Auto-advance after short delay (feels snappier).
-    // Última pregunta: auto-submit directo, sin pasar por botón "Ver resultados".
-    // Si el usuario quiere revisar, puede volver con "Anterior".
+    // Última pregunta: NO auto-submit. Re-renderear para que aparezca el
+    // botón "Enviar" — el usuario lo presiona cuando esté listo.
     const isLast = state.currentIndex === PREGUNTAS.length - 1;
     if (isLast) {
-      setTimeout(async () => {
-        try {
-          await submitTest(state, btn);
-        } catch (err) {
-          console.error("auto-submit failed:", err);
-          // Si falla, mostrar el botón para reintentar manualmente
-          renderInto(state);
-        }
-      }, 320);
+      setTimeout(() => renderInto(state), 200);
     } else {
       setTimeout(() => {
         state.currentIndex += 1;

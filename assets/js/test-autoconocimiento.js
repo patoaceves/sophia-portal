@@ -36,6 +36,11 @@ const ESCALA_LABELS = {
   max: "Muy de acuerdo",
 };
 
+// Color del pilar Autoconocimiento. Se aplica SOLO al wizard (barra de
+// progreso, bolitas activas, eyebrow) vía la CSS var --wizard-accent.
+// No afecta el resto del capítulo.
+const AREA_COLOR = "#66a3f4";
+
 // ────────────────────────────────────────────────────────────────────
 // Public API: mountWizard
 // ────────────────────────────────────────────────────────────────────
@@ -54,6 +59,9 @@ export function mountWizard(opts) {
   };
 
   state.container.addEventListener("click", (e) => clickHandler(state, e));
+  // Tiñe SOLO el wizard (progreso + bolitas + eyebrow) con el color del
+  // pilar. Los descendientes lo heredan vía var(--wizard-accent).
+  state.container.style.setProperty("--wizard-accent", AREA_COLOR);
   renderInto(state);
   return state;
 }
@@ -163,7 +171,7 @@ function renderPregunta(idx, respuestas) {
         </button>
         ${isLast && selected ? `
           <button class="btn btn-accent" data-test-action="next" type="button">
-            <span>Ver resultados</span>
+            <span>Enviar</span>
             ${icon("arrowRight")}
           </button>
         ` : `<span></span>`}
@@ -196,14 +204,8 @@ async function clickHandler(state, e) {
 
     const isLast = state.currentIndex === PREGUNTAS.length - 1;
     if (isLast) {
-      setTimeout(async () => {
-        try {
-          await submitTest(state, btn);
-        } catch (err) {
-          console.error("auto-submit failed:", err);
-          renderInto(state);
-        }
-      }, 320);
+      // NO auto-submit: re-renderear para mostrar el botón "Enviar".
+      setTimeout(() => renderInto(state), 200);
     } else {
       setTimeout(() => {
         state.currentIndex += 1;

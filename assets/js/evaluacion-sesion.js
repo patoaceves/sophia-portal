@@ -224,7 +224,7 @@ function renderPregunta(state, idx) {
     body = renderTextArea(p, value);
   }
 
-  const nextLabel = isLast ? "Enviar evaluación" : "Siguiente";
+  const nextLabel = isLast ? "Enviar" : "Siguiente";
   const canAdvance = p.obligatoria ? isAnswered : true;
 
   return `
@@ -241,7 +241,7 @@ function renderPregunta(state, idx) {
         </button>
         ${isLast && (isAnswered || !p.obligatoria) ? `
           <button class="btn btn-accent" data-eval-action="next" type="button" ${state.submitting ? "disabled" : ""}>
-            <span>${state.submitting ? "Enviando…" : "Enviar evaluación"}</span>
+            <span>${state.submitting ? "Enviando…" : "Enviar"}</span>
           </button>
         ` : `<span></span>`}
       </footer>
