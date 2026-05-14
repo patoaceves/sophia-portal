@@ -1,16 +1,20 @@
 // SOPHIA Portal · submit-test-autoconocimiento (inlined for dashboard deploy)
 //
-// Recibe las 24 respuestas Likert (1-5) de la autoevaluación VIA de
-// fortalezas de carácter (Peterson & Seligman, 2004). Calcula:
-//   - score por fortaleza (1-5, igual al valor Likert porque hay 1 pregunta por fortaleza)
-//   - ranking de las 24 fortalezas ordenadas descendentemente
-//   - top 5 = signature strengths
-//   - promedio por virtud (6 virtudes) + banda Alto/Medio/Bajo + análisis textual
+// Recibe las 8 respuestas Likert (1-5) de la autoevaluación de Autoconocimiento,
+// basada en los 8 niveles de integración del modelo SOPHIA:
+//   adecuadamente, disfrute, emociones_pos, compromiso, logro, satisfaccion,
+//   sentido, trascendencia
+//
+// Calcula:
+//   - total: suma (rango 8-40)
+//   - pct: ((total-8)/32)*100 (rango 0-100)
+//   - banda: Fortaleza Actual / Zona Crecimiento / Área Atención / Área Vulnerable
+//   - lead, steps, note: textos asociados a la banda
 //
 // Empaqueta todo en RespuestasAutoeval.respuestasJSON.
 //
 // POST /submit-test-autoconocimiento
-// Body: { inscripcionId: string, respuestas: { S1..T5: number 1..5 } }
+// Body: { inscripcionId: string, respuestas: { adecuadamente..trascendencia: 1..5 } }
 // Headers: Authorization: Bearer <supabase_jwt>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -55,13 +59,10 @@ const FIELDS = {
   },
 } as const;
 
-// ⚠️ Pega aquí el record ID del registro en la tabla `Autoevaluaciones`
-// con Título "Autoevaluación VIA: Fortalezas de carácter" y Tipo "autoconocimiento".
-// Mientras esté en placeholder, NO pasa validación de Airtable (linked field
-// con id inválido falla al crear el record), así que la function devuelve 500.
-// Crear el registro, copiar su `rec...` ID, pegarlo aquí, re-deploy.
+// Record ID del registro en la tabla `Autoevaluaciones` (base SOPHIA - Portal)
+// con título "Autoevaluación de Autoconocimiento" — ya creado.
 const KNOWN_IDS = {
-  AUTOCONOCIMIENTO_VIA: "recDLCMOgTZChS6Yf",
+  AUTOCONOCIMIENTO: "recDLCMOgTZChS6Yf",
 } as const;
 
 const AIRTABLE_API = "https://api.airtable.com/v0";
@@ -321,108 +322,90 @@ async function requireAuth(req: Request): Promise<AuthedUser> {
 }
 
 // ============================================================================
-// MODELO VIA · 24 fortalezas, 6 virtudes
+// MODELO · 8 niveles de integración SOPHIA aplicados a Autoconocimiento
 // ============================================================================
 
-// IDs de preguntas (deben coincidir EXACTAMENTE con los del wizard en
-// assets/js/test-autoconocimiento.js → PREGUNTAS).
-const FORTALEZAS: Array<{ id: string; virtud: Virtud; nombre: string }> = [
-  // I. Sabiduría
-  { id: "S1", virtud: "sabiduria", nombre: "Creatividad" },
-  { id: "S2", virtud: "sabiduria", nombre: "Curiosidad" },
-  { id: "S3", virtud: "sabiduria", nombre: "Apertura de mente" },
-  { id: "S4", virtud: "sabiduria", nombre: "Deseo de aprender" },
-  { id: "S5", virtud: "sabiduria", nombre: "Perspectiva" },
-  // II. Coraje
-  { id: "C1", virtud: "coraje", nombre: "Valentía" },
-  { id: "C2", virtud: "coraje", nombre: "Persistencia" },
-  { id: "C3", virtud: "coraje", nombre: "Integridad" },
-  { id: "C4", virtud: "coraje", nombre: "Vitalidad" },
-  // III. Humanidad
-  { id: "H1", virtud: "humanidad", nombre: "Amor" },
-  { id: "H2", virtud: "humanidad", nombre: "Amabilidad" },
-  { id: "H3", virtud: "humanidad", nombre: "Inteligencia social" },
-  // IV. Justicia
-  { id: "J1", virtud: "justicia", nombre: "Ciudadanía" },
-  { id: "J2", virtud: "justicia", nombre: "Justicia" },
-  { id: "J3", virtud: "justicia", nombre: "Liderazgo" },
-  // V. Moderación
-  { id: "M1", virtud: "moderacion", nombre: "Perdón y compasión" },
-  { id: "M2", virtud: "moderacion", nombre: "Humildad" },
-  { id: "M3", virtud: "moderacion", nombre: "Prudencia" },
-  { id: "M4", virtud: "moderacion", nombre: "Autorregulación" },
-  // VI. Trascendencia
-  { id: "T1", virtud: "trascendencia", nombre: "Apreciación de la belleza" },
-  { id: "T2", virtud: "trascendencia", nombre: "Gratitud" },
-  { id: "T3", virtud: "trascendencia", nombre: "Esperanza" },
-  { id: "T4", virtud: "trascendencia", nombre: "Sentido del humor" },
-  { id: "T5", virtud: "trascendencia", nombre: "Espiritualidad" },
-];
+const PREGUNTA_IDS = [
+  "adecuadamente",
+  "disfrute",
+  "emociones_pos",
+  "compromiso",
+  "logro",
+  "satisfaccion",
+  "sentido",
+  "trascendencia",
+] as const;
 
-type Virtud = "sabiduria" | "coraje" | "humanidad" | "justicia" | "moderacion" | "trascendencia";
+type PreguntaId = typeof PREGUNTA_IDS[number];
 
-const VIRTUDES: Virtud[] = ["sabiduria", "coraje", "humanidad", "justicia", "moderacion", "trascendencia"];
-
-const VIRTUD_NOMBRES: Record<Virtud, string> = {
-  sabiduria:     "Sabiduría y Conocimiento",
-  coraje:        "Coraje",
-  humanidad:     "Humanidad",
-  justicia:      "Justicia",
-  moderacion:    "Moderación",
-  trascendencia: "Trascendencia",
-};
-
-// Análisis textual por virtud y banda (Alto / Medio / Bajo).
-// Banda se calcula sobre el promedio (escala 1-5):
-//   Alto: >= 4.0
-//   Medio: >= 2.6
-//   Bajo: < 2.6
-const ANALISIS: Record<Virtud, { Alto: string; Medio: string; Bajo: string }> = {
-  sabiduria: {
-    Alto: "Tu mirada del mundo está nutrida por la curiosidad, el deseo de aprender y la apertura. Eres alguien a quien las preguntas no le pesan — le encienden. Cuida este músculo leyendo cosas que retan tu visión y conversando con personas distintas a ti.",
-    Medio: "Tienes una relación viva con el conocimiento, aunque por momentos la rutina la opaca. Reserva ratos cortos para leer algo nuevo, escuchar una idea ajena con genuina curiosidad, o simplemente preguntar más antes de opinar.",
-    Bajo: "Hoy las preguntas grandes y la curiosidad están en pausa. No es defecto, es invitación: el conocimiento se vuelve a despertar leyendo un libro corto, viendo una charla sobre algo lejano a tu trabajo, o haciéndote esa pregunta que llevas posponiendo.",
+// Bandas + textos. Lead/steps específicos al pilar Autoconocimiento.
+// Portado del legacy evalfelicidad.sophiamx.org (Lic. Mariana Riojas).
+const BANDAS: Record<
+  string,
+  { color: string; minTotal: number; maxTotal: number; lead: string; steps: string[] }
+> = {
+  "Fortaleza Actual": {
+    color: "#2E7D32",
+    minTotal: 31,
+    maxTotal: 40,
+    lead: "Sabes quién eres y posees una identidad clara que no depende de tu cargo, tus logros externos ni de la validación de los demás. Reconoces tus talentos con humildad auténtica y tus sombras con compasión que te permite crecer sin castigarte. Has integrado tu historia logrando que el conocimiento de ti mismo corresponda con la persona que realmente quieres llegar a ser.",
+    steps: [
+      "Aplica una fortaleza VIA en un contexto nuevo esta semana (15 min).",
+      "Practica las 'tres cosas buenas': registra tu papel activo en lo positivo de cada día.",
+    ],
   },
-  coraje: {
-    Alto: "Tienes una fuerza interior reconocible: persistencia para terminar lo que empiezas, valentía para decir lo incómodo, integridad para sostenerte aunque cueste. Esa firmeza es valiosa — úsala también para defender a otros, no sólo para resistir.",
-    Medio: "Cuando algo te importa de verdad, sacas el coraje. Pero hay áreas donde aún te repliegas o postergas. Identifica una conversación pendiente o una meta abandonada y dale el primer paso, aunque sea torpe.",
-    Bajo: "Hoy el coraje se siente lejos — quizá por desgaste, miedo o falta de claridad. Empieza pequeño: una verdad dicha sin filtro, un proyecto retomado por 15 minutos. La valentía no aparece esperándola; aparece haciendo.",
+  "Zona de Crecimiento": {
+    color: "#1565C0",
+    minTotal: 21,
+    maxTotal: 30,
+    lead: "Tienes una idea general de quién eres, pero a menudo te defines demasiado por lo que haces o por los roles que otros esperan. Hay zonas de tu personalidad que evitas explorar por miedo o por inercia. Tu reto es profundizar en tu interior para encontrar la seguridad que a veces buscas fuera.",
+    steps: [
+      "Escribe tu Mejor Yo Posible dentro de 6–12 meses (15 min).",
+      "Lleva un diario de fortalezas 2–3 veces por semana (10 min).",
+    ],
   },
-  humanidad: {
-    Alto: "Eres alguien que ve a las personas — no como funciones, sino como mundos. Esa capacidad de amar, ser amable y leer al otro es uno de los predictores más sólidos de una vida feliz. Cuídala dándole espacio: a veces estar cerca pesa, y eso también hay que honrarlo.",
-    Medio: "Tienes vínculos importantes y los cuidas, pero hay momentos en que la prisa o el ego te ganan. Pregúntate qué necesita la otra persona antes de qué quieres tú: a veces eso lo cambia todo.",
-    Bajo: "Las relaciones cercanas se sienten lejos o pesadas. No es indiferencia — suele ser desgaste o miedo a abrirse. Reconectar empieza con un mensaje corto a alguien que extrañas, sin esperar respuesta inmediata.",
+  "Área de Atención": {
+    color: "#C88D2D",
+    minTotal: 11,
+    maxTotal: 20,
+    lead: "Vives bajo la influencia de 'guiones cognitivos' antiguos que dictan cómo 'deberías' actuar basándote en tu historia pasada o en el deseo de complacer a los demás. Este guión actúa como profecía autocumplida que te mantiene en patrones reactivos.",
+    steps: [
+      "10 min de autoobservación en silencio cada día, sin teléfono.",
+      "Identifica una etiqueta que te has autoimpuesto y cuestiónala con evidencia real.",
+    ],
   },
-  justicia: {
-    Alto: "Tienes un sentido robusto de lo colectivo: cooperas, lideras, defiendes lo justo. Eres alguien que hace mejor al grupo. Cuida no quemarte cargando lo que otros no quieren cargar; delegar también es justicia.",
-    Medio: "Cuando ves una injusticia te incomoda, pero no siempre actúas — o lo haces y te sientes solo. Eso es normal. Busca aliados antes de pelear solo: la justicia sostenida es siempre tarea colectiva.",
-    Bajo: "Hoy el sentido del bien común está adormecido. Quizá demasiado peso personal, quizá decepciones. Empieza por algo cerca: un favor genuino a un compañero, una invitación a alguien que se ve excluido.",
-  },
-  moderacion: {
-    Alto: "Sabes cuándo callar, cuándo perdonar, cuándo soltar el impulso. Esa templanza es rara y muy valiosa. Cuida no convertir la moderación en distancia: a veces lo justo es decir lo difícil, no callárselo.",
-    Medio: "Tienes momentos de autorregulación y momentos en que el impulso o el orgullo te ganan. Reconócelos sin juicio: la prudencia se entrena con la pausa de tres respiraciones antes de actuar.",
-    Bajo: "Hoy te cuesta frenarte — en el consumo, en la palabra, en la reacción emocional. No es debilidad de carácter, es señal de cansancio o de heridas no atendidas. Empieza identificando un disparador específico y poniéndole un plan.",
-  },
-  trascendencia: {
-    Alto: "Vives conectado con algo más grande que tú mismo: la belleza, la gratitud, el humor, el sentido espiritual. Esa apertura te ancla cuando las circunstancias se mueven. Comparte lo que ves — el mundo necesita personas que recuerden lo que está ahí pero pocos miran.",
-    Medio: "Tienes destellos de asombro, gratitud y humor, pero la prisa los borra. Reservar tiempo para lo bello y lo silencioso no es lujo: es nutrición. Empieza con 5 min al día sin pantalla, observando algo que normalmente ignoras.",
-    Bajo: "La trascendencia está en pausa: la belleza, la gratitud, la pregunta espiritual no aparecen mucho. Es invitación, no defecto. Tres cosas buenas al día, durante 21 días, suelen reabrir la puerta.",
+  "Área Vulnerable": {
+    color: "#B00020",
+    minTotal: 0,
+    maxTotal: 10,
+    lead: "Vives con una brújula interna borrosa, sintiendo confusión profunda sobre lo que realmente quieres, actuando casi siempre por inercia o presión de las circunstancias. El ruido exterior se ha convertido en tu refugio para no escuchar las verdades que duelen dentro.",
+    steps: [
+      "5 min de escritura honesta al día: ¿qué siento? ¿qué quiero realmente?",
+      "Busca acompañamiento de alguien de confianza para explorar tus heridas con integridad.",
+    ],
   },
 };
 
-function bandFor(promedio: number): "Alto" | "Medio" | "Bajo" {
-  if (promedio >= 4.0) return "Alto";
-  if (promedio >= 2.6) return "Medio";
-  return "Bajo";
+const NOTE = "Nota: Estos resultados no son diagnósticos. Úsalos como línea base y vuelve a medir tras 2–4 semanas.";
+
+function bandaForTotal(total: number): string {
+  if (total >= 31) return "Fortaleza Actual";
+  if (total >= 21) return "Zona de Crecimiento";
+  if (total >= 11) return "Área de Atención";
+  return "Área Vulnerable";
+}
+
+function pctFromTotal(total: number): number {
+  return Math.max(0, Math.min(100, Math.round(((total - 8) / 32) * 100)));
 }
 
 function validateAnswers(
   respuestas: Record<string, unknown>,
 ): { ok: true } | { ok: false; error: string } {
-  for (const f of FORTALEZAS) {
-    const v = respuestas[f.id];
+  for (const id of PREGUNTA_IDS) {
+    const v = respuestas[id];
     if (typeof v !== "number" || v < 1 || v > 5 || !Number.isInteger(v)) {
-      return { ok: false, error: `Respuesta inválida o faltante: ${f.id}` };
+      return { ok: false, error: `Respuesta inválida o faltante: ${id}` };
     }
   }
   return { ok: true };
@@ -457,7 +440,7 @@ Deno.serve(async (req) => {
     const valid = validateAnswers(respuestas);
     if (!valid.ok) return errorResponse(req, valid.error, 400);
 
-    // 1. Validate that the Inscripción belongs to this user.
+    // Validate ownership
     const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
       filterByFormula: `RECORD_ID()='${inscripcionId}'`,
       maxRecords: 1,
@@ -471,66 +454,44 @@ Deno.serve(async (req) => {
       throw new HttpError(403, "Inscripción does not belong to this user");
     }
 
-    // 2. Compute scores + ranking + virtud aggregates + analisis
-    const ranking = FORTALEZAS.map((f) => ({
-      id: f.id,
-      fortaleza: f.nombre,
-      virtud: f.virtud,
-      score: respuestas[f.id]!,
-    }));
-
-    // Sort descending. Estable: rompe empates por orden original (S1, S2, ...
-    // = orden VIA canónico).
-    ranking.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return FORTALEZAS.findIndex((f) => f.id === a.id) -
-             FORTALEZAS.findIndex((f) => f.id === b.id);
-    });
-
-    const signatureStrengths = ranking.slice(0, 5);
-
-    const virtudes: Record<string, { promedio: number; banda: string; analisis: string }> = {};
-    for (const v of VIRTUDES) {
-      const fs = FORTALEZAS.filter((f) => f.virtud === v);
-      const sum = fs.reduce((s, f) => s + (respuestas[f.id] ?? 0), 0);
-      const prom = fs.length > 0 ? sum / fs.length : 0;
-      const banda = bandFor(prom);
-      virtudes[v] = {
-        promedio: Math.round(prom * 100) / 100,
-        banda,
-        analisis: ANALISIS[v][banda],
-      };
-    }
+    // Compute total, pct, banda
+    const total = PREGUNTA_IDS.reduce((s, id) => s + (respuestas[id] ?? 0), 0);
+    const pct = pctFromTotal(total);
+    const banda = bandaForTotal(total);
+    const bandaInfo = BANDAS[banda];
 
     const completedAt = new Date().toISOString();
 
-    // 3. Pack everything into a JSON payload
     const payload = {
       version: 1,
       tipo: "autoconocimiento",
       answers: respuestas,
-      ranking,
-      signatureStrengths,
-      virtudes,
-      virtudNombres: VIRTUD_NOMBRES,
+      total,
+      pct,
+      banda,
+      bandaColor: bandaInfo.color,
+      lead: bandaInfo.lead,
+      steps: bandaInfo.steps,
+      note: NOTE,
       completedAt,
     };
 
-    // 4. Save in RespuestasAutoeval (reusing the same table as test-felicidad,
-    //    but with a different AUTOEVALUACION link so we can filter later).
     const rec = await createRecord(BASES.PORTAL, TABLES.RESPUESTAS_AUTOEVAL, {
       [FIELDS.RESPUESTAS_AUTOEVAL.INSCRIPCION]: [inscripcionId],
-      [FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION]: [KNOWN_IDS.AUTOCONOCIMIENTO_VIA],
+      [FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION]: [KNOWN_IDS.AUTOCONOCIMIENTO],
       [FIELDS.RESPUESTAS_AUTOEVAL.FECHA_ENTREGA]: completedAt,
       [FIELDS.RESPUESTAS_AUTOEVAL.RESPUESTAS_JSON]: JSON.stringify(payload),
     });
 
     return jsonResponse(req, {
       respuestaId: rec.id,
-      ranking,
-      signatureStrengths,
-      virtudes,
-      virtudNombres: VIRTUD_NOMBRES,
+      total,
+      pct,
+      banda,
+      bandaColor: bandaInfo.color,
+      lead: bandaInfo.lead,
+      steps: bandaInfo.steps,
+      note: NOTE,
       completedAt,
     });
   } catch (e) {

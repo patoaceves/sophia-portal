@@ -151,6 +151,14 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
     }
   }
 
+  // Mount mini-wedge for the Autoconocimiento cajita (only if user took it)
+  if (resultadoAutoconocimiento?.tieneResultados && typeof resultadoAutoconocimiento.pct === "number") {
+    const wedgeMount = document.getElementById("autoeval-mini-wedge");
+    if (wedgeMount) {
+      drawMiniWedge(wedgeMount, resultadoAutoconocimiento.pct, "#66a3f4");
+    }
+  }
+
   // Sincronizar altura del foro con la del diagrama de felicidad.
   // La altura "tope" del row la define el diagrama (más compacto): medimos
   // su altura con ResizeObserver y la aplicamos al foro como max-height
@@ -892,11 +900,10 @@ function renderPillarIcon(pillar, idx, capitulos) {
 }
 
 /**
- * Cajita de la Autoevaluación VIA · Autoconocimiento en el Resumen.
+ * Cajita de la Autoevaluación de Autoconocimiento en el Resumen.
  *
- * - Si NO ha tomado el VIA: card de invitación (sólo si el cap 2 ya está
- *   publicado, sino la ocultamos para no confundir).
- * - Si SÍ lo tomó: card con sus 3 fortalezas firma + link "Ver mis resultados".
+ * - Si NO la tomó: card de invitación (sólo si el cap 2 ya está publicado).
+ * - Si SÍ la tomó: card con mini-wedge SVG + banda + % + link.
  *
  * Vive en su propia fila debajo del resumen-row para mantener el alto
  * matched entre foro y rueda de felicidad.
@@ -904,16 +911,14 @@ function renderPillarIcon(pillar, idx, capitulos) {
 function renderAutoconocimientoCajita(ctx) {
   const { capitulos, resultadoAutoconocimiento, slug } = ctx;
 
-  // Localizar capítulo de autoconocimiento (orden 2 según PILARES)
   const cap2 = capitulos.find(c => c.orden === 2);
-  if (!cap2) return ""; // capítulo aún no publicado → no mostrar la cajita
+  if (!cap2) return ""; // capítulo aún no publicado → no mostrar
 
   const taken = !!resultadoAutoconocimiento?.tieneResultados;
   const fecha = taken && resultadoAutoconocimiento.completedAt
     ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
-  // Buscar la lección de autoeval dentro del capítulo
   const autoevalLecc = cap2.lecciones.find(l => l.tipo === "autoeval");
   const ctaHref = autoevalLecc
     ? `/app/leccion?id=${encodeURIComponent(autoevalLecc.id)}`
@@ -921,63 +926,49 @@ function renderAutoconocimientoCajita(ctx) {
 
   if (!taken) {
     return `
-      <section class="via-cajita via-cajita--locked">
-        <div class="via-cajita__header">
-          <span class="via-cajita__eyebrow">Tu autoevaluación · Capítulo 2</span>
-          <h3 class="via-cajita__title">Tus fortalezas de carácter</h3>
+      <section class="autoeval-cajita autoeval-cajita--locked">
+        <div class="autoeval-cajita__header">
+          <span class="autoeval-cajita__eyebrow">Tu autoevaluación · Capítulo 2</span>
+          <h3 class="autoeval-cajita__title">Tu integración del Autoconocimiento</h3>
         </div>
-        <p class="via-cajita__lead">
-          Descubre tus 5 <em>fortalezas firma</em> con la clasificación VIA de
-          Peterson y Seligman: 24 preguntas, ~7 min.
+        <p class="autoeval-cajita__lead">
+          8 preguntas para medir qué tan integrado tienes el autoconocimiento
+          en tu vida, según los 8 niveles del modelo SOPHIA. ~3 min.
         </p>
-        <a class="via-cajita__cta btn btn-accent" href="${ctaHref}">
-          <span>Comenzar autoevaluación VIA</span>
+        <a class="autoeval-cajita__cta btn btn-accent" href="${ctaHref}">
+          <span>Comenzar evaluación</span>
           ${icon("arrowRight")}
         </a>
       </section>
     `;
   }
 
-  // Has results: show top 3 signature strengths + link
-  const top3 = (resultadoAutoconocimiento.signatureStrengths || []).slice(0, 3);
+  const pct = resultadoAutoconocimiento.pct || 0;
+  const banda = resultadoAutoconocimiento.banda || "";
+  const bandaColor = resultadoAutoconocimiento.bandaColor || "#888";
+
   return `
-    <section class="via-cajita via-cajita--results">
-      <div class="via-cajita__header">
-        <span class="via-cajita__eyebrow">Tu autoevaluación VIA · ${escapeHtml(fecha)}</span>
-        <h3 class="via-cajita__title">Tus 3 fortalezas firma</h3>
+    <section class="autoeval-cajita autoeval-cajita--results">
+      <div class="autoeval-cajita__split">
+        <div class="autoeval-cajita__wedge">
+          <div id="autoeval-mini-wedge" class="autoeval-mini-wedge"></div>
+          <div class="autoeval-mini-wedge__pct">${pct}%</div>
+        </div>
+        <div class="autoeval-cajita__info">
+          <span class="autoeval-cajita__eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</span>
+          <h3 class="autoeval-cajita__title">Autoconocimiento</h3>
+          <div class="autoeval-band-tag" style="color: ${bandaColor};">
+            <span class="autoeval-band-dot"></span>
+            ${escapeHtml(banda)}
+          </div>
+          <a class="autoeval-cajita__link" href="/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug)}">
+            <span>Ver mi resultado completo</span>
+            ${icon("arrowRight")}
+          </a>
+        </div>
       </div>
-      <ol class="via-cajita__top3">
-        ${top3.map((f, i) => `
-          <li class="via-cajita__top3-item">
-            <span class="via-cajita__top3-rank">#${i + 1}</span>
-            <div class="via-cajita__top3-body">
-              <span class="via-cajita__top3-fortaleza">${escapeHtml(f.fortaleza)}</span>
-              <span class="via-cajita__top3-virtud">${escapeHtml(virtudLabel(f.virtud, resultadoAutoconocimiento.virtudNombres))}</span>
-            </div>
-            <span class="via-cajita__top3-score">${f.score}/5</span>
-          </li>
-        `).join("")}
-      </ol>
-      <a class="via-cajita__link" href="/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug)}">
-        <span>Ver el ranking completo de las 24</span>
-        ${icon("arrowRight")}
-      </a>
     </section>
   `;
-}
-
-function virtudLabel(key, nombres) {
-  if (nombres && nombres[key]) return nombres[key];
-  // Fallback simple si el server no devolvió el mapa
-  const map = {
-    sabiduria: "Sabiduría y Conocimiento",
-    coraje: "Coraje",
-    humanidad: "Humanidad",
-    justicia: "Justicia",
-    moderacion: "Moderación",
-    trascendencia: "Trascendencia",
-  };
-  return map[key] || key;
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -1095,4 +1086,49 @@ function findNextLeccion(capitulos) {
 
 function emptyState(title, desc, extra = "") {
   return `<div class="empty-state"><div class="empty-state__title">${title}</div><p class="empty-state__desc">${desc}</p>${extra}</div>`;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Mini wedge SVG para la cajita de Autoconocimiento en el dashboard.
+// Versión compacta del wedge de test-autoconocimiento-resultados.js.
+// ────────────────────────────────────────────────────────────────────
+
+function drawMiniWedge(container, pct, color) {
+  const ns = "http://www.w3.org/2000/svg";
+  const size = 140, cx = 0, cy = size;
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  const rings = 5, rMin = 22, rMax = 134, rStep = (rMax - rMin) / rings, gap = 4;
+  const aStart = -Math.PI / 2, aEnd = 0;
+  const fillEnd = aStart + (aEnd - aStart) * (pct / 100);
+  const opacities = [1, 0.75, 0.55, 0.38, 0.22];
+
+  function fanSector(r0, r1, a0, a1) {
+    const p = document.createElementNS(ns, "path");
+    const cos = Math.cos, sin = Math.sin;
+    const lg = (a1 - a0) > Math.PI ? 1 : 0;
+    p.setAttribute("d", [
+      `M ${cx + r0 * cos(a0)} ${cy + r0 * sin(a0)}`,
+      `A ${r0} ${r0} 0 ${lg} 1 ${cx + r0 * cos(a1)} ${cy + r0 * sin(a1)}`,
+      `L ${cx + r1 * cos(a1)} ${cy + r1 * sin(a1)}`,
+      `A ${r1} ${r1} 0 ${lg} 0 ${cx + r1 * cos(a0)} ${cy + r1 * sin(a0)}`,
+      `Z`,
+    ].join(" "));
+    return p;
+  }
+
+  for (let i = 0; i < rings; i++) {
+    const r0 = rMin + i * rStep, r1 = r0 + rStep - gap;
+    const bg = fanSector(r0, r1, aStart, aEnd);
+    bg.setAttribute("fill", "rgba(0,0,0,.07)");
+    svg.appendChild(bg);
+    if (pct > 0) {
+      const fg = fanSector(r0, r1, aStart, fillEnd);
+      fg.setAttribute("fill", color);
+      fg.setAttribute("opacity", opacities[i]);
+      svg.appendChild(fg);
+    }
+  }
+  container.innerHTML = "";
+  container.appendChild(svg);
 }

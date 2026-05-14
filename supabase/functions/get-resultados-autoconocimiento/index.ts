@@ -1,7 +1,6 @@
 // SOPHIA Portal · get-resultados-autoconocimiento (inlined for dashboard deploy)
 //
-// Devuelve los resultados de la Autoevaluación VIA. Tres modos (igual que
-// get-resultados-test para el Test de Felicidad):
+// Devuelve los resultados de la Autoevaluación de Autoconocimiento. Tres modos:
 //   GET /get-resultados-autoconocimiento?id=<respuestaRecordId>     (intento específico)
 //   GET /get-resultados-autoconocimiento?inscripcion=<respuestaId>  (legacy alias)
 //   GET /get-resultados-autoconocimiento                             (último intento del usuario)
@@ -50,9 +49,8 @@ const FIELDS = {
   },
 } as const;
 
-// ⚠️ Pega aquí el mismo record ID que en submit-test-autoconocimiento.
 const KNOWN_IDS = {
-  AUTOCONOCIMIENTO_VIA: "recDLCMOgTZChS6Yf",
+  AUTOCONOCIMIENTO: "recDLCMOgTZChS6Yf",
 } as const;
 
 const AIRTABLE_API = "https://api.airtable.com/v0";
@@ -354,7 +352,7 @@ Deno.serve(async (req) => {
           (r.fields[FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION] as string[]) ?? [];
         return (
           inscLinks.some((id) => myInscripcionIds.has(id)) &&
-          autoLinks.includes(KNOWN_IDS.AUTOCONOCIMIENTO_VIA)
+          autoLinks.includes(KNOWN_IDS.AUTOCONOCIMIENTO)
         );
       });
       if (respuestas.length === 0) {
@@ -385,24 +383,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Validate this respuesta actually corresponds to the autoconocimiento
-    // autoeval (defensive: if called with ?id pointing at a felicidad
-    // respuesta, return 404).
+    // Validate this respuesta corresponds to the autoconocimiento autoeval
     const autoLinks =
       (rec.fields[FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION] as string[]) ?? [];
-    if (!autoLinks.includes(KNOWN_IDS.AUTOCONOCIMIENTO_VIA)) {
-      throw new HttpError(404, "Respuesta no corresponde a la autoeval VIA");
+    if (!autoLinks.includes(KNOWN_IDS.AUTOCONOCIMIENTO)) {
+      throw new HttpError(404, "Respuesta no corresponde a la autoeval de Autoconocimiento");
     }
 
-    // Parse the JSON payload packed by submit-test-autoconocimiento
     let payload: {
       version?: number;
       tipo?: string;
       answers?: Record<string, number>;
-      ranking?: Array<{ id: string; fortaleza: string; virtud: string; score: number }>;
-      signatureStrengths?: Array<{ id: string; fortaleza: string; virtud: string; score: number }>;
-      virtudes?: Record<string, { promedio: number; banda: string; analisis: string }>;
-      virtudNombres?: Record<string, string>;
+      total?: number;
+      pct?: number;
+      banda?: string;
+      bandaColor?: string;
+      lead?: string;
+      steps?: string[];
+      note?: string;
       completedAt?: string;
     } = {};
     try {
@@ -422,10 +420,13 @@ Deno.serve(async (req) => {
         payload.completedAt ??
         (rec.fields[FIELDS.RESPUESTAS_AUTOEVAL.FECHA_ENTREGA] as string) ??
         null,
-      ranking: payload.ranking ?? [],
-      signatureStrengths: payload.signatureStrengths ?? [],
-      virtudes: payload.virtudes ?? {},
-      virtudNombres: payload.virtudNombres ?? null,
+      total: payload.total ?? 0,
+      pct: payload.pct ?? 0,
+      banda: payload.banda ?? "",
+      bandaColor: payload.bandaColor ?? "",
+      lead: payload.lead ?? "",
+      steps: payload.steps ?? [],
+      note: payload.note ?? "",
       respuestas: payload.answers ?? null,
     });
   } catch (e) {
