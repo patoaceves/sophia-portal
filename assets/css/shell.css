@@ -3141,32 +3141,92 @@
 
 /* ──────────────────────────────────────────────────────────────────
  * Hover popup con el resultado de la autoevaluación del pilar.
- * Aparece debajo de la card en hover/focus. Posicionado en valor
- * absoluto para no afectar el layout del grid.
+ * Aparece AL LADO de la card en hover/focus (derecha por default,
+ * izquierda para cards en la última columna del grid para que no se
+ * salga del viewport). Posicionado en valor absoluto para no afectar
+ * el layout del grid.
  * ────────────────────────────────────────────────────────────────── */
 .pillar-icon__popup {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(-4px);
+  /* Default: derecha de la card, centrado verticalmente */
+  top: 50%;
+  left: calc(100% + 12px);
+  transform: translateY(-50%) translateX(-4px);
   width: min(360px, calc(100vw - var(--s-6) * 2));
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-  padding: var(--s-4);
+  padding: var(--s-5);
   z-index: 10;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease, transform 0.18s ease;
   text-align: left;
+  /* Si el contenido es largo, scroll interno (no debería pasar pero por
+     si acaso, max-height ~60vh para no salirse del viewport). */
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .pillar-icon--has-popup:hover .pillar-icon__popup,
 .pillar-icon--has-popup:focus-within .pillar-icon__popup {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Cards en la 4a columna (rightmost en desktop 4-col): popup va a la
+   IZQUIERDA en vez de derecha, así no se sale del viewport. */
+.pillar-grid__grid > .pillar-icon:nth-child(4n) .pillar-icon__popup {
+  left: auto;
+  right: calc(100% + 12px);
+  transform: translateY(-50%) translateX(4px);
+}
+
+.pillar-grid__grid > .pillar-icon:nth-child(4n).pillar-icon--has-popup:hover .pillar-icon__popup,
+.pillar-grid__grid > .pillar-icon:nth-child(4n).pillar-icon--has-popup:focus-within .pillar-icon__popup {
+  transform: translateY(-50%) translateX(0);
+}
+
+/* En layout de 2 columnas (mobile/tablet) las cards pares (2da columna)
+   también muestran el popup a la izquierda */
+@media (max-width: 900px) {
+  .pillar-grid__grid > .pillar-icon:nth-child(2n) .pillar-icon__popup {
+    left: auto;
+    right: calc(100% + 12px);
+    transform: translateY(-50%) translateX(4px);
+  }
+  .pillar-grid__grid > .pillar-icon:nth-child(2n).pillar-icon--has-popup:hover .pillar-icon__popup,
+  .pillar-grid__grid > .pillar-icon:nth-child(2n).pillar-icon--has-popup:focus-within .pillar-icon__popup {
+    transform: translateY(-50%) translateX(0);
+  }
+  /* Las cards impares en 2-col siguen mostrando popup a la derecha,
+     pero cancelamos la regla de "4n" del desktop */
+  .pillar-grid__grid > .pillar-icon:nth-child(4n):not(:nth-child(2n)) .pillar-icon__popup {
+    left: calc(100% + 12px);
+    right: auto;
+    transform: translateY(-50%) translateX(-4px);
+  }
+}
+
+/* En pantallas muy estrechas el popup no cabe al lado → fallback a layout
+   vertical debajo de la card */
+@media (max-width: 540px) {
+  .pillar-icon__popup,
+  .pillar-grid__grid > .pillar-icon:nth-child(2n) .pillar-icon__popup,
+  .pillar-grid__grid > .pillar-icon:nth-child(4n) .pillar-icon__popup {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-4px);
+    width: min(320px, calc(100vw - var(--s-4) * 2));
+  }
+  .pillar-icon--has-popup:hover .pillar-icon__popup,
+  .pillar-icon--has-popup:focus-within .pillar-icon__popup {
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .pillar-icon__popup-eyebrow {
@@ -3178,24 +3238,61 @@
   margin-bottom: var(--s-3);
 }
 
-.pillar-icon__popup-body {
+/* Fila superior: wedge + banda al lado */
+.pillar-icon__popup-top {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 100px 1fr;
   gap: var(--s-4);
   align-items: center;
+  margin-bottom: var(--s-4);
 }
 
 .pillar-icon__popup-wedge {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
 }
 
-.pillar-icon__popup-info {
+.pillar-icon__popup-band-wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
   align-items: flex-start;
+}
+
+.pillar-icon__popup-lead {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  margin: 0 0 var(--s-4) 0;
+}
+
+.pillar-icon__popup-steps {
+  margin-bottom: var(--s-4);
+}
+
+.pillar-icon__popup-steps-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--s-2);
+}
+
+.pillar-icon__popup-steps ul {
+  margin: 0;
+  padding-left: var(--s-4);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.pillar-icon__popup-steps li {
+  margin-bottom: var(--s-2);
+}
+
+.pillar-icon__popup-steps li:last-child {
+  margin-bottom: 0;
 }
 
 .pillar-icon__popup-link {
@@ -3215,30 +3312,6 @@
 .pillar-icon__popup-link svg {
   width: 14px;
   height: 14px;
-}
-
-/* En la última fila de pilares (cards 5-8), el popup quedaría por debajo
-   de la página → invertimos posición y lo mostramos ENCIMA de la card. */
-.pillar-grid__grid > .pillar-icon:nth-child(n+5) .pillar-icon__popup {
-  top: auto;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%) translateY(4px);
-}
-
-.pillar-grid__grid > .pillar-icon:nth-child(n+5).pillar-icon--has-popup:hover .pillar-icon__popup,
-.pillar-grid__grid > .pillar-icon:nth-child(n+5).pillar-icon--has-popup:focus-within .pillar-icon__popup {
-  transform: translateX(-50%) translateY(0);
-}
-
-@media (max-width: 540px) {
-  .pillar-icon__popup-body {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
-  }
-  .pillar-icon__popup-info {
-    align-items: center;
-  }
 }
 
 .pillar-icon:hover {

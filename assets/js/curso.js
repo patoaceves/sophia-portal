@@ -921,28 +921,42 @@ function renderPillarAutoevalPopup(pillar, { resultadoAutoconocimiento, slug } =
     const pct = resultadoAutoconocimiento.pct || 0;
     const banda = resultadoAutoconocimiento.banda || "";
     const bandaColor = resultadoAutoconocimiento.bandaColor || "#888";
+    const lead = resultadoAutoconocimiento.lead || "";
+    const steps = Array.isArray(resultadoAutoconocimiento.steps) ? resultadoAutoconocimiento.steps : [];
     const fecha = resultadoAutoconocimiento.completedAt
       ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
       : "";
     const linkHref = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug || "")}`;
+    // Mostramos hasta los primeros 2 pasos para mantener el popup compacto;
+    // el detalle completo (todos los steps + nota) está en el link.
+    const stepsHtml = steps.length > 0
+      ? `
+        <div class="pillar-icon__popup-steps">
+          <div class="pillar-icon__popup-steps-label">Siguiente paso</div>
+          <ul>${steps.slice(0, 2).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>
+        </div>
+      `
+      : "";
     return `
       <div class="pillar-icon__popup" data-pillar-key="${pillar.key}">
         <div class="pillar-icon__popup-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</div>
-        <div class="pillar-icon__popup-body">
+        <div class="pillar-icon__popup-top">
           <div class="pillar-icon__popup-wedge">
             <div id="pillar-popup-wedge-${pillar.key}" class="autoeval-mini-wedge"></div>
             <div class="autoeval-mini-wedge__pct">${pct}%</div>
           </div>
-          <div class="pillar-icon__popup-info">
+          <div class="pillar-icon__popup-band-wrap">
             <div class="autoeval-band-tag" style="color: ${bandaColor};">
               ${escapeHtml(banda)}
             </div>
-            <a class="pillar-icon__popup-link" href="${linkHref}">
-              <span>Ver resultado completo</span>
-              ${icon("arrowRight")}
-            </a>
           </div>
         </div>
+        ${lead ? `<p class="pillar-icon__popup-lead">${escapeHtml(lead)}</p>` : ""}
+        ${stepsHtml}
+        <a class="pillar-icon__popup-link" href="${linkHref}">
+          <span>Ver resultado completo</span>
+          ${icon("arrowRight")}
+        </a>
       </div>
     `;
   }
