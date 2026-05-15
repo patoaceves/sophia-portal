@@ -431,7 +431,9 @@ function renderResumenTab(ctx) {
       ${renderTestCajita(ctx)}
     </div>
 
-    ${renderAutoconocimientoCajita(ctx)}
+    <div class="autoeval-cajitas-grid">
+      ${renderAutoconocimientoCajita(ctx)}
+    </div>
 
     <section class="pillar-grid">
       <header class="pillar-grid__header">

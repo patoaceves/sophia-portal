@@ -247,7 +247,11 @@ function renderLeccion(persona, payload, cursoContext) {
         cursoSlug,
         embedded: true,
         onComplete: (result) => {
-          location.href = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
+          // Pasamos `next` para que la página de resultados mande al usuario
+          // a la siguiente lección (típicamente la "Evaluación de la sesión")
+          // en vez de regresarlo al dashboard, donde no podría seguir el flow.
+          const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
+          location.href = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
         },
       });
     } else {
@@ -260,7 +264,9 @@ function renderLeccion(persona, payload, cursoContext) {
         onComplete: (result) => {
           // After submitting, navigate to results within the same UX feel.
           // The lesson is already marked completed by the wizard.
-          location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}`;
+          // Pasamos `next` para que resultados mande al siguiente paso (no al dashboard).
+          const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
+          location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
         },
       });
     }
@@ -268,7 +274,7 @@ function renderLeccion(persona, payload, cursoContext) {
     // Mount evaluación nativa (reemplaza el iframe del Google Form)
     const container = document.getElementById("evalEmbed");
     const nextHref = nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref;
-    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Volver al curso";
+    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Volver a Mi Curso";
     mountEvaluacion({
       container,
       leccionId: leccion.id,

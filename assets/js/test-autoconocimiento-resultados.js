@@ -24,6 +24,7 @@ const AREA_COLOR = "#66a3f4"; // azul autoconocimiento
   const params = new URLSearchParams(location.search);
   const respuestaId = params.get("id");
   const cursoSlug = params.get("slug") || "";
+  const nextLeccionId = params.get("next") || "";
 
   renderShell({
     persona,
@@ -46,7 +47,7 @@ const AREA_COLOR = "#66a3f4"; // azul autoconocimiento
       `;
       return;
     }
-    renderResultados(persona, data, cursoSlug);
+    renderResultados(persona, data, cursoSlug, nextLeccionId);
   } catch (e) {
     stopLoader();
     console.error("get-resultados-autoconocimiento failed:", e);
@@ -59,11 +60,22 @@ const AREA_COLOR = "#66a3f4"; // azul autoconocimiento
   }
 })();
 
-function renderResultados(persona, data, cursoSlug) {
+function renderResultados(persona, data, cursoSlug, nextLeccionId) {
   const { total, pct, banda, lead, steps, note, completedAt } = data;
 
-  const backHref = cursoSlug ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}` : "/app/cursos";
-  const backLabel = cursoSlug ? "Volver a Mi Curso" : "Volver a mis cursos";
+  // Si viene `next`, el CTA primario apunta a la siguiente lección
+  // (típicamente "Evaluación de la sesión") para no brincarse el flow.
+  const hasNext = !!nextLeccionId;
+  const backHref = hasNext
+    ? `/app/leccion?id=${encodeURIComponent(nextLeccionId)}`
+    : (cursoSlug ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}` : "/app/cursos");
+  const backLabel = hasNext
+    ? "Continuar"
+    : (cursoSlug ? "Volver a Mi Curso" : "Volver a mis cursos");
+  const backIconHtml = hasNext
+    ? `<span>${backLabel}</span>${icon("arrowRight")}`
+    : `${icon("arrowLeft")}<span>${backLabel}</span>`;
+  const backBtnClass = hasNext ? "btn btn-accent" : "btn btn-secondary";
   const fecha = completedAt
     ? new Date(completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
@@ -79,8 +91,8 @@ function renderResultados(persona, data, cursoSlug) {
           emociones positivas, compromiso, logro, satisfacción, sentido y trascendencia</em>.
         </p>
       </div>
-      <a class="btn btn-secondary page-header__action" href="${backHref}">
-        ${icon("arrowLeft")}<span>${backLabel}</span>
+      <a class="${backBtnClass} page-header__action" href="${backHref}">
+        ${backIconHtml}
       </a>
     </header>
 
@@ -106,7 +118,7 @@ function renderResultados(persona, data, cursoSlug) {
     </section>
 
     <footer class="resultados-footer">
-      <a class="btn btn-secondary" href="${backHref}">${icon("arrowLeft")}<span>${backLabel}</span></a>
+      <a class="${backBtnClass}" href="${backHref}">${backIconHtml}</a>
     </footer>
   `;
 

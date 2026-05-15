@@ -14,6 +14,7 @@ import { icon } from "./icons.js";
   const params = new URLSearchParams(location.search);
   const respuestaId = params.get("id");
   const cursoSlug = params.get("slug") || "";
+  const nextLeccionId = params.get("next") || "";
 
   renderShell({
     persona,
@@ -36,7 +37,7 @@ import { icon } from "./icons.js";
       `;
       return;
     }
-    renderResultados(persona, data, cursoSlug);
+    renderResultados(persona, data, cursoSlug, nextLeccionId);
   } catch (e) {
     stopLoader();
     console.error("get-resultados-test failed:", e);
@@ -49,10 +50,25 @@ import { icon } from "./icons.js";
   }
 })();
 
-function renderResultados(persona, data, cursoSlug) {
+function renderResultados(persona, data, cursoSlug, nextLeccionId) {
   const { scores, analisis, pilarNombres, completedAt } = data;
-  const backHref = cursoSlug ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}` : "/app/cursos";
-  const backLabel = cursoSlug ? "Volver a Mi Curso" : "Volver a mis cursos";
+  // Si viene `next` (desde el lesson context), el CTA primario apunta a la
+  // siguiente lección (típicamente "Evaluación de la sesión"). Así el alumno
+  // no se brinca el paso de evaluar al ponente al regresar al dashboard.
+  // Si no viene next, fallback al curso o al listado de cursos.
+  const hasNext = !!nextLeccionId;
+  const backHref = hasNext
+    ? `/app/leccion?id=${encodeURIComponent(nextLeccionId)}`
+    : (cursoSlug ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}` : "/app/cursos");
+  const backLabel = hasNext
+    ? "Continuar"
+    : (cursoSlug ? "Volver a Mi Curso" : "Volver a mis cursos");
+  // Si vamos "hacia adelante" (continuar al siguiente paso), el ícono va a la
+  // derecha. Si regresamos al curso, va a la izquierda.
+  const backIconHtml = hasNext
+    ? `<span>${backLabel}</span>${icon("arrowRight")}`
+    : `${icon("arrowLeft")}<span>${backLabel}</span>`;
+  const backBtnClass = hasNext ? "btn btn-accent" : "btn btn-secondary";
   const fecha = completedAt
     ? new Date(completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
@@ -71,8 +87,8 @@ function renderResultados(persona, data, cursoSlug) {
           son señales de dónde estás hoy y dónde puedes nutrir más.
         </p>
       </div>
-      <a class="btn btn-secondary page-header__action" href="${backHref}">
-        ${icon("arrowLeft")}<span>${backLabel}</span>
+      <a class="${backBtnClass} page-header__action" href="${backHref}">
+        ${backIconHtml}
       </a>
     </header>
 
@@ -105,7 +121,7 @@ function renderResultados(persona, data, cursoSlug) {
     </section>
 
     <footer class="resultados-footer">
-      <a class="btn btn-secondary" href="${backHref}">${icon("arrowLeft")}<span>${backLabel}</span></a>
+      <a class="${backBtnClass}" href="${backHref}">${backIconHtml}</a>
     </footer>
   `;
 

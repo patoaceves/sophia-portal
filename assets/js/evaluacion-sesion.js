@@ -112,7 +112,8 @@ export function mountEvaluacion({ container, leccionId, inscripcionId, preguntas
     nextLabel: nextLabel || "Volver a mis cursos",
     ponente: (ponente || "").trim(),
     preguntas: questions,
-    currentIndex: cached?.currentIndex ?? 0,
+    // -1 = pantalla de intro (texto de bienvenida). 0..n = preguntas.
+    currentIndex: cached?.currentIndex ?? -1,
     respuestas: cached?.respuestas ?? {},
     submitted: cached?.submitted ?? false,
     submitting: false,
@@ -138,22 +139,45 @@ function render(state) {
     return;
   }
 
+  const isIntro = state.currentIndex === -1;
   const total = state.preguntas.length;
   const idx = state.currentIndex;
-  const pct = Math.round(((idx + 1) / total) * 100);
+  const pct = isIntro ? 0 : Math.round(((idx + 1) / total) * 100);
 
-  state.container.innerHTML = `
-    ${renderPonenteHeader(state)}
+  const progressHtml = isIntro ? "" : `
     <div class="test-progress">
       <div class="test-progress__bar">
         <div class="test-progress__fill" style="width: ${pct}%;"></div>
       </div>
       <div class="test-progress__label">${idx + 1} de ${total}</div>
     </div>
+  `;
+
+  state.container.innerHTML = `
+    ${renderPonenteHeader(state)}
+    ${progressHtml}
     <div class="test-wizard test-wizard--embedded">
       <div class="test-wizard__body">
-        ${renderPregunta(state, idx)}
+        ${isIntro ? renderIntro() : renderPregunta(state, idx)}
       </div>
+    </div>
+  `;
+}
+
+function renderIntro() {
+  return `
+    <div class="test-intro">
+      <span class="test-intro__eyebrow">Evaluación de la sesión</span>
+      <h2 class="test-intro__title">Tu retroalimentación cuenta</h2>
+      <p class="test-intro__lead">
+        Agradecemos que tomes un par de minutos para darnos retroalimentación
+        de la sesión y de tu instructor. Tus datos y respuestas se mantienen
+        confidenciales. Te agradecemos que seas completamente honesto/a.
+      </p>
+      <button class="btn btn-accent btn-lg" data-eval-action="start" type="button">
+        <span>Comenzar evaluación</span>
+        ${icon("arrowRight")}
+      </button>
     </div>
   `;
 }
@@ -317,6 +341,13 @@ function clickHandler(state, e) {
   const action = btn.dataset.evalAction;
   const idx = state.currentIndex;
   const p = state.preguntas[idx];
+
+  if (action === "start") {
+    state.currentIndex = 0;
+    persistState(state);
+    render(state);
+    return;
+  }
 
   if (action === "rate") {
     const value = parseInt(btn.dataset.value, 10);

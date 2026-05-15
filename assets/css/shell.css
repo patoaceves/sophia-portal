@@ -241,6 +241,9 @@
   justify-content: space-between;
   padding: 0 var(--s-8);
   min-height: var(--header-h);
+  /* Línea delgada de separación entre el título y la checkpoint-bar.
+     Misma intensidad que el border-bottom del header (que cierra todo). */
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Cuando la checkpoint-bar está DENTRO del header, ya hereda el fondo
@@ -3202,7 +3205,8 @@
 }
 
 .pillar-icon--in-progress {
-  background: linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-subtle) 100%);
+  /* Sin gradiente especial — el cap en progreso se ve igual que los otros,
+     sólo la barra avanza. */
 }
 
 .pillar-icon--done {
@@ -3210,11 +3214,13 @@
   box-shadow: 0 2px 8px rgba(111, 142, 94, 0.12);
 }
 
-/* progress fill colored per dimension */
-.pillar-icon--spiritual .pillar-icon__progress-fill { background: var(--pillar-spiritual); }
-.pillar-icon--afectivo  .pillar-icon__progress-fill { background: var(--pillar-afectivo); }
-.pillar-icon--fisico    .pillar-icon__progress-fill { background: var(--pillar-fisico); }
-.pillar-icon--mental    .pillar-icon__progress-fill { background: var(--pillar-mental); }
+/* progress fill: color uniforme para TODOS los pilares (no cambia per-dim).
+   Pato pidió: "que se mantenga del mismo color y que simplemente lo que
+   vaya avanzando sea la barra de progreso". Usamos el accent del dashboard
+   (rojo de marca) para consistencia visual con el resto del dashboard. */
+.pillar-icon__progress-fill {
+  background: var(--color-accent);
+}
 
 .pillar-icon--locked {
   opacity: 0.55;
@@ -7157,6 +7163,18 @@ button.foro-preview-item__thumb {
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
   padding: var(--s-5);
+  /* margin-top eliminado — el contenedor .autoeval-cajitas-grid maneja el
+     spacing externo via gap. */
+}
+
+/* Grid contenedor de las cajitas de autoevaluación.
+   Cada cajita ocupa media columna en pantallas anchas (>= ~900px) y
+   completa en mobile. Eventualmente vendrán las 8 cajitas (una por módulo
+   de autoevaluación) y caerán solas en 2 columnas × 4 filas. */
+.autoeval-cajitas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: var(--s-5);
   margin-top: var(--s-5);
 }
 
