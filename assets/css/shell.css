@@ -3103,6 +3103,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--s-3);
+  /* IMPORTANTE: el popup de las cards usa position:absolute y debe poder
+     desbordarse fuera del grid (z-index lo flota encima del contenido
+     debajo). Si dejamos overflow:hidden lo recorta. */
+  overflow: visible;
 }
 
 @media (max-width: 900px) {
@@ -3121,6 +3125,120 @@
   align-items: center;
   gap: var(--s-2);
   transition: all 0.2s ease;
+}
+
+/* Cards con popup: cursor pointer y sutil indicador de que tienen detalle */
+.pillar-icon--has-popup {
+  cursor: pointer;
+}
+
+/* Stacking context para que el popup pueda flotar correctamente encima
+   de las cards vecinas cuando la card actual está hovered. */
+.pillar-icon--has-popup:hover,
+.pillar-icon--has-popup:focus-within {
+  z-index: 5;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Hover popup con el resultado de la autoevaluación del pilar.
+ * Aparece debajo de la card en hover/focus. Posicionado en valor
+ * absoluto para no afectar el layout del grid.
+ * ────────────────────────────────────────────────────────────────── */
+.pillar-icon__popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  width: min(360px, calc(100vw - var(--s-6) * 2));
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: var(--s-4);
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  text-align: left;
+}
+
+.pillar-icon--has-popup:hover .pillar-icon__popup,
+.pillar-icon--has-popup:focus-within .pillar-icon__popup {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.pillar-icon__popup-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--s-3);
+}
+
+.pillar-icon__popup-body {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--s-4);
+  align-items: center;
+}
+
+.pillar-icon__popup-wedge {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.pillar-icon__popup-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  align-items: flex-start;
+}
+
+.pillar-icon__popup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.pillar-icon__popup-link:hover {
+  text-decoration: underline;
+}
+
+.pillar-icon__popup-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* En la última fila de pilares (cards 5-8), el popup quedaría por debajo
+   de la página → invertimos posición y lo mostramos ENCIMA de la card. */
+.pillar-grid__grid > .pillar-icon:nth-child(n+5) .pillar-icon__popup {
+  top: auto;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+}
+
+.pillar-grid__grid > .pillar-icon:nth-child(n+5).pillar-icon--has-popup:hover .pillar-icon__popup,
+.pillar-grid__grid > .pillar-icon:nth-child(n+5).pillar-icon--has-popup:focus-within .pillar-icon__popup {
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 540px) {
+  .pillar-icon__popup-body {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  .pillar-icon__popup-info {
+    align-items: center;
+  }
 }
 
 .pillar-icon:hover {
@@ -7239,6 +7357,17 @@ button.foro-preview-item__thumb {
 }
 
 .autoeval-cajita__wedge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.autoeval-mini-wedge {
+  width: 100%;
+  height: 100%;
+}
+
+.autoeval-mini-wedge svg {
   display: block;
   width: 100%;
   height: 100%;

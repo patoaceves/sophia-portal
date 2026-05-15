@@ -151,9 +151,11 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
     }
   }
 
-  // Mount mini-wedge for the Autoconocimiento cajita (only if user took it)
+  // Mount mini-wedge inside the pillar-icon hover popup for Autoconocimiento.
+  // (Previously vivía en la cajita standalone del dashboard; ahora vive
+  // dentro del popup que aparece al hacer hover sobre la card del pilar.)
   if (resultadoAutoconocimiento?.tieneResultados && typeof resultadoAutoconocimiento.pct === "number") {
-    const wedgeMount = document.getElementById("autoeval-mini-wedge");
+    const wedgeMount = document.getElementById("pillar-popup-wedge-autoconocimiento");
     if (wedgeMount) {
       drawMiniWedge(wedgeMount, resultadoAutoconocimiento.pct, "#66a3f4");
     }
@@ -423,16 +425,12 @@ function renderTabsNav(slug, currentTab) {
 //   4. Material adicional (mini-cards en su propia sección)
 // ────────────────────────────────────────────────────────────────────
 function renderResumenTab(ctx) {
-  const { capitulos, totalLecc, completadas } = ctx;
+  const { capitulos, totalLecc, completadas, resultadoAutoconocimiento, slug } = ctx;
 
   return `
     <div class="resumen-row">
       ${renderForoPreviewCard(ctx)}
       ${renderTestCajita(ctx)}
-    </div>
-
-    <div class="autoeval-cajitas-grid">
-      ${renderAutoconocimientoCajita(ctx)}
     </div>
 
     <section class="pillar-grid">
@@ -442,7 +440,7 @@ function renderResumenTab(ctx) {
         <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su capítulo.</p>
       </header>
       <div class="pillar-grid__grid">
-        ${PILARES.map((p, i) => renderPillarIcon(p, i, capitulos)).join("")}
+        ${PILARES.map((p, i) => renderPillarIcon(p, i, capitulos, { resultadoAutoconocimiento, slug })).join("")}
       </div>
     </section>
 
@@ -862,7 +860,7 @@ function renderTestCajita(ctx) {
   `;
 }
 
-function renderPillarIcon(pillar, idx, capitulos) {
+function renderPillarIcon(pillar, idx, capitulos, autoevalCtx = {}) {
   const cap = capitulos.find(c => c.orden === idx + 2);
   let progress = 0, total = 0, done = 0;
   if (cap) {
@@ -881,8 +879,13 @@ function renderPillarIcon(pillar, idx, capitulos) {
     ? `/assets/img/happiness-workshop/pilares/${pillar.file}.svg`
     : `/assets/img/happiness-workshop/pilares/${pillar.file}-gris.png`;
 
+  // Si este pilar tiene una autoevaluación tomada, renderea el hover popup
+  // con el wedge, banda y link. Por ahora SOLO autoconocimiento tiene
+  // autoeval (las demás dimensiones tendrán su autoeval en futuras versiones).
+  const popupHtml = renderPillarAutoevalPopup(pillar, autoevalCtx);
+
   return `
-    <article class="pillar-icon pillar-icon--${pillar.dim} pillar-icon--${state}">
+    <article class="pillar-icon pillar-icon--${pillar.dim} pillar-icon--${state}${popupHtml ? " pillar-icon--has-popup" : ""}">
       <div class="pillar-icon__visual">
         <img src="${iconSrc}" alt="" aria-hidden="true">
         ${state === "done" ? `<span class="pillar-icon__check">${icon("check")}</span>` : ""}
@@ -897,8 +900,53 @@ function renderPillarIcon(pillar, idx, capitulos) {
       ` : `
         <div class="pillar-icon__cap">Por publicarse</div>
       `}
+      ${popupHtml}
     </article>
   `;
+}
+
+/**
+ * Hover popup con el resultado de la autoevaluación del pilar.
+ *
+ * Aparece encima de la card del pilar cuando el alumno está en hover (o el
+ * elemento está enfocado) Y existe un resultado para ese pilar. Por ahora
+ * sólo Autoconocimiento tiene autoevaluación; las demás dimensiones se
+ * agregarán cuando se publiquen sus tests.
+ *
+ * Devuelve "" si no hay resultado → la card no muestra popup ni gana la
+ * clase `--has-popup`.
+ */
+function renderPillarAutoevalPopup(pillar, { resultadoAutoconocimiento, slug } = {}) {
+  if (pillar.key === "autoconocimiento" && resultadoAutoconocimiento?.tieneResultados) {
+    const pct = resultadoAutoconocimiento.pct || 0;
+    const banda = resultadoAutoconocimiento.banda || "";
+    const bandaColor = resultadoAutoconocimiento.bandaColor || "#888";
+    const fecha = resultadoAutoconocimiento.completedAt
+      ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+      : "";
+    const linkHref = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug || "")}`;
+    return `
+      <div class="pillar-icon__popup" data-pillar-key="${pillar.key}">
+        <div class="pillar-icon__popup-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</div>
+        <div class="pillar-icon__popup-body">
+          <div class="pillar-icon__popup-wedge">
+            <div id="pillar-popup-wedge-${pillar.key}" class="autoeval-mini-wedge"></div>
+            <div class="autoeval-mini-wedge__pct">${pct}%</div>
+          </div>
+          <div class="pillar-icon__popup-info">
+            <div class="autoeval-band-tag" style="color: ${bandaColor};">
+              ${escapeHtml(banda)}
+            </div>
+            <a class="pillar-icon__popup-link" href="${linkHref}">
+              <span>Ver resultado completo</span>
+              ${icon("arrowRight")}
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  return "";
 }
 
 /**
