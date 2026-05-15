@@ -69,3 +69,41 @@ seguían a tamaño natural aunque el HTML tenía `width:100px`.
 
 **Sin cambios en edge functions** en esta iteración. Solo frontend (JS + CSS)
 y contenido de Airtable. Basta con desplegar el repo estático actualizado.
+
+---
+
+## Iteración adicional (post-feedback)
+
+### Cap 3 vacío
+Borrada `rec2koFk6gp3qJGoG` (Evaluación de la sesión del Cap 3). Cap 3 ahora
+sin lecciones, según pidió Pato.
+
+### Header de lección unificado (fix definitivo del "empalme")
+
+Causa raíz: header y checkpoint-bar eran DOS elementos sticky/fixed
+separados con sus propias capas translúcidas. Por más alineados que
+estuvieran, se leían como dos planos distintos.
+
+Fix estructural: ahora son **una sola unidad sticky** vertical.
+
+- `leccion.js` — nuevo helper `relocateCheckpointBarIntoHeader()` que, tras
+  `renderShell`, mueve la `.checkpoint-bar` al interior del `.app-header`,
+  envuelve el contenido original del header en un `.app-header__row` y
+  añade la clase `.app-header--with-checkpoints` al header.
+- `shell.css`:
+  - `.shell { grid-template-rows: auto 1fr }` (era `var(--header-h) 1fr`)
+    para que el header pueda crecer verticalmente.
+  - `.app-header { min-height: var(--header-h) }` — garantiza altura mínima
+    en páginas sin checkpoints (sin cambios visuales para esas).
+  - `.app-header.app-header--with-checkpoints` — `flex-direction: column`,
+    `padding: 0`, altura libre.
+  - `.app-header__row` — recupera el layout horizontal original
+    (hamburguesa · título · acciones) dentro del header columnar.
+  - `.app-header.app-header--with-checkpoints .checkpoint-bar` — anula
+    el `position: fixed`, `background`, `backdrop-filter` y `border-bottom`
+    propios; hereda todo del header.
+  - Doble especificidad (`.app-header.app-header--with-checkpoints`) para
+    batir al override mobile de `.app-header`.
+
+Resultado: cuando bajas en la lección, header + checkpoints se quedan
+pegados al top como **una sola capa translúcida coherente**. Sin empalme.

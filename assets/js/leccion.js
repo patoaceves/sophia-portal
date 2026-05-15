@@ -227,6 +227,10 @@ function renderLeccion(persona, payload, cursoContext) {
     `,
   });
 
+  // Relocalizar checkpoint-bar DENTRO del .app-header para que header +
+  // checkpoints se comporten como UNA sola unidad sticky (sin empalme).
+  relocateCheckpointBarIntoHeader();
+
   // After render: post-process content (sanitize image URLs)
   if (isTest) {
     // Mount the right wizard depending on which autoeval is linked.
@@ -643,6 +647,82 @@ function sanitizeLessonContent() {
     if (/^https?:/i.test(href) && !href.includes(location.host)) {
       a.setAttribute("target", "_blank");
       a.setAttribute("rel", "noopener noreferrer");
+    }
+  });
+}
+
+/**
+ * Mueve la .checkpoint-bar DESDE .app-main HACIA dentro de .app-header
+ * para que header + checkpoints sean UNA sola unidad sticky (no dos
+ * elementos translúcidos separados que se "empalmen" al hacer scroll).
+ *
+ * También envuelve el contenido original del header en .app-header__row
+ * para preservar el layout horizontal (hamburguesa · título · acciones)
+ * y añade la clase modificadora .app-header--with-checkpoints, que el
+ * CSS usa para cambiar el header a stack vertical y `position: fixed`.
+ *
+ * Después de relocar, mide la altura real del header y la guarda en
+ * `--lesson-header-h` (var CSS) — `.app-main` la usa para padding-top
+ * y evitar que el contenido quede escondido bajo el header fixed.
+ *
+ * Si no hay checkpoint-bar (caso raro), no-op.
+ */
+function relocateCheckpointBarIntoHeader() {
+  const header = document.querySelector(".app-header");
+  const checkpoint = document.querySelector(".app-main > .checkpoint-bar");
+  if (!header || !checkpoint) return;
+
+  // Si ya estaba relocalizado (re-render?), no duplicar
+  if (header.classList.contains("app-header--with-checkpoints")) {
+    // Re-attach del nuevo checkpoint si el header ya tiene la clase pero
+    // el checkpoint del nuevo render quedó en main: reemplazarlo
+    const existing = header.querySelector(":scope > .checkpoint-bar");
+    if (existing) existing.remove();
+    header.appendChild(checkpoint);
+    document.querySelector(".checkpoint-bar-spacer")?.remove();
+    measureAndSetLessonHeaderHeight(header);
+    return;
+  }
+
+  // 1. Wrap header's current children in .app-header__row
+  const row = document.createElement("div");
+  row.className = "app-header__row";
+  while (header.firstChild) {
+    row.appendChild(header.firstChild);
+  }
+  header.appendChild(row);
+
+  // 2. Move checkpoint-bar into header (after the row)
+  header.appendChild(checkpoint);
+
+  // 3. Remove the now-unneeded spacer (checkpoint is part of header,
+  //    main content already flows below the header naturally)
+  document.querySelector(".checkpoint-bar-spacer")?.remove();
+
+  // 4. Mark header for CSS variant
+  header.classList.add("app-header--with-checkpoints");
+
+  // 5. Medir altura real del header (con checkpoints) y setear var CSS
+  //    para que .app-main reserve espacio (el header es position:fixed)
+  measureAndSetLessonHeaderHeight(header);
+
+  // 6. Re-medir en resize (cambio de viewport puede cambiar altura)
+  if (!window.__sophiaLessonHeaderResize) {
+    window.__sophiaLessonHeaderResize = true;
+    window.addEventListener("resize", () => {
+      const h = document.querySelector(".app-header--with-checkpoints");
+      if (h) measureAndSetLessonHeaderHeight(h);
+    });
+  }
+}
+
+function measureAndSetLessonHeaderHeight(header) {
+  // requestAnimationFrame: deja que el browser aplique los nuevos estilos
+  // (especialmente position:fixed y flex-direction:column) antes de medir.
+  requestAnimationFrame(() => {
+    const h = Math.round(header.getBoundingClientRect().height);
+    if (h > 0) {
+      document.documentElement.style.setProperty("--lesson-header-h", `${h}px`);
     }
   });
 }

@@ -7,7 +7,11 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
-  grid-template-rows: var(--header-h) 1fr;
+  /* Row 1 was `var(--header-h)` (fixed 64px). Cambiado a `auto` para que
+     el header pueda crecer verticalmente cuando contiene la checkpoint-bar
+     en la página de lección. El `.app-header` mantiene `min-height: var(--header-h)`
+     para no romper páginas sin checkpoints. */
+  grid-template-rows: auto 1fr;
   grid-template-areas:
     "sidebar header"
     "sidebar main";
@@ -186,6 +190,88 @@
   z-index: 10;
   backdrop-filter: blur(8px);
   background: rgba(250, 246, 238, 0.85);
+  /* Garantiza altura mínima 64px aunque ahora el grid row sea `auto`. */
+  min-height: var(--header-h);
+}
+
+/* ── Variante: header con barra de checkpoints (página de lección) ─────
+ * Cuando leccion.js detecta una `.checkpoint-bar` y la relocaliza dentro
+ * del header, se añade esta clase. El header pasa a stack vertical:
+ *   row 1 → contenido original (hamburguesa · título · acciones)
+ *   row 2 → checkpoint-bar (lista de lecciones del capítulo)
+ * Todo el conjunto es UNA sola capa sticky translúcida, así no hay
+ * empalme visual entre dos elementos separados.
+ *
+ * IMPORTANTE: usa `position: fixed` (no sticky). El sticky del header
+ * base depende de que la fila del grid (`auto`) tenga "travel room"
+ * mayor que la altura del propio header. Cuando el header crece con la
+ * checkpoint-bar (~141px), la fila también crece a 141px, dejando 0px
+ * de travel → el header efectivamente se arrastra con el scroll (lo
+ * que se percibe como "el header se empalma con el progress bar").
+ * Con `position: fixed` garantizamos el pin absoluto al top del viewport.
+ * El `.app-main` agrega `padding-top` con la var `--lesson-header-h`
+ * (setteada por leccion.js) para no esconder contenido bajo el header.
+ *
+ * Usa doble clase (.app-header.app-header--with-checkpoints) para batir
+ * en especificidad al override mobile de .app-header.
+ * ──────────────────────────────────────────────────────────────────── */
+.app-header.app-header--with-checkpoints {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  /* Altura libre — crece para incluir los checkpoints */
+  height: auto;
+}
+
+@media (max-width: 880px) {
+  .app-header.app-header--with-checkpoints {
+    /* En mobile el sidebar es drawer, el header llena todo el ancho */
+    left: 0;
+  }
+}
+
+.app-header.app-header--with-checkpoints .app-header__row {
+  /* Recupera el layout horizontal original del header */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--s-8);
+  min-height: var(--header-h);
+}
+
+/* Cuando la checkpoint-bar está DENTRO del header, ya hereda el fondo
+   translúcido + blur del header. Anulamos el position fixed y demás. */
+.app-header.app-header--with-checkpoints .checkpoint-bar {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  /* El border-bottom del header sigue cerrando la unidad; quitamos el
+     borde propio del checkpoint para no duplicar líneas */
+  border-bottom: none;
+  z-index: auto;
+}
+
+/* Cuando hay header sticky con checkpoints, .app-main necesita padding
+   superior igual a la altura real del header (medida en JS via la var
+   --lesson-header-h). Como el header es `position: fixed`, el grid no
+   reserva espacio para él. Sin este padding, el contenido inicial
+   queda escondido bajo el header. */
+.shell:has(> .app-header--with-checkpoints) .app-main {
+  padding-top: calc(var(--lesson-header-h, 141px) + var(--s-6));
+}
+
+@media (max-width: 880px) {
+  .app-header.app-header--with-checkpoints .app-header__row {
+    padding: 0 var(--s-4);
+  }
 }
 
 .app-header__title {
