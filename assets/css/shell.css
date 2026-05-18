@@ -2175,6 +2175,12 @@
   font-size: 1.0625rem;
   line-height: 1.55;
   color: var(--color-text-muted);
+  margin-bottom: var(--s-3);
+}
+
+/* El último párrafo del lead conserva el espacio amplio antes del botón.
+   (Con un solo párrafo, :last-of-type también lo cubre → sin cambios.) */
+.test-intro__lead:last-of-type {
   margin-bottom: var(--s-6);
 }
 

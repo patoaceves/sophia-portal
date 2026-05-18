@@ -83,10 +83,21 @@ supabase/functions/submit-quiz/index.ts        · NUEVO
 supabase/functions/get-resultados-quiz/index.ts · NUEVO
 ```
 
+## Ajustes posteriores (mismo v25)
+
+- **Visor de PDF bloqueado** ("portal.sophiamx.org refused to connect"):
+  `vercel.json` ponía `X-Frame-Options: DENY` y `frame-ancestors 'none'`
+  globalmente, lo que impedía embeber el PDF aun siendo del mismo origen.
+  Se agregó una regla de headers para `/assets/pdf/(.*)` que neutraliza
+  `X-Frame-Options` y usa `frame-ancestors 'self'` (mismo patrón que la
+  regla `/embed/`). **Requiere redeploy de Vercel.**
+- **Intro del quiz amontonada**: `introLead` ahora es un arreglo de
+  párrafos; `renderIntro()` los pinta como `<p>` separados.
+
 ## Deploy
 
-1. **Repo → Vercel**: redeploy normal (JS, CSS, PDFs).
+1. **Repo → Vercel**: redeploy normal (JS, CSS, PDFs, **vercel.json**).
 2. **Supabase**: desplegar las 2 edge functions nuevas — `submit-quiz` y
    `get-resultados-quiz`. Usan el env `AIRTABLE_PAT` ya configurado; los
    IDs de tabla/campo de "Actividades en Clase" van baked-in.
-3. Sin cambios de `vercel.json` en esta versión (la CSP de v24 ya cubre todo).
+   **Sin esto, el quiz falla al guardar** ("No pudimos guardar tu actividad").

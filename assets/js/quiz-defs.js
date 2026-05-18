@@ -21,15 +21,17 @@ export const QUIZZES = {
     titulo: "Gnóthi Seautón",
     introEyebrow: "Actividad en clase",
     introTitle: "Gnóthi Seautón · Conócete a ti mismo",
-    introLead:
+    introLead: [
       "Sócrates pensaba que la clave para vivir una buena vida radica en el " +
-      "autoconocimiento: γνῶθι σεαυτόν (gnóthi seautón), \u201cconócete a ti " +
-      "mismo\u201d. Este precepto estaba escrito en el Templo de Apolo en " +
-      "Delfos. Sócrates sostiene que el ser humano no debe cesar en la tarea " +
-      "de conocerse a sí mismo: es así como se comienza a dibujar el camino " +
-      "para tomar decisiones sensatas, integrar el pasado, apreciar el " +
-      "presente y proyectar el futuro. Tómate unos minutos para responder " +
-      "con honestidad. Tus respuestas se guardan y son confidenciales.",
+        "autoconocimiento: γνῶθι σεαυτόν (gnóthi seautón), \u201cconócete a ti " +
+        "mismo\u201d. Este precepto estaba escrito en el Templo de Apolo en Delfos.",
+      "Sócrates sostiene que el ser humano no debe cesar en la tarea de " +
+        "conocerse a sí mismo: es así como se comienza a dibujar el camino " +
+        "para tomar decisiones sensatas, integrar el pasado, apreciar el " +
+        "presente y proyectar el futuro.",
+      "Tómate unos minutos para responder con honestidad. Tus respuestas se " +
+        "guardan y son confidenciales.",
+    ],
     preguntas: [
       {
         id: "relacion_pasado",

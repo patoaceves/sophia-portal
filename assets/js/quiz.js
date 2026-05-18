@@ -137,11 +137,19 @@ function render(state) {
 
 function renderIntro(state) {
   const def = state.def;
+  // introLead puede ser string o array de párrafos
+  const paras = Array.isArray(def.introLead)
+    ? def.introLead
+    : [def.introLead || ""];
+  const leadHtml = paras
+    .filter(Boolean)
+    .map((p) => `<p class="test-intro__lead">${escapeHtml(p)}</p>`)
+    .join("");
   return `
     <div class="test-intro">
       <span class="test-intro__eyebrow">${escapeHtml(def.introEyebrow || "Actividad en clase")}</span>
       <h2 class="test-intro__title">${escapeHtml(def.introTitle || def.titulo)}</h2>
-      <p class="test-intro__lead">${escapeHtml(def.introLead || "")}</p>
+      ${leadHtml}
       <button class="btn btn-accent btn-lg" data-quiz-action="start" type="button">
         <span>Comenzar actividad</span>
         ${icon("arrowRight")}
