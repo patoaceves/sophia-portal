@@ -621,31 +621,57 @@ async function renderPdfInto(pdfjsLib, host, src) {
     standardFontDataUrl: `${PDFJS_BASE}/standard_fonts/`,
   }).promise;
 
-  const targetWidth = Math.max(host.clientWidth || 700, 320);
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-  host.innerHTML = "";
   host.classList.add("leccion-pdf--ready");
 
-  for (let n = 1; n <= doc.numPages; n++) {
-    const page = await doc.getPage(n);
-    const base = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: (targetWidth / base.width) * dpr });
+  // Dibuja todas las páginas a la resolución EXACTA del dispositivo.
+  // El bitmap del canvas = anchoCSS × devicePixelRatio, y se fija el ancho
+  // CSS explícito → mapeo 1:1 con los píxeles físicos → nada borroso.
+  async function draw() {
+    const cs = getComputedStyle(host);
+    const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    // clientWidth ya excluye el scrollbar (overflow-y: scroll lo fija);
+    // restamos el padding horizontal para obtener el ancho real del canvas.
+    const cssWidth = Math.max((host.clientWidth || 700) - padX, 240);
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
-    const canvas = document.createElement("canvas");
-    canvas.className = "leccion-pdf__page";
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-    canvas.setAttribute("role", "img");
-    canvas.setAttribute("aria-label", `Página ${n} de ${doc.numPages}`);
+    host.innerHTML = "";
+    for (let n = 1; n <= doc.numPages; n++) {
+      const page = await doc.getPage(n);
+      const base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: (cssWidth * dpr) / base.width });
 
-    await page.render({
-      canvasContext: canvas.getContext("2d"),
-      viewport,
-    }).promise;
+      const canvas = document.createElement("canvas");
+      canvas.className = "leccion-pdf__page";
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      // Tamaño CSS explícito → el navegador no reescala el bitmap.
+      canvas.style.width = cssWidth + "px";
+      canvas.style.height = "auto";
+      canvas.setAttribute("role", "img");
+      canvas.setAttribute("aria-label", `Página ${n} de ${doc.numPages}`);
 
-    host.appendChild(canvas);
+      await page.render({
+        canvasContext: canvas.getContext("2d", { alpha: false }),
+        viewport,
+      }).promise;
+
+      host.appendChild(canvas);
+    }
   }
+
+  await draw();
+
+  // Re-dibuja si cambia el ancho disponible (resize de ventana), con
+  // debounce. El guard evita re-renders por cambios mínimos.
+  let lastWidth = host.clientWidth;
+  let timer = null;
+  const ro = new ResizeObserver(() => {
+    if (Math.abs(host.clientWidth - lastWidth) < 24) return;
+    lastWidth = host.clientWidth;
+    clearTimeout(timer);
+    timer = setTimeout(() => { draw().catch((e) => console.error("re-render PDF:", e)); }, 250);
+  });
+  ro.observe(host);
 }
 
 function showPdfError(host) {

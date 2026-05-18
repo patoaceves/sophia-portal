@@ -950,9 +950,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
   background: var(--color-bg-subtle);
-  /* Panel desplazable: las páginas se apilan; si superan 85vh, scroll. */
+  /* Panel desplazable: las páginas se apilan; si superan 85vh, scroll.
+     overflow-y: scroll (no auto) → el scrollbar es estable, así clientWidth
+     es exacto al medir el ancho del canvas (render pixel-perfect). */
   max-height: 85vh;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
 }
 
@@ -966,7 +968,9 @@
 
 .leccion-pdf__page {
   display: block;
-  width: 100%;
+  /* El ancho se fija inline en JS (px exactos) para un render pixel-perfect;
+     aquí solo el fallback responsivo. */
+  max-width: 100%;
   height: auto;
   border-radius: 2px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
