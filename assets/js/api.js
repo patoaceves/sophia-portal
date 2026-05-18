@@ -323,6 +323,37 @@ export const api = {
   },
 
   /**
+   * POST /submit-quiz
+   * Guarda las respuestas de una actividad en clase (quiz) en la tabla
+   * "Actividades en Clase".
+   * @param {object} opts
+   * @param {string} opts.leccionId
+   * @param {string} [opts.inscripcionId]
+   * @param {string} opts.actividad   · clave del quiz, ej. "gnothi-seauton"
+   * @param {object} opts.respuestas  · { preguntaId: valor }
+   * @returns {Promise<{ ok: boolean, respuestaId: string }>}
+   */
+  async submitQuiz({ leccionId, inscripcionId, actividad, respuestas }) {
+    const body = { leccionId, actividad, respuestas };
+    if (inscripcionId) body.inscripcionId = inscripcionId;
+    const { data } = await callEdge("submit-quiz", { method: "POST", body });
+    return data;
+  },
+
+  /**
+   * GET /get-resultados-quiz?leccionId=...
+   * Devuelve la última respuesta del usuario a esa actividad en clase.
+   * → { tieneResultados, respuestaId, actividad, respuestas, completedAt }
+   */
+  async resultadosQuiz(leccionId) {
+    const { data } = await callEdge(
+      `get-resultados-quiz?leccionId=${encodeURIComponent(leccionId)}`,
+      { method: "GET" },
+    );
+    return data;
+  },
+
+  /**
    * GET /get-curso-roster?cursoId=...
    * Devuelve los inscritos del curso (Persona Portal info), para alimentar
    * el autocomplete de menciones en el composer del foro.

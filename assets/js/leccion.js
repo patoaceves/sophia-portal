@@ -18,6 +18,7 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
 import { mountWizard as mountAutoconocimientoWizard } from "./test-autoconocimiento.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
+import { mountQuiz } from "./quiz.js";
 
 // ─────────────────────────────────────────────────────────────────────
 // DOMPurify (cliente) — segunda capa de defensa.
@@ -155,6 +156,9 @@ function renderLeccion(persona, payload, cursoContext) {
   // En vez del iframe del Google Form, montamos el wizard nativo.
   const isEvaluacion = leccion.tipo === "enlace" &&
     (leccion.etiqueta || "").trim().toLowerCase() === "evaluación";
+  // "Actividad en clase": lección tipo quiz. Monta el wizard de quiz; la
+  // clave del quiz (qué preguntas mostrar) viene en leccion.urlExterna.
+  const isQuiz = leccion.tipo === "quiz";
 
   renderShell({
     persona,
@@ -195,10 +199,11 @@ function renderLeccion(persona, payload, cursoContext) {
         <div class="leccion-page__body">
           ${isTest ? `<div id="testEmbed"></div>`
             : isEvaluacion ? `<div id="evalEmbed"></div>`
+            : isQuiz ? `<div id="quizEmbed"></div>`
             : renderContent(leccion)}
         </div>
 
-        ${(isTest || isEvaluacion) ? `
+        ${(isTest || isEvaluacion || isQuiz) ? `
           <footer class="leccion-page__footer leccion-page__footer--test">
             <div>
               ${prevId
@@ -303,6 +308,32 @@ function renderLeccion(persona, payload, cursoContext) {
             await api.marcarLeccion(leccion.id, inscripcionId);
           } catch (e) {
             console.warn("Could not mark evaluacion lesson complete:", e);
+          }
+        }
+      },
+    });
+  } else if (isQuiz) {
+    // Mount wizard de actividad en clase (quiz). La clave del quiz viene
+    // en leccion.urlExterna (ej. "gnothi-seauton").
+    const container = document.getElementById("quizEmbed");
+    const quizKey = (leccion.urlExterna || "").trim();
+    const nextHref = nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref;
+    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Volver a Mi Curso";
+    mountQuiz({
+      container,
+      quizKey,
+      leccionId: leccion.id,
+      inscripcionId,
+      nextHref,
+      nextLabel,
+      onComplete: async () => {
+        // Marcar lección completada (best-effort). El submit del quiz
+        // ya guardó las respuestas en su propio onComplete.
+        if (inscripcionId) {
+          try {
+            await api.marcarLeccion(leccion.id, inscripcionId);
+          } catch (e) {
+            console.warn("Could not mark quiz lesson complete:", e);
           }
         }
       },
@@ -485,6 +516,11 @@ function renderContent(l) {
         ${l.urlVideo ? renderVideoEmbed(l.urlVideo) : ""}
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
       `;
+    case "pdf":
+      return `
+        ${html ? `<div class="leccion-html">${html}</div>` : ""}
+        ${l.urlExterna ? renderPdfViewer(l.urlExterna) : `<p style="color:var(--color-text-muted);">El PDF aparecerá aquí cuando se publique.</p>`}
+      `;
     case "documento":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
@@ -510,6 +546,32 @@ function renderVideoEmbed(url) {
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
+}
+
+/**
+ * Visor de PDF nativo, proporción carta (8.5 × 11). Usa el visor de PDF
+ * integrado del navegador vía <iframe>. El PDF debe vivir en el mismo
+ * origen (ej. /assets/pdf/...) — la CSP del portal permite frame-src 'self'.
+ * Incluye un botón de respaldo para abrir/descargar el PDF en otra pestaña.
+ */
+function renderPdfViewer(url) {
+  const safe = escapeHtml(url);
+  return `
+    <div class="leccion-pdf">
+      <iframe
+        class="leccion-pdf__frame"
+        src="${safe}#view=FitH"
+        title="Documento PDF"
+        loading="lazy"
+      ></iframe>
+    </div>
+    <p class="leccion-pdf__alt">
+      ¿No se ve el documento?
+      <a href="${safe}" target="_blank" rel="noopener">
+        ${icon("external")}<span>Abrirlo en otra pestaña</span>
+      </a>
+    </p>
+  `;
 }
 
 /**

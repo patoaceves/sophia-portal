@@ -942,6 +942,226 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * Visor de PDF (lecciones tipo pdf) — proporción carta 8.5 × 11
+ * ────────────────────────────────────────────────────────────────── */
+.leccion-pdf {
+  width: 100%;
+  margin-top: var(--s-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--color-bg-subtle);
+  /* Proporción carta (8.5 / 11 ≈ 0.773). El visor nativo del navegador
+     hace fit-to-width, así cada página se ve a tamaño carta. */
+  aspect-ratio: 8.5 / 11;
+  /* En pantallas muy altas no dejamos que crezca sin límite */
+  max-height: 88vh;
+}
+
+.leccion-pdf__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.leccion-pdf__alt {
+  margin-top: var(--s-3);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.leccion-pdf__alt a {
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  text-decoration: none;
+  margin-left: var(--s-1);
+}
+
+.leccion-pdf__alt a:hover { text-decoration: underline; }
+
+.leccion-pdf__alt svg { width: 14px; height: 14px; }
+
+/* ──────────────────────────────────────────────────────────────────
+ * Quiz (actividades en clase) — wizard reflexivo
+ * Reutiliza .test-progress, .test-wizard, .test-intro, .test-question,
+ * .eval-textarea. Aquí solo lo específico de quiz.
+ * ────────────────────────────────────────────────────────────────── */
+
+/* Estado de carga inicial (mientras se consulta si ya completó) */
+.quiz-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-10) var(--s-4);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.quiz-loading__spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: quiz-spin 0.7s linear infinite;
+}
+
+@keyframes quiz-spin {
+  to { transform: rotate(360deg); }
+}
+
+.quiz-error {
+  padding: var(--s-6);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.quiz-optional-note {
+  margin: calc(var(--s-2) * -1) 0 var(--s-3) 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Lista de opciones (preguntas tipo choice) */
+.quiz-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: var(--s-4) 0;
+}
+
+.quiz-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  background: var(--color-bg-elevated);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.quiz-choice:hover {
+  border-color: var(--wizard-accent, var(--color-accent));
+}
+
+.quiz-choice__radio {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  transition: border-color 0.15s ease;
+  position: relative;
+}
+
+.quiz-choice.is-active {
+  border-color: var(--wizard-accent, var(--color-accent));
+  background: color-mix(in srgb, var(--wizard-accent, var(--color-accent)) 7%, var(--color-bg-elevated));
+}
+
+.quiz-choice.is-active .quiz-choice__radio {
+  border-color: var(--wizard-accent, var(--color-accent));
+}
+
+.quiz-choice.is-active .quiz-choice__radio::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--wizard-accent, var(--color-accent));
+}
+
+.quiz-choice__label { flex: 1; }
+
+/* Pantalla de resumen — tras enviar o al revisitar */
+.quiz-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-2) 0;
+}
+
+.quiz-resumen__head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.quiz-resumen__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-success-soft, #e6efe2);
+  color: var(--color-success, #4f7a3a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quiz-resumen__icon svg { width: 26px; height: 26px; }
+
+.quiz-resumen__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.quiz-resumen__lead {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  max-width: 52ch;
+  margin: 0;
+}
+
+.quiz-resumen__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.quiz-resumen__item {
+  padding: var(--s-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+}
+
+.quiz-resumen__q {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--s-2);
+  line-height: 1.45;
+}
+
+.quiz-resumen__a {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.quiz-resumen__a--empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.quiz-resumen > .btn { align-self: flex-start; }
+
+/* ──────────────────────────────────────────────────────────────────
  * Profile
  * ────────────────────────────────────────────────────────────────── */
 
