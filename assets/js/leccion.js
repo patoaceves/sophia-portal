@@ -671,7 +671,8 @@ async function renderPdfInto(pdfjsLib, host, src) {
       canvas.height = Math.round(viewport.height);
       // Tamaño CSS explícito → el navegador no reescala el bitmap.
       canvas.style.width = cssWidth + "px";
-      canvas.style.height = "auto";
+      // Altura explícita en px enteros para evitar subpíxeles y blur vertical.
+      canvas.style.height = Math.round(canvas.height / dpr) + "px";
       canvas.setAttribute("role", "img");
       canvas.setAttribute("aria-label", `Página ${n} de ${doc.numPages}`);
 
