@@ -1126,39 +1126,6 @@
   margin: 0;
 }
 
-.quiz-resumen__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-}
-
-.quiz-resumen__item {
-  padding: var(--s-4);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-md);
-}
-
-.quiz-resumen__q {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  margin-bottom: var(--s-2);
-  line-height: 1.45;
-}
-
-.quiz-resumen__a {
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.quiz-resumen__a--empty {
-  color: var(--color-text-muted);
-  font-style: italic;
-}
-
 .quiz-resumen > .btn { align-self: flex-start; }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -4048,7 +4015,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 9;
-  padding: var(--s-5) var(--s-8);
+  padding: var(--s-3) var(--s-8);
   border-bottom: 1px solid var(--color-border);
   box-sizing: border-box;
 }
@@ -4057,7 +4024,7 @@
   .checkpoint-bar {
     /* On mobile the sidebar is hidden, so the bar reaches the left edge */
     left: 0;
-    padding: var(--s-4) var(--s-4);
+    padding: var(--s-2) var(--s-4);
   }
 }
 
@@ -4080,7 +4047,10 @@
 .checkpoint-bar__list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  /* padding vertical: el contenedor recorta en Y (overflow-x:auto fuerza
+     overflow-y:auto), así que dejamos aire para que el anillo del pulso
+     de .checkpoint--current no se corte arriba/abajo. */
+  padding: var(--s-2) 0;
   display: flex;
   align-items: flex-start;
   gap: 0;

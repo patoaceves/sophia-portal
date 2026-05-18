@@ -185,7 +185,6 @@ function renderLeccion(persona, payload, cursoContext) {
           <div class="leccion-page__tipo">
             ${icon(lessonIcon(leccion.tipo))}
             <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
-            ${leccion.etiqueta ? `<span class="leccion-page__etiqueta">${escapeHtml(leccion.etiqueta)}</span>` : ""}
           </div>
           <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
           ${ponente ? `

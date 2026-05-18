@@ -235,39 +235,19 @@ function renderTextArea(p, value) {
 }
 
 /**
- * Pantalla de resumen — se muestra tras enviar Y al volver a entrar a una
- * actividad ya completada. Lista cada pregunta con la respuesta del alumno.
+ * Pantalla de cierre — se muestra tras enviar Y al volver a entrar a una
+ * actividad ya completada. Solo confirma; no muestra las respuestas.
  */
 function renderResumen(state) {
-  const fecha = state.completedAt
-    ? new Date(state.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
-    : "";
-
-  const items = state.preguntas.map((p) => {
-    const val = state.respuestas[p.id];
-    const answered = isAnswerValid(p, val);
-    return `
-      <div class="quiz-resumen__item">
-        <div class="quiz-resumen__q">${escapeHtml(p.texto)}</div>
-        <div class="quiz-resumen__a ${answered ? "" : "quiz-resumen__a--empty"}">
-          ${answered ? escapeHtml(String(val)) : "Sin responder"}
-        </div>
-      </div>
-    `;
-  }).join("");
-
   return `
     <div class="quiz-resumen">
       <div class="quiz-resumen__head">
         <div class="quiz-resumen__icon">${icon("check")}</div>
         <h2 class="quiz-resumen__title">Actividad completada</h2>
         <p class="quiz-resumen__lead">
-          Gracias por tomarte el tiempo de reflexionar.
-          ${fecha ? `Registramos tus respuestas el ${escapeHtml(fecha)}.` : "Registramos tus respuestas."}
-          Este es tu resumen — puedes volver a consultarlo cuando quieras.
+          Gracias por tomarte el tiempo de reflexionar sobre ti mismo.
         </p>
       </div>
-      <div class="quiz-resumen__list">${items}</div>
       <a class="btn btn-accent" href="${escapeHtml(state.nextHref)}">
         <span>${escapeHtml(state.nextLabel)}</span>
         ${icon("arrowRight")}

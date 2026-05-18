@@ -87,17 +87,25 @@ supabase/functions/get-resultados-quiz/index.ts · NUEVO
 
 - **Visor de PDF bloqueado** ("portal.sophiamx.org refused to connect"):
   `vercel.json` ponía `X-Frame-Options: DENY` y `frame-ancestors 'none'`
-  globalmente, lo que impedía embeber el PDF aun siendo del mismo origen.
-  Se agregó una regla de headers para `/assets/pdf/(.*)` que neutraliza
-  `X-Frame-Options` y usa `frame-ancestors 'self'` (mismo patrón que la
-  regla `/embed/`). **Requiere redeploy de Vercel.**
+  globalmente. Se cambió el header global a `X-Frame-Options: SAMEORIGIN`
+  y `frame-ancestors 'self'` — el portal puede embeber sus propios PDFs,
+  y sigue protegido contra clickjacking de otros sitios (la regla
+  `/embed/` para GoHighLevel no se toca). **Requiere redeploy de Vercel.**
 - **Intro del quiz amontonada**: `introLead` ahora es un arreglo de
   párrafos; `renderIntro()` los pinta como `<p>` separados.
+- **Tag de la lección**: el encabezado de lección ya no muestra la
+  etiqueta (PRE / En clase / …) junto al tipo — solo el tipo. La etiqueta
+  sigue visible en la lista del capítulo.
+- **Pantalla final del quiz**: se quitó el resumen de respuestas, la
+  fecha de envío y la mención a "resumen". Ahora solo confirma
+  "Actividad completada" y el botón para continuar.
+- **Barra de avance**: el anillo que pulsa en la lección actual se
+  cortaba arriba (el contenedor recorta en vertical por su scroll
+  horizontal). Se reacomodó el padding para darle aire sin cambiar la
+  altura total de la barra.
 
 ## Deploy
 
 1. **Repo → Vercel**: redeploy normal (JS, CSS, PDFs, **vercel.json**).
-2. **Supabase**: desplegar las 2 edge functions nuevas — `submit-quiz` y
-   `get-resultados-quiz`. Usan el env `AIRTABLE_PAT` ya configurado; los
-   IDs de tabla/campo de "Actividades en Clase" van baked-in.
-   **Sin esto, el quiz falla al guardar** ("No pudimos guardar tu actividad").
+2. **Supabase**: edge functions `submit-quiz` y `get-resultados-quiz`
+   (ya desplegadas).
