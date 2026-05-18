@@ -248,10 +248,6 @@ function renderResumen(state) {
           Gracias por tomarte el tiempo de reflexionar sobre ti mismo.
         </p>
       </div>
-      <a class="btn btn-accent" href="${escapeHtml(state.nextHref)}">
-        <span>${escapeHtml(state.nextLabel)}</span>
-        ${icon("arrowRight")}
-      </a>
     </div>
   `;
 }

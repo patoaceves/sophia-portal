@@ -1,39 +1,29 @@
-# Contenido · Capítulo 2: Autoconocimiento
+# Contenido · Capítulo 2: Autoconocimiento (v25)
 
-Estos archivos contienen el HTML que va en el campo `Contenido_HTML` (rich text) de cada lección.
-Cópialos a Airtable así:
+Estos archivos contienen el HTML que va en el campo `Contenido_HTML` (rich text) de cada lección en Airtable.
 
-| # | Archivo | Lección | Tipo | Etiqueta |
+## Estructura del capítulo (v25)
+
+| # | Archivo | Lección en Airtable | Tipo | Etiqueta |
 |---|---|---|---|---|
-| 1 | `01-nota-tecnica.html` | Nota técnica: Autoconocimiento | `texto` | PRE |
-| 2 | `02-caso.html` | Caso 2: La casa detrás del ventanal | `texto` | PRE |
-| 3 | `03-autoeval.html` | Autoevaluación VIA: Tus fortalezas de carácter | `autoeval` | PRE |
+| 1 | `00-via-cuestionario.html` | Cuestionario VIA · Fortalezas con Estilo SOPHIA | `texto` | PRE |
+| 2 | *(PDF en `/assets/pdf/autoconocimiento-nota-tecnica.pdf`)* | Nota técnica: Autoconocimiento | `pdf` | PRE |
+| 3 | *(PDF en `/assets/pdf/autoconocimiento-caso.pdf`)* | Caso 2: La casa detrás del ventanal | `pdf` | PRE |
+| 4 | *(quiz `gnothi-seauton` en `quiz-defs.js`)* | Actividad en clase: Gnóthi Seautón | `quiz` | En clase |
+| 5 | — | Autoevaluación: Tu integración del Autoconocimiento | `autoeval` | — |
+| 6 | — | Evaluación de la sesión | `enlace` | — |
 
-## Sobre las imágenes
+## Cómo copiar a Airtable
 
-Las imágenes nuevas viven en `/assets/img/happiness-workshop/autoconocimiento/`:
+Para la lección 1 (`texto`):
+1. Abre `00-via-cuestionario.html`
+2. Copia el contenido completo al campo `Contenido_HTML` de la lección en Airtable
 
-- `martin-seligman.png`, Retrato de Martin Seligman (Nota técnica, sección 2)
-- `fortalezas-de-caracter.png`, Tabla VIA Peterson & Seligman 2004 (Nota técnica, sección 3)
+Las lecciones 2 y 3 (`pdf`) no tienen `Contenido_HTML` — leen su PDF desde `Url_Externa`.
+La lección 4 (`quiz`) lee su clave desde `Url_Externa` = `"gnothi-seauton"`.
 
-Como en el Cap 1, los paths absolutos `/assets/img/...` funcionan dentro del portal vía
-`get-leccion`, pero NO funcionan al ver la lección directamente en Airtable. Si quieres
-preview en Airtable, sustituye por `https://portal.sophiamx.org/assets/img/...` después
-del deploy.
+## Archivos históricos
 
-`sanitizeLessonContent()` en `leccion.js` reescribe estos paths si vienen "bare" (sin
-slash inicial) o desde la ubicación legacy, así que puedes pegar el HTML tal cual sin
-preocuparte por rutas.
-
-## Lección 3 (Autoevaluación VIA)
-
-El campo `Contenido_HTML` lleva el contenido de `03-autoeval.html`.
-Adicionalmente, esta lección debe estar:
-
-- `Tipo` = `autoeval`
-- `Autoeval` linkeada al registro **`recDLCMOgTZChS6Yf`** en la tabla
-  `Autoevaluaciones` (ya creado, título "Autoevaluación VIA: Fortalezas de carácter")
-
-El portal detecta automáticamente el tipo de autoeval vía el nuevo campo
-`autoevalTipo` que devuelve `get-leccion`, y monta el wizard correcto
-(felicidad vs autoconocimiento) sin necesidad de tocar la lección.
+`01-nota-tecnica.html` y `02-caso.html` corresponden a la versión anterior del capítulo
+(antes de v25, cuando esas lecciones eran tipo `texto`). Ya no se usan — las lecciones 2 y 3
+pasaron a tipo `pdf`. Se conservan como referencia.

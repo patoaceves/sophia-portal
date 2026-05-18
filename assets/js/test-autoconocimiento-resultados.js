@@ -116,10 +116,6 @@ function renderResultados(persona, data, cursoSlug, nextLeccionId) {
         <p class="autoeval-result__note">${escapeHtml(note)}</p>
       </div>
     </section>
-
-    <footer class="resultados-footer">
-      <a class="${backBtnClass}" href="${backHref}">${backIconHtml}</a>
-    </footer>
   `;
 
   drawWedge(document.getElementById("wedgeMount"), pct, AREA_COLOR);

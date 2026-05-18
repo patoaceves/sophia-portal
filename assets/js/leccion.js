@@ -202,7 +202,7 @@ function renderLeccion(persona, payload, cursoContext) {
             : renderContent(leccion)}
         </div>
 
-        ${(isTest || isEvaluacion || isQuiz) ? `
+        ${(isTest || isEvaluacion) ? `
           <footer class="leccion-page__footer leccion-page__footer--test">
             <div>
               ${prevId
@@ -212,6 +212,33 @@ function renderLeccion(persona, payload, cursoContext) {
                 : ""}
             </div>
             <div></div>
+          </footer>
+        ` : isQuiz ? `
+          <footer class="leccion-page__footer">
+            <div>
+              ${prevId
+                ? `<a class="btn btn-ghost" href="/app/leccion?id=${encodeURIComponent(prevId)}">
+                     ${icon("arrowLeft")}<span>Anterior</span>
+                   </a>`
+                : ""}
+            </div>
+            <div class="leccion-page__cta">
+              <a
+                id="quizAdvanceBtn"
+                class="leccion-cta is-checked"
+                href="${escapeHtml(nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref)}"
+                ${leccion.completada ? "" : "hidden"}
+              >
+                <span class="leccion-cta__check" aria-hidden="true">
+                  <span class="leccion-cta__check-box">${icon("check")}</span>
+                </span>
+                <span class="leccion-cta__label">
+                  <span class="leccion-cta__label-full">${nextId ? "Avanzar" : "Volver al temario"}</span>
+                  <span class="leccion-cta__label-short">${nextId ? "Avanzar" : "Volver al temario"}</span>
+                </span>
+                <span class="leccion-cta__arrow" aria-hidden="true">${icon("arrowRight")}</span>
+              </a>
+            </div>
           </footer>
         ` : `
           <footer class="leccion-page__footer">
@@ -278,7 +305,7 @@ function renderLeccion(persona, payload, cursoContext) {
     // Mount evaluación nativa (reemplaza el iframe del Google Form)
     const container = document.getElementById("evalEmbed");
     const nextHref = nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref;
-    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Volver a Mi Curso";
+    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Ir a Mi Curso";
     mountEvaluacion({
       container,
       leccionId: leccion.id,
@@ -316,15 +343,11 @@ function renderLeccion(persona, payload, cursoContext) {
     // en leccion.urlExterna (ej. "gnothi-seauton").
     const container = document.getElementById("quizEmbed");
     const quizKey = (leccion.urlExterna || "").trim();
-    const nextHref = nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref;
-    const nextLabel = nextId ? "Continuar a la siguiente lección" : "Volver a Mi Curso";
     mountQuiz({
       container,
       quizKey,
       leccionId: leccion.id,
       inscripcionId,
-      nextHref,
-      nextLabel,
       onComplete: async () => {
         // Marcar lección completada (best-effort). El submit del quiz
         // ya guardó las respuestas en su propio onComplete.
@@ -335,6 +358,8 @@ function renderLeccion(persona, payload, cursoContext) {
             console.warn("Could not mark quiz lesson complete:", e);
           }
         }
+        // Mostrar el botón de avance externo
+        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
       },
     });
   } else {

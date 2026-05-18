@@ -1136,17 +1136,16 @@
 }
 
 .quiz-resumen__icon {
-  width: 52px;
-  height: 52px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: var(--color-success-soft, #e6efe2);
-  color: var(--color-success, #4f7a3a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--color-success-tech-soft);
+  color: var(--color-success-tech);
+  display: grid;
+  place-items: center;
 }
 
-.quiz-resumen__icon svg { width: 26px; height: 26px; }
+.quiz-resumen__icon svg { width: 36px; height: 36px; }
 
 .quiz-resumen__title {
   font-family: var(--font-display);
@@ -4756,6 +4755,33 @@
   .leccion-page__body:has(#testEmbed) {
     padding: var(--s-4) var(--s-2);
   }
+}
+
+/* When the lesson body contains a PDF viewer, remove padding so the PDF
+   fills the white container edge-to-edge (no beige-inside-white boxing).
+   overflow: hidden clips the PDF canvas to the body's border-radius. */
+.leccion-page__body:has(.leccion-pdf) {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* .leccion-html is just a transparent wrapper here */
+.leccion-page__body:has(.leccion-pdf) .leccion-html {
+  display: contents;
+}
+
+/* The PDF viewer itself: fill the container, no extra border/background */
+.leccion-page__body:has(.leccion-pdf) .leccion-pdf {
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  max-height: 88vh;
+}
+
+/* Alt "open in tab" link gets its own padding since body has none */
+.leccion-page__body:has(.leccion-pdf) .leccion-pdf__alt {
+  padding: var(--s-3) var(--s-5);
 }
 
 /* ──────────────────────────────────────────────────────────────────
