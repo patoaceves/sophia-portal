@@ -85,12 +85,15 @@ supabase/functions/get-resultados-quiz/index.ts · NUEVO
 
 ## Ajustes posteriores (mismo v25)
 
-- **Visor de PDF bloqueado** ("portal.sophiamx.org refused to connect"):
-  `vercel.json` ponía `X-Frame-Options: DENY` y `frame-ancestors 'none'`
-  globalmente. Se cambió el header global a `X-Frame-Options: SAMEORIGIN`
-  y `frame-ancestors 'self'` — el portal puede embeber sus propios PDFs,
-  y sigue protegido contra clickjacking de otros sitios (la regla
-  `/embed/` para GoHighLevel no se toca). **Requiere redeploy de Vercel.**
+- **Visor de PDF** — el `<iframe>` daba "portal.sophiamx.org refused to
+  connect" porque dependía de los headers `X-Frame-Options` /
+  `frame-ancestors`, que no se comportaban bien en el deploy. Se cambió a
+  **render con PDF.js** (vendorizado en `assets/vendor/pdfjs/`): el PDF se
+  descarga vía fetch y se dibuja en `<canvas>`, sin `<iframe>`. No depende
+  de ningún header de framing. Cubierto por la CSP actual (`script-src
+  'self'`, `connect-src 'self'`). Como mejora aparte, el header global
+  pasó de `X-Frame-Options: DENY` a `SAMEORIGIN` (ya no es necesario para
+  el PDF, pero es la postura correcta).
 - **Intro del quiz amontonada**: `introLead` ahora es un arreglo de
   párrafos; `renderIntro()` los pinta como `<p>` separados.
 - **Tag de la lección**: el encabezado de lección ya no muestra la

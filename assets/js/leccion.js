@@ -340,6 +340,9 @@ function renderLeccion(persona, payload, cursoContext) {
   } else {
     sanitizeLessonContent();
     wireCtaButtons(leccion, inscripcionId, nextId, backHref);
+    // Lecciones tipo pdf: PDF.js rellena los contenedores .leccion-pdf.
+    // No-op si la lección no tiene ninguno.
+    mountPdfViewers();
   }
 
   // Prefetch adyacentes en background para que la navegacion sea instantanea
@@ -548,28 +551,109 @@ function renderVideoEmbed(url) {
 }
 
 /**
- * Visor de PDF nativo, proporción carta (8.5 × 11). Usa el visor de PDF
- * integrado del navegador vía <iframe>. El PDF debe vivir en el mismo
- * origen (ej. /assets/pdf/...) — la CSP del portal permite frame-src 'self'.
- * Incluye un botón de respaldo para abrir/descargar el PDF en otra pestaña.
+ * Visor de PDF · contenedor que PDF.js rellena tras el render.
+ * El PDF se renderiza a <canvas> (sin <iframe>), por lo que NO depende
+ * de X-Frame-Options ni de la CSP frame-ancestors.
  */
 function renderPdfViewer(url) {
   const safe = escapeHtml(url);
   return `
-    <div class="leccion-pdf">
-      <iframe
-        class="leccion-pdf__frame"
-        src="${safe}#view=FitH"
-        title="Documento PDF"
-        loading="lazy"
-      ></iframe>
+    <div class="leccion-pdf" data-pdf-src="${safe}">
+      <div class="leccion-pdf__loading">
+        <div class="leccion-pdf__spinner" aria-hidden="true"></div>
+        <span>Cargando documento…</span>
+      </div>
     </div>
     <p class="leccion-pdf__alt">
-      ¿No se ve el documento?
+      ¿Prefieres descargarlo?
       <a href="${safe}" target="_blank" rel="noopener">
-        ${icon("external")}<span>Abrirlo en otra pestaña</span>
+        ${icon("external")}<span>Abrir el PDF en otra pestaña</span>
       </a>
     </p>
+  `;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Render de PDF con PDF.js (vendorizado en /assets/vendor/pdfjs/).
+// PDF.js, su worker y las fuentes estándar son del mismo origen, así que
+// los cubre script-src 'self'. El PDF se descarga vía fetch (connect-src
+// 'self') y se dibuja en <canvas>. Sin <iframe> → sin problemas de framing.
+// ────────────────────────────────────────────────────────────────────
+const PDFJS_BASE = "/assets/vendor/pdfjs";
+let _pdfjsLibPromise = null;
+
+function loadPdfjs() {
+  if (!_pdfjsLibPromise) {
+    _pdfjsLibPromise = import(`${PDFJS_BASE}/pdf.min.mjs`).then((lib) => {
+      lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.mjs`;
+      return lib;
+    });
+  }
+  return _pdfjsLibPromise;
+}
+
+async function mountPdfViewers() {
+  const hosts = document.querySelectorAll(".leccion-pdf[data-pdf-src]");
+  if (hosts.length === 0) return;
+
+  let pdfjsLib;
+  try {
+    pdfjsLib = await loadPdfjs();
+  } catch (err) {
+    console.error("No se pudo cargar PDF.js:", err);
+    hosts.forEach(showPdfError);
+    return;
+  }
+
+  for (const host of hosts) {
+    try {
+      await renderPdfInto(pdfjsLib, host, host.getAttribute("data-pdf-src"));
+    } catch (err) {
+      console.error("Error al renderizar el PDF:", err);
+      showPdfError(host);
+    }
+  }
+}
+
+async function renderPdfInto(pdfjsLib, host, src) {
+  const doc = await pdfjsLib.getDocument({
+    url: src,
+    standardFontDataUrl: `${PDFJS_BASE}/standard_fonts/`,
+  }).promise;
+
+  const targetWidth = Math.max(host.clientWidth || 700, 320);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  host.innerHTML = "";
+  host.classList.add("leccion-pdf--ready");
+
+  for (let n = 1; n <= doc.numPages; n++) {
+    const page = await doc.getPage(n);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: (targetWidth / base.width) * dpr });
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "leccion-pdf__page";
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", `Página ${n} de ${doc.numPages}`);
+
+    await page.render({
+      canvasContext: canvas.getContext("2d"),
+      viewport,
+    }).promise;
+
+    host.appendChild(canvas);
+  }
+}
+
+function showPdfError(host) {
+  host.classList.remove("leccion-pdf--ready");
+  host.innerHTML = `
+    <div class="leccion-pdf__error">
+      <p>No pudimos mostrar el documento aquí. Usa el enlace de abajo para abrirlo.</p>
+    </div>
   `;
 }
 
