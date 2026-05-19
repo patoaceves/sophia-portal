@@ -44,7 +44,7 @@ PAGA / RECIBE CORTESÍA
   │
   ▼
 [6] BIENVENIDA
-      Usuario adentro, inscrito, con acceso al contenido del Capítulo 1.
+      Usuario adentro, inscrito, con acceso al contenido del Módulo 1.
 ```
 
 ---

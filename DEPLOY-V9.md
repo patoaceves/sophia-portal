@@ -129,7 +129,7 @@ Para verificar que TODO está funcionando antes de mandar la primera invitación
 5. Verifica:
    - [ ] Caes en `/app/curso?slug=happiness-workshop&welcome=1`
    - [ ] El sidebar muestra tu nombre
-   - [ ] Ves el contenido del Capítulo 1
+   - [ ] Ves el contenido del Módulo 1
    - [ ] La lección "Bienvenida" se abre
    - [ ] El test de felicidad funciona
    - [ ] En Airtable: Persona-CRM creada, Persona-Portal sincronizada (puede tardar), Inscripción con Cohorte y Curso, Invitación en estado `canjeada`

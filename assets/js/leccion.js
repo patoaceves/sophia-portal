@@ -17,6 +17,8 @@ import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
 import { mountWizard as mountAutoconocimientoWizard } from "./test-autoconocimiento.js";
+import { mountWizard as mountAutoevalWizard } from "./autoeval.js";
+import { AUTOEVAL_KEYS } from "./autoeval-defs.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 
@@ -110,7 +112,7 @@ loadPurify();
     return;
   }
 
-  // Necesitamos el contexto del curso para los checkpoints del capítulo
+  // Necesitamos el contexto del curso para los checkpoints del módulo
   let cursoContext = null;
   try {
     cursoContext = await fetchCursoContext(leccionData.cursoId);
@@ -131,20 +133,20 @@ async function fetchCursoContext(cursoId) {
 }
 
 function renderLeccion(persona, payload, cursoContext) {
-  const { leccion, capituloId, capitulo: capInfo, cursoId, inscripcionId, prevId, nextId } = payload;
+  const { leccion, moduloId, modulo: modInfo, cursoId, inscripcionId, prevId, nextId } = payload;
 
-  let capCompleto = null;
+  let modCompleto = null;
   let cursoSlug = "";
   let cursoTitulo = "";
   if (cursoContext) {
-    capCompleto = cursoContext.capitulos.find((c) => c.id === capituloId);
+    modCompleto = cursoContext.modulos.find((c) => c.id === moduloId);
     cursoSlug = cursoContext.slug;
     cursoTitulo = cursoContext.curso.titulo;
   }
 
-  const capLecciones = capCompleto?.lecciones ?? [];
-  const idxHere = capLecciones.findIndex((l) => l.id === leccion.id);
-  const ponente = capInfo?.ponente || capCompleto?.ponente || "";
+  const modLecciones = modCompleto?.lecciones ?? [];
+  const idxHere = modLecciones.findIndex((l) => l.id === leccion.id);
+  const ponente = modInfo?.ponente || modCompleto?.ponente || "";
 
   const backHref = cursoSlug
     ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}`
@@ -165,7 +167,7 @@ function renderLeccion(persona, payload, cursoContext) {
     title: leccion.titulo,
     activePath: "/app/cursos",
     contentHtml: `
-      ${renderCheckpointBar(capLecciones, idxHere)}
+      ${renderCheckpointBar(modLecciones, idxHere)}
 
       <article class="leccion-page">
         <header class="leccion-page__header">
@@ -173,12 +175,12 @@ function renderLeccion(persona, payload, cursoContext) {
             ${icon("chevronLeft")}
             <span>${escapeHtml(backLabel)}</span>
           </a>
-          ${capInfo || capCompleto ? `
+          ${modInfo || modCompleto ? `
             <div class="leccion-page__crumb">
-              <span class="leccion-page__crumb-cap">Capítulo ${capInfo?.orden ?? capCompleto?.orden} · ${escapeHtml(capInfo?.titulo ?? capCompleto?.titulo ?? "")}</span>
-              ${capLecciones.length > 0 ? `
+              <span class="leccion-page__crumb-modulo">Módulo ${modInfo?.orden ?? modCompleto?.orden} · ${escapeHtml(modInfo?.titulo ?? modCompleto?.titulo ?? "")}</span>
+              ${modLecciones.length > 0 ? `
                 <span class="leccion-page__crumb-sep">·</span>
-                <span class="leccion-page__crumb-leccion">Lección ${leccion.orden} de ${capLecciones.length}</span>
+                <span class="leccion-page__crumb-leccion">Lección ${leccion.orden} de ${modLecciones.length}</span>
               ` : ""}
             </div>
           ` : ""}
@@ -264,11 +266,15 @@ function renderLeccion(persona, payload, cursoContext) {
 
   // After render: post-process content (sanitize image URLs)
   if (isTest) {
-    // Mount the right wizard depending on which autoeval is linked.
-    // - "autoconocimiento" → VIA · 24 fortalezas, results en /app/test-autoconocimiento/resultados
-    // - "felicidad" (o ausente, por compat) → Test de Felicidad
+    // Lección tipo autoevaluación. Tres caminos:
+    //   - Autoconocimiento → conserva su wizard y edge functions propios
+    //     (en producción; no se migró al sistema genérico).
+    //   - Pilar (uno de los otros 7) → wizard genérico. La clave del pilar
+    //     viene en leccion.urlExterna (ej. "bienestar_emocional").
+    //   - Test de Felicidad → cualquier otro caso (o autoevalTipo "felicidad").
     const container = document.getElementById("testEmbed");
     const autoevalTipo = leccion.autoevalTipo || "felicidad";
+    const autoevalKey = (leccion.autoevalKey || leccion.urlExterna || "").trim();
 
     if (autoevalTipo === "autoconocimiento") {
       mountAutoconocimientoWizard({
@@ -278,11 +284,26 @@ function renderLeccion(persona, payload, cursoContext) {
         cursoSlug,
         embedded: true,
         onComplete: (result) => {
-          // Pasamos `next` para que la página de resultados mande al usuario
-          // a la siguiente lección (típicamente la "Evaluación de la sesión")
-          // en vez de regresarlo al dashboard, donde no podría seguir el flow.
+          // `next` hace que resultados mande al usuario al siguiente paso
+          // (típicamente la "Evaluación de la sesión") en vez del dashboard.
           const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
           location.href = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
+        },
+      });
+    } else if (AUTOEVAL_KEYS.includes(autoevalKey)) {
+      mountAutoevalWizard({
+        container,
+        autoevalKey,
+        inscripcionId,
+        leccionId: leccion.id,
+        cursoSlug,
+        embedded: true,
+        onComplete: (result) => {
+          const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
+          location.href =
+            `/app/autoevaluacion/resultados?autoeval=${encodeURIComponent(autoevalKey)}` +
+            `&id=${encodeURIComponent(result.respuestaId)}` +
+            `&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
         },
       });
     } else {
@@ -380,15 +401,15 @@ function renderLeccion(persona, payload, cursoContext) {
 // ────────────────────────────────────────────────────────────────────
 // Checkpoint bar (sticky top of the lesson body)
 // ────────────────────────────────────────────────────────────────────
-function renderCheckpointBar(capLecciones, idxHere) {
-  if (capLecciones.length === 0) {
+function renderCheckpointBar(modLecciones, idxHere) {
+  if (modLecciones.length === 0) {
     return `<div class="leccion-progress-bar"><div class="leccion-progress-bar__fill" style="width: 50%;"></div></div>`;
   }
 
   return `
     <div class="checkpoint-bar">
       <ol class="checkpoint-bar__list">
-        ${capLecciones.map((l, i) => {
+        ${modLecciones.map((l, i) => {
           const isHere = i === idxHere;
           const isDone = l.completada;
           const state = isHere && !isDone ? "current"
@@ -798,7 +819,7 @@ function sanitizeLessonContent() {
     [/^(intro-hw[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
     [/^(modelo-felicidad-[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
     [/^(portada[^"\s]*)$/i, "/assets/img/happiness-workshop/$1"],
-    // Capítulo 2 · Autoconocimiento — Martin Seligman portrait + VIA table
+    // Módulo 2 · Autoconocimiento — Martin Seligman portrait + VIA table
     [/^(martin-seligman[^"\s]*)$/i, "/assets/img/happiness-workshop/autoconocimiento/$1"],
     [/^(fortalezas-de-caracter[^"\s]*)$/i, "/assets/img/happiness-workshop/autoconocimiento/$1"],
   ];

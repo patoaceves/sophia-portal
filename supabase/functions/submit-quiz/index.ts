@@ -375,24 +375,26 @@ Deno.serve(async (req) => {
     if (!leccionId) return errorResponse(req, "leccionId is required", 400);
     if (!actividad) return errorResponse(req, "actividad is required", 400);
     if (!respuestas) return errorResponse(req, "respuestas is required", 400);
+    // inscripcionId es OBLIGATORIO: get-resultados-quiz solo encuentra
+    // registros que tienen un link de inscripción del usuario. Sin él, el
+    // registro queda huérfano (invisible al chequeo de "ya completaste").
+    if (!inscripcionId) return errorResponse(req, "inscripcionId is required", 400);
 
     const valid = validateRespuestas(respuestas);
     if (!valid.ok) return errorResponse(req, valid.error, 400);
 
-    // Validar ownership de la inscripción (si se pasó)
-    if (inscripcionId) {
-      const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-        filterByFormula: `RECORD_ID()='${inscripcionId}'`,
-        maxRecords: 1,
-      });
-      if (insc.length === 0) {
-        throw new HttpError(404, "Inscripción not found");
-      }
-      const ownerPersonas =
-        (insc[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-      if (!ownerPersonas.includes(user.personaPortalId)) {
-        throw new HttpError(403, "Inscripción does not belong to this user");
-      }
+    // Validar ownership de la inscripción
+    const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
+      filterByFormula: `RECORD_ID()='${inscripcionId}'`,
+      maxRecords: 1,
+    });
+    if (insc.length === 0) {
+      throw new HttpError(404, "Inscripción not found");
+    }
+    const ownerPersonas =
+      (insc[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+    if (!ownerPersonas.includes(user.personaPortalId)) {
+      throw new HttpError(403, "Inscripción does not belong to this user");
     }
 
     const completedAt = new Date().toISOString();
@@ -409,13 +411,11 @@ Deno.serve(async (req) => {
       [FIELDS.ACTIVIDADES.RESUMEN]: `${actividad} · ${fechaCorta}`,
       [FIELDS.ACTIVIDADES.ACTIVIDAD]: actividad,
       [FIELDS.ACTIVIDADES.LECCION]: [leccionId],
+      [FIELDS.ACTIVIDADES.INSCRIPCION]: [inscripcionId],
       [FIELDS.ACTIVIDADES.RESPUESTAS_JSON]: JSON.stringify(payload),
       [FIELDS.ACTIVIDADES.FECHA]: completedAt,
       [FIELDS.ACTIVIDADES.COMPLETADO]: true,
     };
-    if (inscripcionId) {
-      fields[FIELDS.ACTIVIDADES.INSCRIPCION] = [inscripcionId];
-    }
 
     const rec = await createRecord(BASES.PORTAL, TABLES.ACTIVIDADES, fields);
 

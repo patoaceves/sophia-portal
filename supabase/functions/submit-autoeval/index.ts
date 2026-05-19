@@ -1,8 +1,25 @@
-// SOPHIA Portal · get-mis-cursos (inlined for dashboard deploy)
-// Returns the list of courses the authenticated user is enrolled in,
-// with computed progress %.
+// SOPHIA Portal · submit-autoeval (inlined for dashboard deploy)
 //
-// GET /get-mis-cursos
+// Edge function GENÉRICA para las 8 autoevaluaciones del modelo SOPHIA.
+// Reemplaza a submit-test-autoconocimiento (que era de un solo pilar).
+//
+// Recibe las 8 respuestas Likert (1-5) de UNA autoevaluación. Las 8 preguntas
+// corresponden a los 8 niveles de integración del modelo SOPHIA:
+//   adecuadamente, disfrute, emociones_pos, compromiso, logro, satisfaccion,
+//   sentido, trascendencia
+//
+// Calcula (mismo modelo para los 8 pilares):
+//   - total: suma (rango 8-40)
+//   - pct:   ((total-8)/32)*100  (rango 0-100)
+//   - banda: Fortaleza Actual / Zona de Crecimiento / Área de Atención / Área Vulnerable
+//
+// NO guarda texto: el contenido (preguntas, textos de banda, color) vive en
+// el front-end (assets/js/autoeval-defs.js). El payload guardado lleva
+// `autoevalKey` como discriminador del pilar.
+//
+// POST /submit-autoeval
+// Body: { inscripcionId: string, autoevalKey: string,
+//         respuestas: { adecuadamente..trascendencia: 1..5 } }
 // Headers: Authorization: Bearer <supabase_jwt>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -17,43 +34,21 @@ const BASES = {
 } as const;
 
 const TABLES = {
-  CURSOS: "tblJpUGeBsLNkk9UO",
-  MODULOS: "tblFHDXmg47igVihD",
   INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
+  RESPUESTAS_AUTOEVAL: "tblNhTCikXms43AJz",
   PERSONAS: "tbl5XKtg0mRfLeFYH",
   PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
 } as const;
 
 const FIELDS = {
-  CURSOS: {
-    TITULO: "fldrskH4P70JPikaS",
-    SLUG: "fldnbvTXzNFOGxOYs",
-    DESCRIPCION_CORTA: "fldUyd2c5OJjRjPz0",
-    COVER_IMAGE: "fld6kHgjdRxGfswko",
-    INSTRUCTOR: "fldja8z8xNZCz7gd6",
-    COLOR_PRIMARIO: "fldF45BjJoMU90jUP",
-    MODALIDAD: "fldwRC5bsmiwqsUlP",
-    FECHA_INICIO: "fldENsivuaLfgVUXW",
-    FECHA_FIN: "fldXjIbSIno6D2XD1",
-    ESTATUS: "fld6yNo5RZiHHWO8X",
-    MODULOS: "fldAkJ8rPjrZr2llL",
-  },
-  MODULOS: {
-    CURSO: "fldYXfwCaNILYPhkV",
-    LECCIONES: "fld6zL7apr0D82dgJ",
-  },
   INSCRIPCIONES: {
     PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-    ESTATUS: "flduEWS1l327elsD6",
-    FECHA_INSCRIPCION: "fldrfWGCdo6KZZhQz",
-    PROGRESO_LECCIONES: "fldhghcOlF7dSZzFn",
-    PROGRESO_PCT: "fldLoqPH7FVUgBm4T",
   },
-  PROGRESO_LECCIONES: {
-    INSCRIPCION: "fld5osGXDLBrvgW63",
-    COMPLETADO: "fldtGaRMNd69jcK3D",
+  RESPUESTAS_AUTOEVAL: {
+    INSCRIPCION: "fldu7jj4hqe1dCIMZ",
+    AUTOEVALUACION: "fldnf5Mi14PrPmQ7q",
+    FECHA_ENTREGA: "fldTwTB4Vdgoqay8y",
+    RESPUESTAS_JSON: "fldOJGIxOvZtW5h5h",
   },
   PERSONAS_CRM: {
     AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
@@ -68,6 +63,14 @@ const FIELDS = {
     AUTH_USER_ID: "fldSKACBNXloxYRBc",
   },
 } as const;
+
+// Record IDs en la tabla `Autoevaluaciones` (base Portal). Si un pilar tiene
+// un registro creado, se enlaza en RespuestasAutoeval para reportería; si no,
+// se omite el enlace (el `autoevalKey` del payload basta como discriminador).
+// Conforme se creen los registros de los otros 7 pilares, agrégalos aquí.
+const KNOWN_AUTOEVAL_RECORDS: Record<string, string> = {
+  autoconocimiento: "recDLCMOgTZChS6Yf",
+};
 
 const AIRTABLE_API = "https://api.airtable.com/v0";
 
@@ -124,6 +127,26 @@ async function listRecords(
   } while (offset);
 
   return all;
+}
+
+async function createRecord(
+  baseId: string,
+  tableId: string,
+  fields: Record<string, unknown>,
+): Promise<AirtableRecord> {
+  const pat = getAirtablePAT();
+  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${pat}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
+  });
+  if (!res.ok) {
+    throw new Error(`Airtable create failed: ${res.status} ${await res.text()}`);
+  }
+  return await res.json();
 }
 
 async function updateRecord(
@@ -275,16 +298,12 @@ async function requireAuth(req: Request): Promise<AuthedUser> {
   const p = personas[0];
   const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
 
-  // Lookup adicional: la tabla synced de Personas en Portal (tblwo4xOFhmx2TznJ).
-  // Inscripciones.persona linkea a ESTA tabla, no a CRM, así que necesitamos
-  // su record ID (distinto al de CRM) para filtrar Inscripciones.
   const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
     filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
     maxRecords: 1,
   });
   let personaPortalId = personasPortal[0]?.id;
   if (!personaPortalId) {
-    // Fallback: buscar por email (la sync de CRM→Portal puede tardar)
     const byEmail = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
       filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
       maxRecords: 1,
@@ -298,7 +317,6 @@ async function requireAuth(req: Request): Promise<AuthedUser> {
     );
   }
 
-
   return {
     authUserId,
     email,
@@ -311,6 +329,58 @@ async function requireAuth(req: Request): Promise<AuthedUser> {
 }
 
 // ============================================================================
+// MODELO · 8 niveles de integración SOPHIA (compartido por los 8 pilares)
+// ============================================================================
+
+// IDs de pregunta válidos. Deben coincidir con NIVELES de autoeval-defs.js.
+const NIVELES = [
+  "adecuadamente",
+  "disfrute",
+  "emociones_pos",
+  "compromiso",
+  "logro",
+  "satisfaccion",
+  "sentido",
+  "trascendencia",
+] as const;
+
+// Claves de pilar válidas. Deben coincidir con AUTOEVALS de autoeval-defs.js.
+const AUTOEVAL_KEYS = [
+  "autoconocimiento",
+  "bienestar_emocional",
+  "bienestar_fisico",
+  "presencia_consciente",
+  "trabajo_proposito",
+  "vinculos_vitales",
+  "estetica_existencial",
+  "fe_filosofia",
+] as const;
+
+// Banda a partir de la suma total (8-40). Mismo criterio para los 8 pilares.
+function bandaForTotal(total: number): string {
+  if (total >= 31) return "Fortaleza Actual";
+  if (total >= 21) return "Zona de Crecimiento";
+  if (total >= 11) return "Área de Atención";
+  return "Área Vulnerable";
+}
+
+function pctFromTotal(total: number): number {
+  return Math.max(0, Math.min(100, Math.round(((total - 8) / 32) * 100)));
+}
+
+function validateAnswers(
+  respuestas: Record<string, unknown>,
+): { ok: true } | { ok: false; error: string } {
+  for (const id of NIVELES) {
+    const v = respuestas[id];
+    if (typeof v !== "number" || v < 1 || v > 5 || !Number.isInteger(v)) {
+      return { ok: false, error: `Respuesta inválida o faltante: ${id}` };
+    }
+  }
+  return { ok: true };
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -318,154 +388,98 @@ Deno.serve(async (req) => {
   const optionsRes = handleOptions(req);
   if (optionsRes) return optionsRes;
 
-  if (req.method !== "GET") {
+  if (req.method !== "POST") {
     return errorResponse(req, "Method not allowed", 405);
   }
 
   try {
     const user = await requireAuth(req);
 
-    // 1. Get all Inscripciones, then filter in JS by personaPortalId.
-    // (Airtable filterByFormula on linked-record fields can't match record IDs;
-    // ARRAYJOIN returns primary field values, not IDs.)
-    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      fields: [
-        FIELDS.INSCRIPCIONES.PERSONA,
-        FIELDS.INSCRIPCIONES.CURSO,
-        FIELDS.INSCRIPCIONES.ESTATUS,
-        FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION,
-        FIELDS.INSCRIPCIONES.PROGRESO_LECCIONES,
-        FIELDS.INSCRIPCIONES.PROGRESO_PCT,
-      ],
-    });
-    const inscripciones = allInscripciones.filter((ins) => {
-      const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-      return ps.includes(user.personaPortalId);
-    });
-
-    if (inscripciones.length === 0) {
-      return jsonResponse(req, { cursos: [] });
+    let body: {
+      inscripcionId?: string;
+      autoevalKey?: string;
+      respuestas?: Record<string, number>;
+    };
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse(req, "Invalid JSON body", 400);
     }
 
-    // Collect unique Curso IDs
-    const cursoIds = new Set<string>();
-    for (const ins of inscripciones) {
-      const cursos = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-      cursos.forEach((id) => cursoIds.add(id));
+    const { inscripcionId, autoevalKey, respuestas } = body;
+    if (!inscripcionId) return errorResponse(req, "inscripcionId is required", 400);
+    if (!autoevalKey) return errorResponse(req, "autoevalKey is required", 400);
+    if (!respuestas) return errorResponse(req, "respuestas is required", 400);
+
+    if (!(AUTOEVAL_KEYS as readonly string[]).includes(autoevalKey)) {
+      return errorResponse(req, `autoevalKey inválido: ${autoevalKey}`, 400);
     }
 
-    // 2. Fetch Cursos
-    const allCursos = await listRecords(BASES.PORTAL, TABLES.CURSOS, {
-      fields: [
-        FIELDS.CURSOS.TITULO,
-        FIELDS.CURSOS.SLUG,
-        FIELDS.CURSOS.DESCRIPCION_CORTA,
-        FIELDS.CURSOS.COVER_IMAGE,
-        FIELDS.CURSOS.INSTRUCTOR,
-        FIELDS.CURSOS.COLOR_PRIMARIO,
-        FIELDS.CURSOS.MODALIDAD,
-        FIELDS.CURSOS.FECHA_INICIO,
-        FIELDS.CURSOS.FECHA_FIN,
-        FIELDS.CURSOS.ESTATUS,
-        FIELDS.CURSOS.MODULOS,
-      ],
+    const valid = validateAnswers(respuestas);
+    if (!valid.ok) return errorResponse(req, valid.error, 400);
+
+    // Validate ownership of the Inscripción
+    const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
+      filterByFormula: `RECORD_ID()='${inscripcionId}'`,
+      maxRecords: 1,
     });
-    const cursosById = new Map<string, AirtableRecord>();
-    for (const c of allCursos) {
-      if (cursoIds.has(c.id)) cursosById.set(c.id, c);
+    if (insc.length === 0) {
+      throw new HttpError(404, "Inscripción not found");
+    }
+    const ownerPersonas =
+      (insc[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
+    if (!ownerPersonas.includes(user.personaPortalId)) {
+      throw new HttpError(403, "Inscripción does not belong to this user");
     }
 
-    // 3. Count total Lecciones per Curso (via Módulos)
-    const allModulos = await listRecords(BASES.PORTAL, TABLES.MODULOS, {
-      fields: [FIELDS.MODULOS.CURSO, FIELDS.MODULOS.LECCIONES],
-    });
-    const leccionesCountPorCurso = new Map<string, number>();
-    for (const mod of allModulos) {
-      const cursoLinks = (mod.fields[FIELDS.MODULOS.CURSO] as string[]) ?? [];
-      const lecciones = (mod.fields[FIELDS.MODULOS.LECCIONES] as string[]) ?? [];
-      for (const cursoId of cursoLinks) {
-        if (!cursoIds.has(cursoId)) continue;
-        leccionesCountPorCurso.set(
-          cursoId,
-          (leccionesCountPorCurso.get(cursoId) ?? 0) + lecciones.length,
-        );
-      }
+    // Compute total, pct, banda
+    const total = NIVELES.reduce((s, id) => s + (respuestas[id] ?? 0), 0);
+    const pct = pctFromTotal(total);
+    const banda = bandaForTotal(total);
+    const completedAt = new Date().toISOString();
+
+    // Payload: solo números + discriminador. El texto vive en el front.
+    const payload = {
+      version: 2,
+      autoevalKey,
+      answers: respuestas,
+      total,
+      pct,
+      banda,
+      completedAt,
+    };
+
+    const recordFields: Record<string, unknown> = {
+      [FIELDS.RESPUESTAS_AUTOEVAL.INSCRIPCION]: [inscripcionId],
+      [FIELDS.RESPUESTAS_AUTOEVAL.FECHA_ENTREGA]: completedAt,
+      [FIELDS.RESPUESTAS_AUTOEVAL.RESPUESTAS_JSON]: JSON.stringify(payload),
+    };
+    // Enlaza el registro de Autoevaluación si el pilar tiene uno creado.
+    const autoevalRecordId = KNOWN_AUTOEVAL_RECORDS[autoevalKey];
+    if (autoevalRecordId) {
+      recordFields[FIELDS.RESPUESTAS_AUTOEVAL.AUTOEVALUACION] = [autoevalRecordId];
     }
 
-    // 4. Count completed lessons per Inscripción (filter client-side: Airtable
-    // can't match record IDs in linked-record fields via filterByFormula).
-    // The boolean COMPLETADO check works fine in Airtable, but we still need
-    // to filter by inscripcion in JS.
-    const inscripcionIds = new Set(inscripciones.map((i) => i.id));
-    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula: `{${FIELDS.PROGRESO_LECCIONES.COMPLETADO}}`,
-      fields: [
-        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
-        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
-      ],
+    const rec = await createRecord(
+      BASES.PORTAL,
+      TABLES.RESPUESTAS_AUTOEVAL,
+      recordFields,
+    );
+
+    return jsonResponse(req, {
+      respuestaId: rec.id,
+      autoevalKey,
+      total,
+      pct,
+      banda,
+      completedAt,
     });
-    const progresos = allProgresos.filter((p) => {
-      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      return ins.some((id) => inscripcionIds.has(id));
-    });
-
-    const completadasPorInscripcion = new Map<string, number>();
-    for (const p of progresos) {
-      const insLinks = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      for (const insId of insLinks) {
-        completadasPorInscripcion.set(insId, (completadasPorInscripcion.get(insId) ?? 0) + 1);
-      }
-    }
-
-    // 5. Assemble response
-    const cursos = inscripciones
-      .map((ins) => {
-        const cursoLinks = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-        const cursoId = cursoLinks[0];
-        if (!cursoId) return null;
-        const c = cursosById.get(cursoId);
-        if (!c) return null;
-
-        const totalLecciones = leccionesCountPorCurso.get(cursoId) ?? 0;
-        const completadas = completadasPorInscripcion.get(ins.id) ?? 0;
-        const progresoPct = totalLecciones > 0
-          ? Math.round((completadas / totalLecciones) * 100)
-          : 0;
-
-        const coverAttachments = c.fields[FIELDS.CURSOS.COVER_IMAGE] as
-          | { url: string }[]
-          | undefined;
-        const coverUrl = coverAttachments?.[0]?.url ?? null;
-
-        return {
-          id: cursoId,
-          inscripcionId: ins.id,
-          slug: c.fields[FIELDS.CURSOS.SLUG] ?? "",
-          titulo: c.fields[FIELDS.CURSOS.TITULO] ?? "",
-          descripcionCorta: c.fields[FIELDS.CURSOS.DESCRIPCION_CORTA] ?? "",
-          coverUrl,
-          instructor: c.fields[FIELDS.CURSOS.INSTRUCTOR] ?? "",
-          colorPrimario: c.fields[FIELDS.CURSOS.COLOR_PRIMARIO] ?? "",
-          modalidad: c.fields[FIELDS.CURSOS.MODALIDAD] ?? "",
-          fechaInicio: c.fields[FIELDS.CURSOS.FECHA_INICIO] ?? null,
-          fechaFin: c.fields[FIELDS.CURSOS.FECHA_FIN] ?? null,
-          estatus: c.fields[FIELDS.CURSOS.ESTATUS] ?? "",
-          inscripcionEstatus: ins.fields[FIELDS.INSCRIPCIONES.ESTATUS] ?? "",
-          fechaInscripcion: ins.fields[FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION] ?? null,
-          progresoPct,
-          totalLecciones,
-          leccionesCompletadas: completadas,
-        };
-      })
-      .filter((x) => x !== null);
-
-    return jsonResponse(req, { cursos });
   } catch (e) {
     if (e instanceof HttpError) {
       return errorResponse(req, e.message, e.status);
     }
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-mis-cursos error:", msg);
+    console.error("submit-autoeval error:", msg);
     return errorResponse(req, msg, 500);
   }
 });

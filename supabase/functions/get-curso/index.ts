@@ -18,7 +18,7 @@ const BASES = {
 
 const TABLES = {
   CURSOS: "tblJpUGeBsLNkk9UO",
-  CAPITULOS: "tblFHDXmg47igVihD",
+  MODULOS: "tblFHDXmg47igVihD",
   LECCIONES: "tblBjfch6rc5ey7nn",
   INSCRIPCIONES: "tblIT40GILMUHhLKK",
   PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
@@ -39,9 +39,9 @@ const FIELDS = {
     FECHA_INICIO: "fldENsivuaLfgVUXW",
     FECHA_FIN: "fldXjIbSIno6D2XD1",
     ESTATUS: "fld6yNo5RZiHHWO8X",
-    CAPITULOS: "fldAkJ8rPjrZr2llL",
+    MODULOS: "fldAkJ8rPjrZr2llL",
   },
-  CAPITULOS: {
+  MODULOS: {
     TITULO: "fldyuVY3I4StxA5Fe",
     CURSO: "fldYXfwCaNILYPhkV",
     ORDEN: "fldRzPBGYxP7lkiaZ",
@@ -365,23 +365,23 @@ Deno.serve(async (req) => {
     }
     const inscripcion = inscripciones[0];
 
-    // 3. Capítulos for this course
-    const capituloIds = (curso.fields[FIELDS.CURSOS.CAPITULOS] as string[]) ?? [];
-    const capitulos = capituloIds.length
-      ? await listRecords(BASES.PORTAL, TABLES.CAPITULOS, {
-          filterByFormula: `OR(${capituloIds.map((id) => `RECORD_ID()='${id}'`).join(",")})`,
+    // 3. Módulos for this course
+    const moduloIds = (curso.fields[FIELDS.CURSOS.MODULOS] as string[]) ?? [];
+    const modulos = moduloIds.length
+      ? await listRecords(BASES.PORTAL, TABLES.MODULOS, {
+          filterByFormula: `OR(${moduloIds.map((id) => `RECORD_ID()='${id}'`).join(",")})`,
         })
       : [];
-    capitulos.sort((a, b) => {
-      const oa = (a.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0;
-      const ob = (b.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0;
+    modulos.sort((a, b) => {
+      const oa = (a.fields[FIELDS.MODULOS.ORDEN] as number) ?? 0;
+      const ob = (b.fields[FIELDS.MODULOS.ORDEN] as number) ?? 0;
       return oa - ob;
     });
 
     // 4. Lecciones for all chapters (one batched query)
     const allLeccionIds: string[] = [];
-    for (const c of capitulos) {
-      const ids = (c.fields[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
+    for (const c of modulos) {
+      const ids = (c.fields[FIELDS.MODULOS.LECCIONES] as string[]) ?? [];
       ids.forEach((id) => allLeccionIds.push(id));
     }
     const lecciones = allLeccionIds.length
@@ -427,8 +427,8 @@ Deno.serve(async (req) => {
     }
 
     // 6. Build response
-    const capitulosOut = capitulos.map((c) => {
-      const leccLinks = (c.fields[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
+    const modulosOut = modulos.map((c) => {
+      const leccLinks = (c.fields[FIELDS.MODULOS.LECCIONES] as string[]) ?? [];
       const leccionesOut = leccLinks
         .map((id) => leccionById.get(id))
         .filter((l): l is AirtableRecord => Boolean(l))
@@ -448,10 +448,10 @@ Deno.serve(async (req) => {
 
       return {
         id: c.id,
-        titulo: (c.fields[FIELDS.CAPITULOS.TITULO] as string) ?? "",
-        orden: (c.fields[FIELDS.CAPITULOS.ORDEN] as number) ?? 0,
-        descripcion: (c.fields[FIELDS.CAPITULOS.DESCRIPCION] as string) ?? "",
-        ponente: (c.fields[FIELDS.CAPITULOS.PONENTE] as string) ?? "",
+        titulo: (c.fields[FIELDS.MODULOS.TITULO] as string) ?? "",
+        orden: (c.fields[FIELDS.MODULOS.ORDEN] as number) ?? 0,
+        descripcion: (c.fields[FIELDS.MODULOS.DESCRIPCION] as string) ?? "",
+        ponente: (c.fields[FIELDS.MODULOS.PONENTE] as string) ?? "",
         lecciones: leccionesOut,
       };
     });
@@ -486,7 +486,7 @@ Deno.serve(async (req) => {
         progresoPct:
           (inscripcion.fields[FIELDS.INSCRIPCIONES.PROGRESO_PCT] as number) ?? 0,
       },
-      capitulos: capitulosOut,
+      modulos: modulosOut,
     });
   } catch (e) {
     if (e instanceof HttpError) {

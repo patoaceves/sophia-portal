@@ -234,7 +234,7 @@ function buildHolisticAnalysis(scores, nombres) {
     return `Tu pilar más fuerte, ${fuerte}, está claramente nutrido y se nota. Sin embargo, hay una distancia notable con ${vulnerable.toLowerCase()}, lo que sugiere que estás invirtiendo mucho en ciertas áreas y descuidando otras. La invitación es a llevar parte de la energía que ya sabes generar hacia el pilar más vulnerable — no para descuidar tu fortaleza, sino para que el conjunto te sostenga.`;
   }
   if (tone === "medio-alto") {
-    return `Tu rueda muestra una base sólida con espacios claros de crecimiento. ${fuerte} es tu ancla y eso es una buena señal: ya sabes lo que se siente cuidar bien un área. ${vulnerable} aparece como tu invitación más directa — no como déficit, sino como el lugar donde el siguiente capítulo puede florecer. Pequeños movimientos consistentes ahí mueven mucho el conjunto.`;
+    return `Tu rueda muestra una base sólida con espacios claros de crecimiento. ${fuerte} es tu ancla y eso es una buena señal: ya sabes lo que se siente cuidar bien un área. ${vulnerable} aparece como tu invitación más directa — no como déficit, sino como el lugar donde el siguiente módulo puede florecer. Pequeños movimientos consistentes ahí mueven mucho el conjunto.`;
   }
   if (tone === "medio") {
     return `Tu diagrama dice algo importante: estás en una zona de cultivo. Ningún pilar está abandonado, pero ninguno está en su mejor momento tampoco. ${fuerte} es por dónde empezar a sostenerte — usa lo que ya funciona ahí como punto de apoyo. ${vulnerable} merece atención específica, idealmente con una práctica concreta y sostenida más que con un cambio drástico.`;

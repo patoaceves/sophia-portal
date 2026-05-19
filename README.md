@@ -26,7 +26,7 @@ sophia-portal/
 ├── app/                                # portal del alumno (auth required)
 │   ├── index.html                      # redirect → /app/cursos
 │   ├── cursos.html                     # mis cursos
-│   ├── curso.html                      # ?slug=  → detalle con capítulos/lecciones
+│   ├── curso.html                      # ?slug=  → detalle con módulos/lecciones
 │   ├── leccion.html                    # ?id=    → reproductor de lección
 │   ├── perfil.html                     # datos del usuario
 │   ├── test-felicidad/
@@ -69,7 +69,7 @@ sophia-portal/
 │   └── functions/                      # 7 Edge Functions auto-contenidas (sin _shared)
 │       ├── auth-bootstrap/             # POST: crea/encuentra Persona en CRM
 │       ├── get-mis-cursos/             # GET: lista cursos del alumno con %
-│       ├── get-curso/                  # GET ?slug= → curso + capítulos + lecciones
+│       ├── get-curso/                  # GET ?slug= → curso + módulos + lecciones
 │       ├── get-leccion/                # GET ?id= → contenido + prev/next
 │       ├── marcar-leccion/             # POST: idempotente, marca completada
 │       ├── submit-test-felicidad/      # POST: 16 respuestas → scores + análisis
@@ -77,7 +77,7 @@ sophia-portal/
 ├── docs/
 │   ├── airtable-schema.md
 │   ├── deployment.md
-│   └── contenido-capitulo-1/           # HTML del contenido del primer cap
+│   └── contenido-modulo-1/           # HTML del contenido del primer cap
 ├── vercel.json                         # @vercel/static + cleanUrls
 └── README.md
 ```

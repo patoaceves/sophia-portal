@@ -198,7 +198,7 @@
  * Cuando leccion.js detecta una `.checkpoint-bar` y la relocaliza dentro
  * del header, se añade esta clase. El header pasa a stack vertical:
  *   row 1 → contenido original (hamburguesa · título · acciones)
- *   row 2 → checkpoint-bar (lista de lecciones del capítulo)
+ *   row 2 → checkpoint-bar (lista de lecciones del módulo)
  * Todo el conjunto es UNA sola capa sticky translúcida, así no hay
  * empalme visual entre dos elementos separados.
  *
@@ -677,24 +677,24 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Course detail (capítulos + lecciones)
+ * Course detail (módulos + lecciones)
  * ────────────────────────────────────────────────────────────────── */
 
-.curso-capitulos {
+.curso-modulos {
   display: flex;
   flex-direction: column;
   gap: var(--s-6);
   padding-bottom: var(--s-16);
 }
 
-.capitulo-card {
+.modulo-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--r-lg);
   overflow: hidden;
 }
 
-.capitulo-card__header {
+.modulo-card__header {
   padding: var(--s-5);
   display: flex;
   align-items: flex-start;
@@ -703,7 +703,7 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.capitulo-card__num {
+.modulo-card__num {
   font-size: 0.6875rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -712,20 +712,20 @@
   margin-bottom: var(--s-1);
 }
 
-.capitulo-card__title {
+.modulo-card__title {
   font-family: var(--font-display);
   font-size: 1.375rem;
   font-weight: 400;
   letter-spacing: -0.01em;
 }
 
-.capitulo-card__desc {
+.modulo-card__desc {
   margin-top: var(--s-2);
   color: var(--color-text-muted);
   font-size: 0.9375rem;
 }
 
-.capitulo-card__progress {
+.modulo-card__progress {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -1833,7 +1833,7 @@
   margin-bottom: var(--s-3);
 }
 
-.leccion-page__crumb-cap {
+.leccion-page__crumb-modulo {
   color: var(--color-accent);
   font-weight: 500;
 }
@@ -2054,12 +2054,12 @@
   height: 14px;
 }
 
-.capitulo-card__bar {
+.modulo-card__bar {
   height: 2px;
   background: var(--color-bg-subtle);
 }
 
-.capitulo-card__bar-fill {
+.modulo-card__bar-fill {
   height: 100%;
   background: var(--color-accent);
   transition: width 0.4s ease;
@@ -2583,7 +2583,7 @@
   overflow: hidden;
 }
 
-/* Hero metadata, directora + capítulo en curso, displayed as definition list */
+/* Hero metadata, directora + módulo en curso, displayed as definition list */
 .curso-hero__meta {
   display: flex;
   flex-wrap: wrap;
@@ -2704,7 +2704,7 @@
   color: var(--color-success);
 }
 
-.continue-panel__cap {
+.continue-panel__modulo {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   font-weight: 500;
@@ -3030,7 +3030,7 @@
 
 .chapter-node__body { padding: 0 var(--s-1); }
 
-.chapter-node__cap {
+.chapter-node__modulo {
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -3588,7 +3588,7 @@
   line-height: 1.25;
 }
 
-.pillar-icon__cap {
+.pillar-icon__modulo {
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -3703,7 +3703,7 @@
 
 .continue-card--done .continue-card__eyebrow { color: var(--color-success); }
 
-.continue-card__cap {
+.continue-card__modulo {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   font-weight: 500;
@@ -3997,18 +3997,18 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Capítulo cards · ponente line + capítulos-list spacing
+ * Módulo cards · ponente line + módulos-list spacing
  * ────────────────────────────────────────────────────────────────── */
 
-.capitulos-list {
+.modulos-list {
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
 }
 
-.capitulo-card__head-info { flex: 1; }
+.modulo-card__head-info { flex: 1; }
 
-.capitulo-card__ponente {
+.modulo-card__ponente {
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
@@ -4020,7 +4020,7 @@
   color: var(--color-text-muted);
 }
 
-.capitulo-card__ponente svg {
+.modulo-card__ponente svg {
   width: 14px;
   height: 14px;
   color: var(--color-text-subtle);
@@ -7463,7 +7463,7 @@ button.foro-preview-item__thumb {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- * Capítulo 2+ · Autoevaluación SOPHIA (wedge)
+ * Módulo 2+ · Autoevaluación SOPHIA (wedge)
  *
  * Patrón compartido por los pilares (azul Autoconocimiento por ahora;
  * los otros pilares heredarán esta clase y solo cambiarán --area-color).

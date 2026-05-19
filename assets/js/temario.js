@@ -1,4 +1,4 @@
-// SOPHIA Portal · Temario del curso (lista de capítulos y lecciones)
+// SOPHIA Portal · Temario del curso (lista de módulos y lecciones)
 
 import { requireAuth } from "./auth.js";
 import { api, ApiError } from "./api.js";
@@ -53,10 +53,10 @@ import { loaderHtml } from "./loader.js";
 })();
 
 function renderTemario(persona, slug, payload) {
-  const { curso, inscripcion, capitulos } = payload;
+  const { curso, inscripcion, modulos } = payload;
 
-  const totalLecciones = capitulos.reduce((s, c) => s + c.lecciones.length, 0);
-  const completadas = capitulos.reduce(
+  const totalLecciones = modulos.reduce((s, c) => s + c.lecciones.length, 0);
+  const completadas = modulos.reduce(
     (s, c) => s + c.lecciones.filter((l) => l.completada).length,
     0,
   );
@@ -77,7 +77,7 @@ function renderTemario(persona, slug, payload) {
           </a>
           <h2 class="page-title">Temario</h2>
           <p class="page-subtitle">
-            ${capitulos.length} ${capitulos.length === 1 ? "capítulo" : "capítulos"} ·
+            ${modulos.length} ${modulos.length === 1 ? "módulo" : "módulos"} ·
             ${totalLecciones} ${totalLecciones === 1 ? "lección" : "lecciones"} ·
             ${progresoPct}% completado
           </p>
@@ -90,32 +90,32 @@ function renderTemario(persona, slug, payload) {
         </a>
       </header>
 
-      <div class="curso-capitulos">
-        ${capitulos.map(renderCapitulo).join("")}
+      <div class="curso-modulos">
+        ${modulos.map(renderModulo).join("")}
       </div>
     `,
   });
 }
 
-function renderCapitulo(cap) {
-  const totalLecc = cap.lecciones.length;
-  const doneLecc = cap.lecciones.filter((l) => l.completada).length;
+function renderModulo(mod) {
+  const totalLecc = mod.lecciones.length;
+  const doneLecc = mod.lecciones.filter((l) => l.completada).length;
   const pct = totalLecc > 0 ? Math.round((doneLecc / totalLecc) * 100) : 0;
   return `
-    <section class="capitulo-card">
-      <header class="capitulo-card__header">
+    <section class="modulo-card">
+      <header class="modulo-card__header">
         <div>
-          <div class="capitulo-card__num">Capítulo ${cap.orden}</div>
-          <h3 class="capitulo-card__title">${escapeHtml(cap.titulo)}</h3>
-          ${cap.descripcion ? `<p class="capitulo-card__desc">${escapeHtml(cap.descripcion)}</p>` : ""}
+          <div class="modulo-card__num">Módulo ${mod.orden}</div>
+          <h3 class="modulo-card__title">${escapeHtml(mod.titulo)}</h3>
+          ${mod.descripcion ? `<p class="modulo-card__desc">${escapeHtml(mod.descripcion)}</p>` : ""}
         </div>
-        <div class="capitulo-card__progress">${doneLecc} / ${totalLecc}</div>
+        <div class="modulo-card__progress">${doneLecc} / ${totalLecc}</div>
       </header>
-      <div class="capitulo-card__bar">
-        <div class="capitulo-card__bar-fill" style="width: ${pct}%;"></div>
+      <div class="modulo-card__bar">
+        <div class="modulo-card__bar-fill" style="width: ${pct}%;"></div>
       </div>
       <ol class="leccion-list">
-        ${cap.lecciones.map(renderLeccion).join("")}
+        ${mod.lecciones.map(renderLeccion).join("")}
       </ol>
     </section>
   `;

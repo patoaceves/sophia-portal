@@ -71,6 +71,8 @@ export function lessonIcon(tipo) {
     case "live": return "lessonLive";
     case "test":
     case "autoeval": return "lessonTest";
+    case "quiz": return "lessonTest";
+    case "pdf": return "lessonDocumento";
     case "tarea": return "lessonTarea";
     default: return "lessonTexto";
   }
@@ -89,6 +91,8 @@ export function lessonTipoLabel(tipo) {
     case "live": return "Sesión en vivo";
     case "test":
     case "autoeval": return "Autoevaluación";
+    case "quiz": return "Actividad en clase";
+    case "pdf": return "Documento";
     case "tarea": return "Tarea";
     default: return tipo || "Lección";
   }

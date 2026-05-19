@@ -45,9 +45,9 @@ Cada banda incluye `lead` (texto descriptivo), 2 `steps` (siguientes pasos 1–2
 - `assets/js/test-autoconocimiento-resultados.js` — wedge SVG + banda + lead + steps (era ranking 24 + virtudes + signature)
 - `assets/js/curso.js` — `renderAutoconocimientoCajita` rewritten (mini-wedge + banda en lugar de top-3 fortalezas firma); helper `drawMiniWedge` agregado al final
 - `assets/css/shell.css` — borrados ~500 líneas de `.via-*` (signature, ranking, virtud, cajita); agregadas ~250 líneas de `.autoeval-*` (result page + cajita + band tag + wedge containers)
-- `docs/contenido-capitulo-1/01-bienvenida.html` — foto Mariana 200×200 → 100×100
-- `docs/contenido-capitulo-2/01-nota-tecnica.html` — foto Seligman 220 → 110 max-width (contenido VIA educativo intacto: la nota técnica enseña el modelo VIA, el test mide integración SOPHIA)
-- `docs/contenido-capitulo-2/03-autoeval.html` — intro reescrita: 8 preguntas, ~3 min, bandas, no más "24 fortalezas firma"
+- `docs/contenido-modulo-1/01-bienvenida.html` — foto Mariana 200×200 → 100×100
+- `docs/contenido-modulo-2/01-nota-tecnica.html` — foto Seligman 220 → 110 max-width (contenido VIA educativo intacto: la nota técnica enseña el modelo VIA, el test mide integración SOPHIA)
+- `docs/contenido-modulo-2/03-autoeval.html` — intro reescrita: 8 preguntas, ~3 min, bandas, no más "24 fortalezas firma"
 
 ### Backend (edge functions)
 

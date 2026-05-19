@@ -19,7 +19,7 @@ const ANUNCIOS_MOCK = [
     fecha: "2026-05-07",
     curso: "Happiness Workshop",
     titulo: "¡Bienvenido al Happiness Workshop!",
-    cuerpo: "Nos da mucho gusto que formes parte de la primera generación. Antes del martes 12 te recomendamos completar la lectura del Capítulo 1 (Bienvenida + Claustro + Nota técnica) y tomar el Test de Felicidad. Cualquier duda, responde este anuncio o escríbeme directamente.",
+    cuerpo: "Nos da mucho gusto que formes parte de la primera generación. Antes del martes 12 te recomendamos completar la lectura del Módulo 1 (Bienvenida + Claustro + Nota técnica) y tomar el Test de Felicidad. Cualquier duda, responde este anuncio o escríbeme directamente.",
     autor: "Natalia Arriaga",
     importante: true,
   },

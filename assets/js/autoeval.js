@@ -1,44 +1,59 @@
-// SOPHIA Portal · Autoevaluación Autoconocimiento (wizard de 8 preguntas).
+// SOPHIA Portal · Autoevaluación (wizard genérico de 8 preguntas).
 //
-// Modelo: los 8 niveles de integración del modelo SOPHIA (adecuadamente,
-// disfrute, emociones positivas, compromiso, logro, satisfacción, sentido,
-// trascendencia) aplicados al pilar Autoconocimiento. Una pregunta por
-// nivel, Likert 1–5 (Muy en desacuerdo → Muy de acuerdo).
+// Un solo wizard para los 8 pilares del modelo SOPHIA. El pilar concreto se
+// resuelve por `autoevalKey` (autoconocimiento, bienestar_emocional, …) y
+// todo su contenido —preguntas, color, textos de banda— vive en
+// `autoeval-defs.js`. Mismo formato para las 8: 8 preguntas (una por nivel
+// de integración), Likert 1–5, suma 8–40 → % → 4 bandas.
 //
-// Resultado: % de integración (de 0 a 100, basado en suma 8-40) +
-// banda (Fortaleza Actual / Zona Crecimiento / Área Atención / Área Vulnerable).
+// Modos de uso:
+//   1. Embedded — mountWizard() desde leccion.js (caso principal).
+//   2. Standalone — /app/autoevaluacion?autoeval=<key>[&inscripcion=X][&leccion=Y]
+//      (sin `autoeval` cae a `autoconocimiento` por compatibilidad con la
+//      ruta vieja /app/test-autoconocimiento).
 //
-// Modos de uso (idéntico al test-felicidad):
-//   1. Standalone (`/app/test-autoconocimiento?inscripcion=X[&leccion=Y]`)
-//   2. Embedded (mountWizard() desde leccion.js)
+// Reemplaza al antiguo test-autoconocimiento.js (que era específico de un
+// solo pilar).
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon } from "./icons.js";
-import { AUTOEVALS, ESCALA_LABELS } from "./autoeval-defs.js";
+import { getAutoevalDef, ESCALA_LABELS } from "./autoeval-defs.js";
 
-// Reusamos los mismos clases CSS (.test-wizard, .test-question, .dot-option, etc.)
-// del test-felicidad. NO duplicar estilos en shell.css.
-//
-// Las preguntas 2.0 viven en autoeval-defs.js (un set de 8 por pilar). Este
-// wizard mide el pilar Autoconocimiento; para cablear otro módulo basta
-// apuntar a AUTOEVALS[<pilar>]. La escala (1–5) y el puntaje (suma 8–40 →
-// % de integración → 4 bandas) no cambian: solo el texto de las preguntas.
-
-const AUTOEVAL = AUTOEVALS.autoconocimiento;
-const PREGUNTAS = AUTOEVAL.preguntas;
-
-// Color del pilar. Se aplica SOLO al wizard (barra de progreso, bolitas
-// activas, eyebrow) vía la CSS var --wizard-accent. No afecta el resto del módulo.
-const AREA_COLOR = AUTOEVAL.accentColor;
+// Reusa las clases CSS (.test-wizard, .test-question, .dot-option, …) del
+// test-felicidad. NO duplicar estilos en shell.css.
 
 // ────────────────────────────────────────────────────────────────────
 // Public API: mountWizard
 // ────────────────────────────────────────────────────────────────────
 
+/**
+ * Monta el wizard de una autoevaluación dentro de un contenedor.
+ * @param {object} opts
+ * @param {HTMLElement} opts.container
+ * @param {string} opts.autoevalKey · clave del pilar (ver autoeval-defs.js)
+ * @param {string} opts.inscripcionId
+ * @param {string} [opts.leccionId] · para marcar la lección como completada
+ * @param {string} [opts.cursoSlug] · para el botón "salir"
+ * @param {boolean} [opts.embedded=false]
+ * @param {function(result):void} [opts.onComplete]
+ */
 export function mountWizard(opts) {
+  const def = getAutoevalDef(opts.autoevalKey);
+  if (!def) {
+    opts.container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state__title">Autoevaluación no disponible</div>
+        <p class="empty-state__desc">No se encontró la autoevaluación solicitada.</p>
+      </div>`;
+    return null;
+  }
+
   const state = {
+    autoevalKey: opts.autoevalKey,
+    def,
+    preguntas: def.preguntas,
     inscripcionId: opts.inscripcionId,
     leccionId: opts.leccionId || null,
     cursoSlug: opts.cursoSlug || null,
@@ -52,26 +67,26 @@ export function mountWizard(opts) {
 
   state.container.addEventListener("click", (e) => clickHandler(state, e));
   // Tiñe SOLO el wizard (progreso + bolitas + eyebrow) con el color del
-  // pilar. Los descendientes lo heredan vía var(--wizard-accent).
-  state.container.style.setProperty("--wizard-accent", AREA_COLOR);
+  // pilar, vía la CSS var --wizard-accent. Los descendientes lo heredan.
+  state.container.style.setProperty("--wizard-accent", def.accentColor);
   renderInto(state);
   return state;
 }
 
 function renderInto(state) {
-  const total = PREGUNTAS.length;
+  const total = state.preguntas.length;
   const isIntro = state.currentIndex === -1;
   const pct = isIntro ? 0 : Math.round(((state.currentIndex + 1) / total) * 100);
 
   const bodyHtml = isIntro
-    ? renderIntro()
-    : renderPregunta(state.currentIndex, state.respuestas);
+    ? renderIntro(state)
+    : renderPregunta(state, state.currentIndex);
 
   const headerHtml = state.embedded ? "" : `
     <header class="test-wizard__header">
       <a href="${backHref(state)}" class="page-back">
         ${icon("chevronLeft")}
-        <span>Salir del test</span>
+        <span>Salir de la autoevaluación</span>
       </a>
       ${!isIntro ? `<div class="test-wizard__counter">Pregunta ${state.currentIndex + 1} de ${total}</div>` : ""}
     </header>
@@ -103,19 +118,21 @@ function backHref(state) {
     : "/app/cursos";
 }
 
-function renderIntro() {
+function renderIntro(state) {
+  const def = state.def;
   return `
     <div class="test-intro">
-      <span class="test-intro__eyebrow">Tu autoevaluación · Módulo 2</span>
-      <h2 class="test-intro__title">Autoconocimiento</h2>
+      <span class="test-intro__eyebrow">Tu autoevaluación</span>
+      <h2 class="test-intro__title">${escapeHtml(def.pilar)}</h2>
       <p class="test-intro__lead">
-        8 preguntas para medir qué tan integrado tienes el autoconocimiento
-        en tu vida, según los 8 niveles del modelo SOPHIA. Tarda unos 3 minutos.
+        8 preguntas para medir qué tan integrado tienes ${escapeHtml(def.pilar)}
+        en tu vida, según los 8 niveles de integración del modelo SOPHIA.
+        Tarda unos 3 minutos.
       </p>
       <p class="test-intro__note">
-        Responde en una escala del 1 al 5, donde 1 es Muy en desacuerdo y
-        5 es Muy de acuerdo. Sé honesto: el valor de la autoevaluación
-        depende totalmente de eso.
+        Responde en una escala del 1 al 5, donde 1 es ${escapeHtml(ESCALA_LABELS.min)}
+        y 5 es ${escapeHtml(ESCALA_LABELS.max)}. Sé honesto: el valor de la
+        autoevaluación depende totalmente de eso.
       </p>
       <button class="btn btn-accent btn-lg" data-test-action="start" type="button">
         <span>Comenzar evaluación</span>
@@ -125,10 +142,11 @@ function renderIntro() {
   `;
 }
 
-function renderPregunta(idx, respuestas) {
-  const p = PREGUNTAS[idx];
-  const selected = respuestas[p.id];
-  const isLast = idx === PREGUNTAS.length - 1;
+function renderPregunta(state, idx) {
+  const preguntas = state.preguntas;
+  const p = preguntas[idx];
+  const selected = state.respuestas[p.id];
+  const isLast = idx === preguntas.length - 1;
 
   const dots = [1, 2, 3, 4, 5].map((v) => {
     const active = selected === v;
@@ -147,7 +165,7 @@ function renderPregunta(idx, respuestas) {
 
   return `
     <article class="test-question">
-      <div class="test-question__pilar">Autoconocimiento · Pregunta ${idx + 1} de ${PREGUNTAS.length}</div>
+      <div class="test-question__pilar">${escapeHtml(state.def.pilar)} · Pregunta ${idx + 1} de ${preguntas.length}</div>
       <h2 class="test-question__texto">${escapeHtml(p.texto)}</h2>
 
       <div class="dot-scale">
@@ -185,7 +203,7 @@ async function clickHandler(state, e) {
 
   if (action === "answer") {
     const v = parseInt(btn.getAttribute("data-value"), 10);
-    const p = PREGUNTAS[state.currentIndex];
+    const p = state.preguntas[state.currentIndex];
     state.respuestas[p.id] = v;
 
     const allDots = btn.parentElement?.querySelectorAll(".dot-option");
@@ -194,7 +212,7 @@ async function clickHandler(state, e) {
       btn.classList.add("is-active");
     }
 
-    const isLast = state.currentIndex === PREGUNTAS.length - 1;
+    const isLast = state.currentIndex === state.preguntas.length - 1;
     if (isLast) {
       // NO auto-submit: re-renderear para mostrar el botón "Enviar".
       setTimeout(() => renderInto(state), 200);
@@ -216,9 +234,9 @@ async function clickHandler(state, e) {
   }
 
   if (action === "next") {
-    const isLast = state.currentIndex === PREGUNTAS.length - 1;
+    const isLast = state.currentIndex === state.preguntas.length - 1;
     if (isLast) {
-      await submitTest(state, btn);
+      await submitAutoeval(state, btn);
     } else {
       state.currentIndex += 1;
       renderInto(state);
@@ -227,12 +245,12 @@ async function clickHandler(state, e) {
   }
 }
 
-async function submitTest(state, submitBtn) {
+async function submitAutoeval(state, submitBtn) {
   if (state.submitting) return;
 
-  const missing = PREGUNTAS.find((p) => !state.respuestas[p.id]);
+  const missing = state.preguntas.find((p) => !state.respuestas[p.id]);
   if (missing) {
-    const missingIdx = PREGUNTAS.indexOf(missing);
+    const missingIdx = state.preguntas.indexOf(missing);
     state.currentIndex = missingIdx;
     renderInto(state);
     const card = state.container.querySelector(".test-question");
@@ -251,10 +269,14 @@ async function submitTest(state, submitBtn) {
   submitBtn.innerHTML = `<span>Enviando…</span>`;
 
   try {
-    const result = await api.submitAutoconocimiento(state.inscripcionId, state.respuestas);
+    const result = await api.submitAutoeval(
+      state.autoevalKey,
+      state.inscripcionId,
+      state.respuestas,
+    );
     if (state.leccionId) {
       try { await api.marcarLeccion(state.leccionId, state.inscripcionId); } catch (e) {
-        console.warn("[autoconocimiento] marcarLeccion failed (non-fatal):", e);
+        console.warn("[autoeval] marcarLeccion failed (non-fatal):", e);
       }
     }
     if (state.onComplete) {
@@ -262,11 +284,12 @@ async function submitTest(state, submitBtn) {
     } else {
       const slugParam = state.cursoSlug ? `&slug=${encodeURIComponent(state.cursoSlug)}` : "";
       location.replace(
-        `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(result.respuestaId)}${slugParam}`,
+        `/app/autoevaluacion/resultados?autoeval=${encodeURIComponent(state.autoevalKey)}` +
+        `&id=${encodeURIComponent(result.respuestaId)}${slugParam}`,
       );
     }
   } catch (err) {
-    console.error("[autoconocimiento] Submit failed:", err);
+    console.error("[autoeval] Submit failed:", err);
     state.submitting = false;
     submitBtn.disabled = false;
     submitBtn.innerHTML = `<span>Reintentar</span> ${icon("arrowRight")}`;
@@ -278,8 +301,9 @@ async function submitTest(state, submitBtn) {
 // Standalone bootstrap
 // ────────────────────────────────────────────────────────────────────
 
-const isStandalone = location.pathname.startsWith("/app/test-autoconocimiento")
-  && !location.pathname.startsWith("/app/test-autoconocimiento/resultados");
+const isStandalone =
+  location.pathname.startsWith("/app/autoevaluacion")
+  && !location.pathname.startsWith("/app/autoevaluacion/resultados");
 
 if (isStandalone) {
   bootstrapStandalone();
@@ -290,9 +314,27 @@ async function bootstrapStandalone() {
   if (!persona) return;
 
   const params = new URLSearchParams(location.search);
+  // Sin ?autoeval=, cae a autoconocimiento (compat con la ruta vieja).
+  const autoevalKey = params.get("autoeval") || "";
+  const def = getAutoevalDef(autoevalKey);
+
   let inscripcionId = params.get("inscripcion");
   const leccionId = params.get("leccion");
   let cursoSlug = null;
+
+  if (!def) {
+    renderShell({
+      persona,
+      title: "Autoevaluación",
+      activePath: "/app/cursos",
+      contentHtml: `
+        <div class="empty-state">
+          <div class="empty-state__title">Autoevaluación no encontrada</div>
+          <p class="empty-state__desc">La autoevaluación solicitada no existe. <a href="/app/cursos">Ver mis cursos</a>.</p>
+        </div>`,
+    });
+    return;
+  }
 
   if (!inscripcionId) {
     try {
@@ -316,33 +358,30 @@ async function bootstrapStandalone() {
   if (!inscripcionId) {
     renderShell({
       persona,
-      title: "Autoevaluación Autoconocimiento",
+      title: `Autoevaluación · ${def.pilar}`,
       activePath: "/app/cursos",
       contentHtml: `
         <div class="empty-state">
           <div class="empty-state__title">No estás inscrito en el curso de esta autoevaluación</div>
-          <p class="empty-state__desc">La autoevaluación de Autoconocimiento es parte de un workshop. <a href="/app/cursos">Ver mis cursos</a>.</p>
-        </div>
-      `,
+          <p class="empty-state__desc">La autoevaluación de ${escapeHtml(def.pilar)} es parte de un workshop. <a href="/app/cursos">Ver mis cursos</a>.</p>
+        </div>`,
     });
     return;
   }
 
   renderShell({
     persona,
-    title: "Autoevaluación · Autoconocimiento",
+    title: `Autoevaluación · ${def.pilar}`,
     activePath: "/app/cursos",
-    contentHtml: `<div id="testWizardMount"></div>`,
+    contentHtml: `<div id="autoevalMount"></div>`,
   });
 
-  const container = document.getElementById("testWizardMount");
   mountWizard({
-    container,
+    container: document.getElementById("autoevalMount"),
+    autoevalKey,
     inscripcionId,
     leccionId,
     cursoSlug,
     embedded: false,
   });
 }
-
-export const AUTOCONOCIMIENTO_PREGUNTAS = PREGUNTAS;

@@ -1,9 +1,9 @@
-# SOPHIA Portal · v25 — Reestructuración del Capítulo 2 (Autoconocimiento)
+# SOPHIA Portal · v25 — Reestructuración del Módulo 2 (Autoconocimiento)
 
 Se reorganizó el Cap 2 a **6 lecciones** y se agregaron **dos formatos de
 lección nuevos** que el portal no tenía: visor de PDF nativo y wizard de quiz.
 
-## Nuevo orden del Capítulo 2
+## Nuevo orden del Módulo 2
 
 | # | Lección | Formato | Cambio |
 |---|---|---|---|
@@ -98,7 +98,7 @@ supabase/functions/get-resultados-quiz/index.ts · NUEVO
   párrafos; `renderIntro()` los pinta como `<p>` separados.
 - **Tag de la lección**: el encabezado de lección ya no muestra la
   etiqueta (PRE / En clase / …) junto al tipo — solo el tipo. La etiqueta
-  sigue visible en la lista del capítulo.
+  sigue visible en la lista del módulo.
 - **Pantalla final del quiz**: se quitó el resumen de respuestas, la
   fecha de envío y la mención a "resumen". Ahora solo confirma
   "Actividad completada" y el botón para continuar.

@@ -21,7 +21,7 @@ curl https://api.airtable.com/v0/meta/bases/app0S6GrJQ8YatvCc/tables \
 ## Modelo de datos · visión general
 
 ```
-Cursos                ← template del contenido (capítulos, lecciones)
+Cursos                ← template del contenido (módulos, lecciones)
   │
   └── Cohortes        ← cada generación = 1 cohorte (fecha inicio, capacidad)
         │
@@ -59,7 +59,7 @@ Template del curso. Define el contenido pero no la fecha ni la cohorte específi
 | Color primario | `fldF45BjJoMU90jUP` | singleLineText | hex |
 | Modalidad | `fldwRC5bsmiwqsUlP` | singleSelect | |
 | Estatus | `fld6yNo5RZiHHWO8X` | singleSelect | |
-| Capítulos | `fldAkJ8rPjrZr2llL` | multipleRecordLinks | ← Capítulos.Curso |
+| Módulos | `fldAkJ8rPjrZr2llL` | multipleRecordLinks | ← Módulos.Curso |
 | Inscripciones | `fldEcnmyKO9EqQerO` | multipleRecordLinks | ← Inscripciones.Curso (legacy) |
 | **Cohortes** | `flddYCyaYUFnuSysI` | multipleRecordLinks | ← Cohortes.Curso |
 
@@ -169,9 +169,9 @@ Tabla canónica. `auth-bootstrap` crea/actualiza acá. La sync propaga a Portal.
 
 ### Resto de tablas
 
-Sin cambios respecto a v8: Capítulos, Lecciones, ProgresoLecciones, Tests, Tareas, Autoevaluaciones, Sesiones, Anuncios, Certificados, Organizaciones.
+Sin cambios respecto a v8: Módulos, Lecciones, ProgresoLecciones, Tests, Tareas, Autoevaluaciones, Sesiones, Anuncios, Certificados, Organizaciones.
 
-> **v17 · Capítulo 2 · Autoconocimiento.** La tabla `Autoevaluaciones` debe tener
+> **v17 · Módulo 2 · Autoconocimiento.** La tabla `Autoevaluaciones` debe tener
 > dos registros conocidos por las edge functions:
 >
 > | Título | Tipo | Record ID | Edge functions que lo usan |

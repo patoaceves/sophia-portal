@@ -98,11 +98,11 @@ En la tabla `Autoevaluaciones`, crear un registro:
 - Título: `Test de Felicidad`
 - Tipo: `evalfelicidad`
 
-Después, en la lección 5 del Capítulo 1 de Happiness Workshop, linkearla a este registro.
+Después, en la lección 5 del Módulo 1 de Happiness Workshop, linkearla a este registro.
 
-## Paso 6 · Cargar contenido del Capítulo 1
+## Paso 6 · Cargar contenido del Módulo 1
 
-Abre los archivos en `docs/contenido-capitulo-1/` y copia el HTML al campo `Contenido_HTML`
+Abre los archivos en `docs/contenido-modulo-1/` y copia el HTML al campo `Contenido_HTML`
 de cada lección. Ver el README de esa carpeta para los detalles.
 
 ## Paso 7 · Crear inscripción de prueba (Pato)

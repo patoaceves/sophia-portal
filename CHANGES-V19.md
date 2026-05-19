@@ -17,7 +17,7 @@ usuario presiona cuando esté listo.
 ## 2. Color de pilar en el wizard de autoevaluación
 
 Cada autoevaluación tiene un color. Ahora **solo el wizard** (no todo el
-capítulo) refleja ese color: barra de progreso, bolitas (hover + activas),
+módulo) refleja ese color: barra de progreso, bolitas (hover + activas),
 eyebrow del pilar, chips del intro y el botón "Enviar".
 
 - `test-autoconocimiento.js` — setea `--wizard-accent: #66a3f4` en el
@@ -61,8 +61,8 @@ seguían a tamaño natural aunque el HTML tenía `width:100px`.
     (foto de Mariana, creadora del programa).
   - `.leccion-html .hw-figure-portrait` — retrato flotado 110px con marco
     de color `--hw-frame` (default azul `#66a3f4`) (foto de Seligman).
-- `docs/contenido-capitulo-1/01-bienvenida.html` — `<figure class="hw-figure-avatar">`
-- `docs/contenido-capitulo-2/01-nota-tecnica.html` — `<figure class="hw-figure-portrait">`
+- `docs/contenido-modulo-1/01-bienvenida.html` — `<figure class="hw-figure-avatar">`
+- `docs/contenido-modulo-2/01-nota-tecnica.html` — `<figure class="hw-figure-portrait">`
 - Airtable: `recZPBwbvzDU1xOCQ` y `recwSO28ZC75ZSGB2` sincronizados.
 
 ## Deploy

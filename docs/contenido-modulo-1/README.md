@@ -1,4 +1,4 @@
-# Contenido · Capítulo 1: Introducción a Happiness Workshop
+# Contenido · Módulo 1: Introducción a Happiness Workshop
 
 Estos archivos contienen el HTML que va en el campo `Contenido_HTML` (rich text) de cada lección.
 Cópialos a Airtable así:

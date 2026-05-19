@@ -1,8 +1,8 @@
-# Contenido · Capítulo 2: Autoconocimiento (v25)
+# Contenido · Módulo 2: Autoconocimiento (v25)
 
 Estos archivos contienen el HTML que va en el campo `Contenido_HTML` (rich text) de cada lección en Airtable.
 
-## Estructura del capítulo (v25)
+## Estructura del módulo (v25)
 
 | # | Archivo | Lección en Airtable | Tipo | Etiqueta |
 |---|---|---|---|---|
@@ -24,6 +24,6 @@ La lección 4 (`quiz`) lee su clave desde `Url_Externa` = `"gnothi-seauton"`.
 
 ## Archivos históricos
 
-`01-nota-tecnica.html` y `02-caso.html` corresponden a la versión anterior del capítulo
+`01-nota-tecnica.html` y `02-caso.html` corresponden a la versión anterior del módulo
 (antes de v25, cuando esas lecciones eran tipo `texto`). Ya no se usan — las lecciones 2 y 3
 pasaron a tipo `pdf`. Se conservan como referencia.

@@ -3,7 +3,7 @@
 // Vista panorámica del avance del alumno. Combina datos de get-mis-cursos
 // (cursos inscritos + progreso por curso) con la respuesta del Test de
 // Felicidad (si la tomó). En el futuro se le puede agregar racha de días,
-// tiempo dedicado por capítulo, etc.
+// tiempo dedicado por módulo, etc.
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";

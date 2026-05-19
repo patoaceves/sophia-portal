@@ -322,9 +322,12 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { tieneResultados: false });
     }
 
-    // Todas las respuestas de actividades en clase; filtramos en JS por
-    // lección y por inscripción del usuario (los campos link devuelven IDs).
-    const all = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {});
+    // Respuestas de actividades en clase ligadas a esta lección. Filtramos
+    // server-side por el link de Lección (con field ID, ver regla de oro) y
+    // luego en JS por inscripción del usuario.
+    const all = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
+      filterByFormula: `FIND('${leccionId.replace(/'/g, "\\'")}', ARRAYJOIN({${FIELDS.ACTIVIDADES.LECCION}}))`,
+    });
     const mine = all.filter((r) => {
       const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
       const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];

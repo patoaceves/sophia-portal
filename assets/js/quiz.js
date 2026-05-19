@@ -107,7 +107,7 @@ function render(state) {
   }
 
   if (state.submitted) {
-    state.container.innerHTML = renderResumen(state);
+    state.container.innerHTML = renderResumen();
     return;
   }
 
@@ -238,7 +238,7 @@ function renderTextArea(p, value) {
  * Pantalla de cierre — se muestra tras enviar Y al volver a entrar a una
  * actividad ya completada. Solo confirma; no muestra las respuestas.
  */
-function renderResumen(state) {
+function renderResumen() {
   return `
     <div class="quiz-resumen">
       <div class="quiz-resumen__head">

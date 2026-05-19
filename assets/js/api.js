@@ -118,7 +118,7 @@ export const api = {
     return data;
   },
 
-  /** GET /get-curso?slug= → { curso, inscripcion, capitulos } */
+  /** GET /get-curso?slug= → { curso, inscripcion, modulos } */
   async curso(slug) {
     const key = `api:curso:${slug}`;
     const hit = cacheGet(key);
@@ -128,7 +128,7 @@ export const api = {
     return data;
   },
 
-  /** GET /get-leccion?id= → { leccion, capituloId, cursoId, inscripcionId, prevId, nextId } */
+  /** GET /get-leccion?id= → { leccion, moduloId, cursoId, inscripcionId, prevId, nextId } */
   async leccion(id) {
     const key = `api:leccion:${id}`;
     const hit = cacheGet(key);
@@ -194,6 +194,36 @@ export const api = {
   async resultadosAutoconocimiento(respuestaId) {
     const query = respuestaId ? { id: respuestaId } : undefined;
     const { data } = await callEdge("get-resultados-autoconocimiento", { query });
+    return data;
+  },
+
+  /**
+   * POST /submit-autoeval
+   * Autoevaluación genérica de un pilar (8 preguntas Likert 1–5).
+   * `autoevalKey` ∈ autoconocimiento, bienestar_emocional, bienestar_fisico,
+   * presencia_consciente, trabajo_proposito, vinculos_vitales,
+   * estetica_existencial, fe_filosofia.
+   * → { respuestaId, autoevalKey, total, pct, banda, completedAt }
+   */
+  async submitAutoeval(autoevalKey, inscripcionId, respuestas) {
+    const { data } = await callEdge("submit-autoeval", {
+      method: "POST",
+      body: { autoevalKey, inscripcionId, respuestas },
+    });
+    return data;
+  },
+
+  /**
+   * GET /get-resultados-autoeval
+   * - resultadosAutoeval(autoevalKey)              → último intento del usuario
+   * - resultadosAutoeval(autoevalKey, respuestaId) → intento específico
+   * → { tieneResultados, respuestaId, autoevalKey, total, pct, banda, completedAt }
+   */
+  async resultadosAutoeval(autoevalKey, respuestaId) {
+    const query = respuestaId
+      ? { autoeval: autoevalKey, id: respuestaId }
+      : { autoeval: autoevalKey };
+    const { data } = await callEdge("get-resultados-autoeval", { query });
     return data;
   },
 

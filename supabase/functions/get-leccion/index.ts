@@ -116,7 +116,7 @@ const BASES = {
 } as const;
 
 const TABLES = {
-  CAPITULOS: "tblFHDXmg47igVihD",
+  MODULOS: "tblFHDXmg47igVihD",
   LECCIONES: "tblBjfch6rc5ey7nn",
   INSCRIPCIONES: "tblIT40GILMUHhLKK",
   PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
@@ -125,7 +125,7 @@ const TABLES = {
 } as const;
 
 const FIELDS = {
-  CAPITULOS: {
+  MODULOS: {
     CURSO: "fldYXfwCaNILYPhkV",
     LECCIONES: "fld6zL7apr0D82dgJ",
     TITULO: "fldyuVY3I4StxA5Fe",
@@ -134,7 +134,7 @@ const FIELDS = {
   },
   LECCIONES: {
     TITULO: "fldMtiOdTsLzqa7Zc",
-    CAPITULO: "fld1olLdvNSup3YMc",
+    MODULO: "fld1olLdvNSup3YMc",
     ORDEN: "fldCbdktDhca3mwJs",
     TIPO: "fldALQfCvsjblaV2f",
     ETIQUETA: "fld9ooqaUifHmUaG5",
@@ -460,19 +460,19 @@ Deno.serve(async (req) => {
     if (!leccion) throw new HttpError(404, "Lección not found");
     const lf = leccion.fields;
 
-    // 2. Walk up: leccion -> capitulo
-    const capituloLinks = (lf[FIELDS.LECCIONES.CAPITULO] as string[]) ?? [];
-    const capituloId = capituloLinks[0];
-    if (!capituloId) throw new HttpError(422, "Lección has no capítulo");
+    // 2. Walk up: leccion -> modulo
+    const moduloLinks = (lf[FIELDS.LECCIONES.MODULO] as string[]) ?? [];
+    const moduloId = moduloLinks[0];
+    if (!moduloId) throw new HttpError(422, "Lección has no módulo");
 
-    const capitulo = await getRecord(BASES.PORTAL, TABLES.CAPITULOS, capituloId);
-    if (!capitulo) throw new HttpError(404, "Capítulo not found");
-    const cf = capitulo.fields;
+    const modulo = await getRecord(BASES.PORTAL, TABLES.MODULOS, moduloId);
+    if (!modulo) throw new HttpError(404, "Módulo not found");
+    const cf = modulo.fields;
 
-    // 3. Walk up: capitulo -> curso
-    const cursoLinks = (cf[FIELDS.CAPITULOS.CURSO] as string[]) ?? [];
+    // 3. Walk up: modulo -> curso
+    const cursoLinks = (cf[FIELDS.MODULOS.CURSO] as string[]) ?? [];
     const cursoId = cursoLinks[0];
-    if (!cursoId) throw new HttpError(422, "Capítulo has no curso");
+    if (!cursoId) throw new HttpError(422, "Módulo has no curso");
 
     // 4. Validate enrollment (filter client-side: Airtable can't match record
     // IDs in linked-record fields via filterByFormula).
@@ -488,7 +488,7 @@ Deno.serve(async (req) => {
     const inscripcionId = inscripciones[0].id;
 
     // 5. Sibling lessons (same chapter) for prev/next
-    const siblingIds = (cf[FIELDS.CAPITULOS.LECCIONES] as string[]) ?? [];
+    const siblingIds = (cf[FIELDS.MODULOS.LECCIONES] as string[]) ?? [];
     const sibRows = siblingIds.length
       ? await listRecords(BASES.PORTAL, TABLES.LECCIONES, {
           filterByFormula: `OR(${siblingIds.map((id) => `RECORD_ID()='${id}'`).join(",")})`,
@@ -556,12 +556,12 @@ Deno.serve(async (req) => {
         completada,
         completadaEn,
       },
-      capituloId,
-      capitulo: {
-        id: capituloId,
-        titulo: (cf[FIELDS.CAPITULOS.TITULO] as string) ?? "",
-        orden: (cf[FIELDS.CAPITULOS.ORDEN] as number) ?? 0,
-        ponente: (cf[FIELDS.CAPITULOS.PONENTE] as string) ?? "",
+      moduloId,
+      modulo: {
+        id: moduloId,
+        titulo: (cf[FIELDS.MODULOS.TITULO] as string) ?? "",
+        orden: (cf[FIELDS.MODULOS.ORDEN] as number) ?? 0,
+        ponente: (cf[FIELDS.MODULOS.PONENTE] as string) ?? "",
       },
       cursoId,
       inscripcionId,

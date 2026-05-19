@@ -11,7 +11,7 @@ autoevaluaciones (una por dimensión). En mobile cae a 1 columna.
 - `assets/css/shell.css` — nueva regla `.autoeval-cajitas-grid` con
   `grid-template-columns: repeat(auto-fill, minmax(420px, 1fr))`
 
-## 2. Barra de progreso de capítulos: color uniforme
+## 2. Barra de progreso de módulos: color uniforme
 
 Antes cada pilar tenía su color (Autoconocimiento navy via `--pillar-mental`,
 otros con sus dim colors). Ahora **todos los progress-fills usan el rojo de

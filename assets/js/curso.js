@@ -25,14 +25,14 @@ import { openForoLightbox } from "./foro-lightbox.js";
 const LOCAL_COVERS = new Set(["happiness-workshop"]);
 
 const PILARES = [
-  { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },      // cap 2
-  { key: "bienestar_fisico",      file: "bienestar-fisico",      dim: "fisico",    name: "Bienestar Físico" },       // cap 3
-  { key: "presencia_consciente",  file: "presencia-consciente",  dim: "fisico",    name: "Presencia Consciente" },   // cap 4
-  { key: "bienestar_emocional",   file: "bienestar-emocional",   dim: "afectivo",  name: "Bienestar Emocional" },    // cap 5
-  { key: "trabajo_proposito",     file: "trabajo-proposito",     dim: "mental",    name: "Trabajo con Propósito" },  // cap 6
-  { key: "estetica_existencial",  file: "estetica-existencial",  dim: "spiritual", name: "Estética Existencial" },   // cap 7
-  { key: "vinculos_vitales",      file: "vinculos-vitales",      dim: "afectivo",  name: "Vínculos Vitales" },       // cap 8
-  { key: "fe_filosofia",          file: "fe-filosofia",          dim: "spiritual", name: "Fe y Filosofía" },         // cap 9
+  { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },      // mod 2
+  { key: "bienestar_fisico",      file: "bienestar-fisico",      dim: "fisico",    name: "Bienestar Físico" },       // mod 3
+  { key: "presencia_consciente",  file: "presencia-consciente",  dim: "fisico",    name: "Presencia Consciente" },   // mod 4
+  { key: "bienestar_emocional",   file: "bienestar-emocional",   dim: "afectivo",  name: "Bienestar Emocional" },    // mod 5
+  { key: "trabajo_proposito",     file: "trabajo-proposito",     dim: "mental",    name: "Trabajo con Propósito" },  // mod 6
+  { key: "estetica_existencial",  file: "estetica-existencial",  dim: "spiritual", name: "Estética Existencial" },   // mod 7
+  { key: "vinculos_vitales",      file: "vinculos-vitales",      dim: "afectivo",  name: "Vínculos Vitales" },       // mod 8
+  { key: "fe_filosofia",          file: "fe-filosofia",          dim: "spiritual", name: "Fe y Filosofía" },         // mod 9
 ];
 
 // "test" REMOVED from valid tabs.
@@ -94,20 +94,20 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
 
 // ────────────────────────────────────────────────────────────────────
 function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento) {
-  const { curso, inscripcion, capitulos } = payload;
+  const { curso, inscripcion, modulos } = payload;
 
-  const totalLecc = capitulos.reduce((s, c) => s + c.lecciones.length, 0);
-  const completadas = capitulos.reduce(
+  const totalLecc = modulos.reduce((s, c) => s + c.lecciones.length, 0);
+  const completadas = modulos.reduce(
     (s, c) => s + c.lecciones.filter((l) => l.completada).length, 0,
   );
   const progresoPct = totalLecc > 0 ? Math.round((completadas / totalLecc) * 100) : 0;
 
-  const next = findNextLeccion(capitulos);
+  const next = findNextLeccion(modulos);
 
   const coverUrl = curso.coverUrl
     || (LOCAL_COVERS.has(slug) ? `/assets/img/${slug}/portada.png` : null);
 
-  const ctx = { persona, slug, curso, inscripcion, capitulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento };
+  const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento };
 
   const panels = {
     resumen:  renderResumenTab(ctx),
@@ -174,11 +174,11 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
   // se carga para que esté listo cuando vuelva al resumen.
   fetchForoPreview(ctx.curso.id);
 
-  // Prefetch en background: lección siguiente + todas las del primer capítulo
+  // Prefetch en background: lección siguiente + todas las del primer módulo
   // Esto hace que la primera navegacion sea instantanea (sin cold start)
   setTimeout(() => {
     if (ctx.next?.id) api.leccion(ctx.next.id).catch(() => {});
-    const primerasLecciones = (ctx.capitulos[0]?.lecciones ?? []).slice(0, 4);
+    const primerasLecciones = (ctx.modulos[0]?.lecciones ?? []).slice(0, 4);
     primerasLecciones.forEach(l => api.leccion(l.id).catch(() => {}));
   }, 1200);
 }
@@ -336,12 +336,12 @@ function ensureForoMounted() {
 // Hero · horizontal layout: image (5:4) on the left, content on the right
 //
 // Right side now includes additional metadata: directora del programa
-// and current chapter ("Vas en el capítulo X de N").
+// and current chapter ("Vas en el módulo X de N").
 // ────────────────────────────────────────────────────────────────────
 function renderHero(curso, coverUrl, ctx) {
   const directora = ctx?.curso?.instructor || "Mariana Riojas";
-  const capituloEnCurso = findCurrentCapitulo(ctx?.capitulos || []);
-  const totalCaps = ctx?.capitulos?.length || 0;
+  const moduloEnCurso = findCurrentModulo(ctx?.modulos || []);
+  const totalModulos = ctx?.modulos?.length || 0;
 
   return `
     <header class="curso-hero">
@@ -366,12 +366,12 @@ function renderHero(curso, coverUrl, ctx) {
                 <dd>${escapeHtml(directora)}</dd>
               </div>
             ` : ""}
-            ${capituloEnCurso ? `
+            ${moduloEnCurso ? `
               <div class="curso-hero__meta-item">
-                <dt>${capituloEnCurso.done ? "Completado" : "Vas en"}</dt>
-                <dd>${capituloEnCurso.done
-                  ? `${totalCaps} de ${totalCaps} capítulos`
-                  : `Capítulo ${capituloEnCurso.orden}${totalCaps ? ` de ${totalCaps}` : ""}`}</dd>
+                <dt>${moduloEnCurso.done ? "Completado" : "Vas en"}</dt>
+                <dd>${moduloEnCurso.done
+                  ? `${totalModulos} de ${totalModulos} módulos`
+                  : `Módulo ${moduloEnCurso.orden}${totalModulos ? ` de ${totalModulos}` : ""}`}</dd>
               </div>
             ` : ""}
           </dl>
@@ -385,12 +385,12 @@ function renderHero(curso, coverUrl, ctx) {
  * Find the chapter the student is currently in (first one with at least
  * one incomplete lesson). Returns { orden, done } or null if all done.
  */
-function findCurrentCapitulo(capitulos) {
-  for (const c of capitulos) {
+function findCurrentModulo(modulos) {
+  for (const c of modulos) {
     const incomplete = c.lecciones.some(l => !l.completada);
     if (incomplete) return { orden: c.orden, done: false };
   }
-  if (capitulos.length > 0) return { orden: capitulos.length, done: true };
+  if (modulos.length > 0) return { orden: modulos.length, done: true };
   return null;
 }
 
@@ -425,7 +425,7 @@ function renderTabsNav(slug, currentTab) {
 //   4. Material adicional (mini-cards en su propia sección)
 // ────────────────────────────────────────────────────────────────────
 function renderResumenTab(ctx) {
-  const { capitulos, totalLecc, completadas, resultadoAutoconocimiento, slug } = ctx;
+  const { modulos, totalLecc, completadas, resultadoAutoconocimiento, slug } = ctx;
 
   return `
     <div class="resumen-row">
@@ -436,11 +436,11 @@ function renderResumenTab(ctx) {
     <section class="pillar-grid">
       <header class="pillar-grid__header">
         <span class="pillar-grid__eyebrow">Las 8 dimensiones del bienestar</span>
-        <h3 class="pillar-grid__title">Tu camino, capítulo por capítulo</h3>
-        <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su capítulo.</p>
+        <h3 class="pillar-grid__title">Tu camino, módulo por módulo</h3>
+        <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su módulo.</p>
       </header>
       <div class="pillar-grid__grid">
-        ${PILARES.map((p, i) => renderPillarIcon(p, i, capitulos, { resultadoAutoconocimiento, slug })).join("")}
+        ${PILARES.map((p, i) => renderPillarIcon(p, i, modulos, { resultadoAutoconocimiento, slug })).join("")}
       </div>
     </section>
 
@@ -454,7 +454,7 @@ function renderResumenTab(ctx) {
           <div class="mini-tab-card__icon">${icon("temario")}</div>
           <div class="mini-tab-card__body">
             <span class="mini-tab-card__eyebrow">Temario</span>
-            <h4 class="mini-tab-card__title">${capitulos.length} capítulos · ${totalLecc} lecciones</h4>
+            <h4 class="mini-tab-card__title">${modulos.length} módulos · ${totalLecc} lecciones</h4>
             <p class="mini-tab-card__lead">${completadas} completadas</p>
           </div>
           ${icon("arrowRight")}
@@ -488,7 +488,7 @@ function renderResumenTab(ctx) {
  * descripción de qué sigue + botón continuar.
  */
 function renderProgressStrip(ctx) {
-  const { capitulos, totalLecc, completadas, progresoPct, next, slug } = ctx;
+  const { modulos, totalLecc, completadas, progresoPct, next, slug } = ctx;
 
   if (!next) {
     return `
@@ -504,13 +504,13 @@ function renderProgressStrip(ctx) {
     `;
   }
 
-  const cap = capitulos.find(c => c.lecciones.some(l => l.id === next.id));
+  const mod = modulos.find(c => c.lecciones.some(l => l.id === next.id));
   return `
     <section class="curso-progress-strip">
       <div class="curso-progress-strip__main">
         <span class="curso-progress-strip__eyebrow">${progresoPct === 0 ? "Para comenzar" : "Continúa donde te quedaste"}</span>
         <p class="curso-progress-strip__meta">
-          ${cap ? `Capítulo ${cap.orden} · ` : ""}
+          ${mod ? `Módulo ${mod.orden} · ` : ""}
           <strong>${escapeHtml(next.titulo)}</strong>
           · ${completadas} de ${totalLecc} lecciones (${progresoPct}%)
         </p>
@@ -817,8 +817,8 @@ function truncate(s, n) {
  *   "Ver mis resultados" que va directo al análisis completo.
  */
 function renderTestCajita(ctx) {
-  const { capitulos, resultadoTest } = ctx;
-  const testLecc = capitulos.flatMap(c => c.lecciones).find(l =>
+  const { modulos, resultadoTest } = ctx;
+  const testLecc = modulos.flatMap(c => c.lecciones).find(l =>
     l.tipo === "test" && /felicidad/i.test(l.titulo + " " + (l.etiqueta || "")),
   );
   const taken = !!resultadoTest?.tieneResultados;
@@ -833,7 +833,7 @@ function renderTestCajita(ctx) {
           <span class="test-cajita__eyebrow">Tu evaluación inicial</span>
           <h3 class="test-cajita__title">Tu diagrama de felicidad</h3>
         </div>
-        <p class="test-cajita__lead">Completa el Capítulo 1 y obtén tu diagnóstico personalizado en 8 pilares.</p>
+        <p class="test-cajita__lead">Completa el Módulo 1 y obtén tu diagnóstico personalizado en 8 pilares.</p>
       </section>
     `;
   }
@@ -860,15 +860,15 @@ function renderTestCajita(ctx) {
   `;
 }
 
-function renderPillarIcon(pillar, idx, capitulos, autoevalCtx = {}) {
-  const cap = capitulos.find(c => c.orden === idx + 2);
+function renderPillarIcon(pillar, idx, modulos, autoevalCtx = {}) {
+  const mod = modulos.find(c => c.orden === idx + 2);
   let progress = 0, total = 0, done = 0;
-  if (cap) {
-    total = cap.lecciones.length;
-    done = cap.lecciones.filter(l => l.completada).length;
+  if (mod) {
+    total = mod.lecciones.length;
+    done = mod.lecciones.filter(l => l.completada).length;
     progress = total > 0 ? done / total : 0;
   }
-  const state = !cap ? "locked"
+  const state = !mod ? "locked"
     : progress === 1 && total > 0 ? "done"
     : progress > 0 ? "in-progress"
     : "todo";
@@ -891,14 +891,14 @@ function renderPillarIcon(pillar, idx, capitulos, autoevalCtx = {}) {
         ${state === "done" ? `<span class="pillar-icon__check">${icon("check")}</span>` : ""}
       </div>
       <div class="pillar-icon__name">${escapeHtml(pillar.name)}</div>
-      ${cap ? `
-        <div class="pillar-icon__cap">Capítulo ${cap.orden}</div>
+      ${mod ? `
+        <div class="pillar-icon__modulo">Módulo ${mod.orden}</div>
         <div class="pillar-icon__progress">
           <div class="pillar-icon__progress-fill" style="width: ${progress * 100}%;"></div>
         </div>
         <div class="pillar-icon__count">${done} / ${total}</div>
       ` : `
-        <div class="pillar-icon__cap">Por publicarse</div>
+        <div class="pillar-icon__modulo">Por publicarse</div>
       `}
       ${popupHtml}
     </article>
@@ -966,24 +966,24 @@ function renderPillarAutoevalPopup(pillar, { resultadoAutoconocimiento, slug } =
 /**
  * Cajita de la Autoevaluación de Autoconocimiento en el Resumen.
  *
- * - Si NO la tomó: card de invitación (sólo si el cap 2 ya está publicado).
+ * - Si NO la tomó: card de invitación (sólo si el mod 2 ya está publicado).
  * - Si SÍ la tomó: card con mini-wedge SVG + banda + % + link.
  *
  * Vive en su propia fila debajo del resumen-row para mantener el alto
  * matched entre foro y rueda de felicidad.
  */
 function renderAutoconocimientoCajita(ctx) {
-  const { capitulos, resultadoAutoconocimiento, slug } = ctx;
+  const { modulos, resultadoAutoconocimiento, slug } = ctx;
 
-  const cap2 = capitulos.find(c => c.orden === 2);
-  if (!cap2) return ""; // capítulo aún no publicado → no mostrar
+  const mod2 = modulos.find(c => c.orden === 2);
+  if (!mod2) return ""; // módulo aún no publicado → no mostrar
 
   const taken = !!resultadoAutoconocimiento?.tieneResultados;
   const fecha = taken && resultadoAutoconocimiento.completedAt
     ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
-  const autoevalLecc = cap2.lecciones.find(l => l.tipo === "autoeval");
+  const autoevalLecc = mod2.lecciones.find(l => l.tipo === "autoeval");
   const ctaHref = autoevalLecc
     ? `/app/leccion?id=${encodeURIComponent(autoevalLecc.id)}`
     : `/app/curso?slug=${encodeURIComponent(slug)}&tab=temario`;
@@ -992,7 +992,7 @@ function renderAutoconocimientoCajita(ctx) {
     return `
       <section class="autoeval-cajita autoeval-cajita--locked">
         <div class="autoeval-cajita__header">
-          <span class="autoeval-cajita__eyebrow">Tu autoevaluación · Capítulo 2</span>
+          <span class="autoeval-cajita__eyebrow">Tu autoevaluación · Módulo 2</span>
           <h3 class="autoeval-cajita__title">Tu integración del Autoconocimiento</h3>
         </div>
         <p class="autoeval-cajita__lead">
@@ -1038,46 +1038,46 @@ function renderAutoconocimientoCajita(ctx) {
 // TAB · Temario
 // ────────────────────────────────────────────────────────────────────
 function renderTemarioTab(ctx) {
-  const { capitulos, totalLecc, completadas, progresoPct } = ctx;
+  const { modulos, totalLecc, completadas, progresoPct } = ctx;
   return `
     <header class="tab-panel-header">
       <span class="tab-panel-header__eyebrow">Temario</span>
-      <h3 class="tab-panel-header__title">${capitulos.length} capítulos · ${totalLecc} lecciones · ${progresoPct}% completado</h3>
+      <h3 class="tab-panel-header__title">${modulos.length} módulos · ${totalLecc} lecciones · ${progresoPct}% completado</h3>
     </header>
     <div class="curso-progress-bar" style="margin-bottom: var(--s-6);">
       <div class="curso-progress-bar__fill" style="width: ${progresoPct}%;"></div>
     </div>
-    <div class="capitulos-list">
-      ${capitulos.map(renderCapituloCard).join("")}
+    <div class="modulos-list">
+      ${modulos.map(renderModuloCard).join("")}
     </div>
   `;
 }
 
-function renderCapituloCard(cap) {
-  const total = cap.lecciones.length;
-  const done = cap.lecciones.filter(l => l.completada).length;
+function renderModuloCard(mod) {
+  const total = mod.lecciones.length;
+  const done = mod.lecciones.filter(l => l.completada).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   return `
-    <section class="capitulo-card" id="cap-${escapeHtml(cap.id)}">
-      <header class="capitulo-card__header">
-        <div class="capitulo-card__head-info">
-          <div class="capitulo-card__num">Capítulo ${cap.orden}</div>
-          <h3 class="capitulo-card__title">${escapeHtml(cap.titulo)}</h3>
-          ${cap.descripcion ? `<p class="capitulo-card__desc">${escapeHtml(cap.descripcion)}</p>` : ""}
-          ${cap.ponente ? `
-            <div class="capitulo-card__ponente">
+    <section class="modulo-card" id="modulo-${escapeHtml(mod.id)}">
+      <header class="modulo-card__header">
+        <div class="modulo-card__head-info">
+          <div class="modulo-card__num">Módulo ${mod.orden}</div>
+          <h3 class="modulo-card__title">${escapeHtml(mod.titulo)}</h3>
+          ${mod.descripcion ? `<p class="modulo-card__desc">${escapeHtml(mod.descripcion)}</p>` : ""}
+          ${mod.ponente ? `
+            <div class="modulo-card__ponente">
               ${icon("instructor")}
-              <span><strong>Ponente:</strong> ${escapeHtml(cap.ponente)}</span>
+              <span><strong>Ponente:</strong> ${escapeHtml(mod.ponente)}</span>
             </div>
           ` : ""}
         </div>
-        <div class="capitulo-card__progress">${done} / ${total}</div>
+        <div class="modulo-card__progress">${done} / ${total}</div>
       </header>
-      <div class="capitulo-card__bar">
-        <div class="capitulo-card__bar-fill" style="width: ${pct}%;"></div>
+      <div class="modulo-card__bar">
+        <div class="modulo-card__bar-fill" style="width: ${pct}%;"></div>
       </div>
       <ol class="leccion-list">
-        ${cap.lecciones.map(renderLeccionItem).join("")}
+        ${mod.lecciones.map(renderLeccionItem).join("")}
       </ol>
     </section>
   `;
@@ -1142,8 +1142,8 @@ function renderForoTab(ctx) {
 // ────────────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────────────
-function findNextLeccion(capitulos) {
-  for (const c of capitulos) for (const l of c.lecciones) if (!l.completada) return l;
+function findNextLeccion(modulos) {
+  for (const c of modulos) for (const l of c.lecciones) if (!l.completada) return l;
   return null;
 }
 
