@@ -21,6 +21,7 @@ import { mountRueda } from "./rueda.js";
 import { mountForo } from "./foro.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 import { openForoLightbox } from "./foro-lightbox.js";
+import { bandaColor as autoevalBandaColor } from "./autoeval-defs.js";
 
 const LOCAL_COVERS = new Set(["happiness-workshop"]);
 
@@ -75,7 +76,7 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
     const [data, resultadoTest, resultadoAutoconocimiento] = await Promise.all([
       api.curso(slug),
       api.resultadosTest().catch(() => null),
-      api.resultadosAutoconocimiento().catch(() => null),
+      api.resultadosAutoeval("autoconocimiento").catch(() => null),
     ]);
     stopLoader();
     renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento);
@@ -920,13 +921,13 @@ function renderPillarAutoevalPopup(pillar, { resultadoAutoconocimiento, slug } =
   if (pillar.key === "autoconocimiento" && resultadoAutoconocimiento?.tieneResultados) {
     const pct = resultadoAutoconocimiento.pct || 0;
     const banda = resultadoAutoconocimiento.banda || "";
-    const bandaColor = resultadoAutoconocimiento.bandaColor || "#888";
+    const bandaColor = autoevalBandaColor(banda);
     const lead = resultadoAutoconocimiento.lead || "";
     const steps = Array.isArray(resultadoAutoconocimiento.steps) ? resultadoAutoconocimiento.steps : [];
     const fecha = resultadoAutoconocimiento.completedAt
       ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
       : "";
-    const linkHref = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug || "")}`;
+    const linkHref = `/app/autoevaluacion/resultados?autoeval=autoconocimiento&id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug || "")}`;
     // Mostramos hasta los primeros 2 pasos para mantener el popup compacto;
     // el detalle completo (todos los steps + nota) está en el link.
     const stepsHtml = steps.length > 0
@@ -1009,7 +1010,7 @@ function renderAutoconocimientoCajita(ctx) {
 
   const pct = resultadoAutoconocimiento.pct || 0;
   const banda = resultadoAutoconocimiento.banda || "";
-  const bandaColor = resultadoAutoconocimiento.bandaColor || "#888";
+  const bandaColor = autoevalBandaColor(banda);
 
   return `
     <section class="autoeval-cajita autoeval-cajita--results">
@@ -1024,7 +1025,7 @@ function renderAutoconocimientoCajita(ctx) {
           <div class="autoeval-band-tag" style="color: ${bandaColor};">
             ${escapeHtml(banda)}
           </div>
-          <a class="autoeval-cajita__link" href="/app/test-autoconocimiento/resultados?id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug)}">
+          <a class="autoeval-cajita__link" href="/app/autoevaluacion/resultados?autoeval=autoconocimiento&id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug)}">
             <span>Ver mi resultado completo</span>
             ${icon("arrowRight")}
           </a>
