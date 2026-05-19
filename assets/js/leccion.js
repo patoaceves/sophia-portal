@@ -16,7 +16,6 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
-import { mountWizard as mountAutoconocimientoWizard } from "./test-autoconocimiento.js";
 import { mountWizard as mountAutoevalWizard } from "./autoeval.js";
 import { AUTOEVAL_KEYS } from "./autoeval-defs.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
@@ -276,24 +275,14 @@ function renderLeccion(persona, payload, cursoContext) {
     const autoevalTipo = leccion.autoevalTipo || "felicidad";
     const autoevalKey = (leccion.autoevalKey || leccion.urlExterna || "").trim();
 
-    if (autoevalTipo === "autoconocimiento") {
-      mountAutoconocimientoWizard({
-        container,
-        inscripcionId,
-        leccionId: leccion.id,
-        cursoSlug,
-        embedded: true,
-        onComplete: (result) => {
-          // `next` hace que resultados mande al usuario al siguiente paso
-          // (típicamente la "Evaluación de la sesión") en vez del dashboard.
-          const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
-          location.href = `/app/test-autoconocimiento/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
-        },
-      });
-    } else if (AUTOEVAL_KEYS.includes(autoevalKey)) {
+    // autoconocimiento migrado al sistema genérico (v27) — ya no usa mountAutoconocimientoWizard.
+    // Normalizar: si autoevalTipo es "autoconocimiento" pero autoevalKey viene vacío, lo ponemos.
+    const resolvedKey = autoevalKey || (autoevalTipo === "autoconocimiento" ? "autoconocimiento" : "");
+    if (AUTOEVAL_KEYS.includes(resolvedKey)) {
+      const effectiveKey = resolvedKey;
       mountAutoevalWizard({
         container,
-        autoevalKey,
+        autoevalKey: effectiveKey,
         inscripcionId,
         leccionId: leccion.id,
         cursoSlug,
@@ -301,7 +290,7 @@ function renderLeccion(persona, payload, cursoContext) {
         onComplete: (result) => {
           const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
           location.href =
-            `/app/autoevaluacion/resultados?autoeval=${encodeURIComponent(autoevalKey)}` +
+            `/app/autoevaluacion/resultados?autoeval=${encodeURIComponent(effectiveKey)}` +
             `&id=${encodeURIComponent(result.respuestaId)}` +
             `&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
         },
