@@ -26,7 +26,7 @@ import { getAutoevalDef, NOTE, bandaColor } from "./autoeval-defs.js";
   const respuestaId = params.get("id");
   const cursoSlug = params.get("slug") || "";
   const nextLeccionId = params.get("next") || "";
-  const autoevalKey = params.get("autoeval") || "";
+  const autoevalKey = params.get("autoeval") || "autoconocimiento";
   const def = getAutoevalDef(autoevalKey);
 
   renderShell({

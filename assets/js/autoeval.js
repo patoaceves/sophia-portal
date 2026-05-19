@@ -314,8 +314,8 @@ async function bootstrapStandalone() {
   if (!persona) return;
 
   const params = new URLSearchParams(location.search);
-  // Sin ?autoeval=, cae a autoconocimiento (compat con la ruta vieja).
-  const autoevalKey = params.get("autoeval") || "";
+  // Sin ?autoeval=, cae a autoconocimiento (compat con la ruta vieja /app/test-autoconocimiento/).
+  const autoevalKey = params.get("autoeval") || "autoconocimiento";
   const def = getAutoevalDef(autoevalKey);
 
   let inscripcionId = params.get("inscripcion");
