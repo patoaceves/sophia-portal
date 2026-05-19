@@ -123,6 +123,12 @@ function renderIntro(state) {
   return `
     <div class="test-intro">
       <span class="test-intro__eyebrow">Tu autoevaluación</span>
+      <img
+        class="test-intro__icon"
+        src="/assets/img/happiness-workshop/pilares/${state.autoevalKey.replace(/_/g, "-")}.svg"
+        alt=""
+        aria-hidden="true"
+      >
       <h2 class="test-intro__title">${escapeHtml(def.pilar)}</h2>
       <p class="test-intro__lead">
         8 preguntas para medir qué tan integrado tienes ${escapeHtml(def.pilar)}

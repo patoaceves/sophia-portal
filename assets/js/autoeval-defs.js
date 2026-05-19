@@ -78,7 +78,7 @@ export const AUTOEVALS = {
   autoconocimiento: {
     pilar: "Autoconocimiento",
     titulo: "Autoevaluación de Autoconocimiento",
-    accentColor: "#66a3f4",
+    accentColor: "#66A3F4",
     preguntas: preguntas([
       "Conozco bien mis fortalezas personales y debilidades de manera objetiva.",
       "He experimentado alegría o satisfacción al descubrir aspectos nuevos de mí mismo.",
@@ -126,7 +126,7 @@ export const AUTOEVALS = {
   bienestar_emocional: {
     pilar: "Bienestar Emocional",
     titulo: "Autoevaluación de Bienestar Emocional",
-    accentColor: "#e8a23d",
+    accentColor: "#D21744",
     preguntas: preguntas([
       "Reconozco mis emociones en el momento en el que surgen; me doy cuenta al instante de qué siento y por qué.",
       "Suelo reconocer y permitirme sentir emociones agradables como alegría, calma o gratitud en mi día a día.",
@@ -174,7 +174,7 @@ export const AUTOEVALS = {
   bienestar_fisico: {
     pilar: "Bienestar Físico",
     titulo: "Autoevaluación de Bienestar Físico",
-    accentColor: "#4fb286",
+    accentColor: "#8D9438",
     preguntas: preguntas([
       "Cuido mi cuerpo de la manera que realmente necesita para sostener mi vida y mis proyectos.",
       "En general, me siento bien en mi cuerpo, más allá de su apariencia o rendimiento.",
@@ -222,7 +222,7 @@ export const AUTOEVALS = {
   presencia_consciente: {
     pilar: "Presencia Consciente",
     titulo: "Autoevaluación de Presencia Consciente",
-    accentColor: "#7e6cc4",
+    accentColor: "#8D9438",
     preguntas: preguntas([
       "Soy capaz de notar y distinguir entre mis pensamientos, mis emociones y mis sensaciones físicas con claridad.",
       "Vivo las experiencias positivas diarias (comer, escuchar música) como anclas que me traen al presente, no como distracciones para sedar mis sentimientos.",
@@ -270,7 +270,7 @@ export const AUTOEVALS = {
   trabajo_proposito: {
     pilar: "Trabajo con Propósito",
     titulo: "Autoevaluación de Trabajo con Propósito",
-    accentColor: "#d96c8a",
+    accentColor: "#66A3F4",
     preguntas: preguntas([
       "Por lo general me esfuerzo en que mi trabajo esté hecho de modo excelente.",
       "Experimento un disfrute más allá del logro material o del reconocimiento externo —plenitud, inspiración, gratitud o conexión profunda— con lo que hago y para quién lo hago.",
@@ -318,7 +318,7 @@ export const AUTOEVALS = {
   vinculos_vitales: {
     pilar: "Vínculos Vitales",
     titulo: "Autoevaluación de Vínculos Vitales",
-    accentColor: "#e07b54",
+    accentColor: "#D21744",
     preguntas: preguntas([
       "Busco activamente el bien y la felicidad de las personas que amo, más allá de mis propios intereses.",
       "Encuentro alegría genuina al darme a los demás y compartir tiempo, cuidado o apoyo.",
@@ -366,7 +366,7 @@ export const AUTOEVALS = {
   estetica_existencial: {
     pilar: "Estética Existencial",
     titulo: "Autoevaluación de Estética Existencial",
-    accentColor: "#c79a3e",
+    accentColor: "#E3A52D",
     preguntas: preguntas([
       "En mi día a día me fijo de manera espontánea en la armonía o la belleza que me rodea, aunque sean cosas sencillas.",
       "Cultivo momentos de disfrute estético que alimentan mi espíritu y no solo mis sentidos.",
@@ -414,7 +414,7 @@ export const AUTOEVALS = {
   fe_filosofia: {
     pilar: "Fe y Filosofía de Vida",
     titulo: "Autoevaluación de Fe y Filosofía de Vida",
-    accentColor: "#5c8fc7",
+    accentColor: "#E3A52D",
     preguntas: preguntas([
       "Tengo una confianza profunda o creencia firme en algo o alguien que guía mi vida.",
       "Vivir de acuerdo a mi fe (o filosofía de vida) me permite experimentar instancias o momentos disfrutables.",

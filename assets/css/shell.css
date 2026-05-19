@@ -2163,6 +2163,15 @@
   margin-bottom: var(--s-3);
 }
 
+/* Ícono del pilar en el intro de la autoevaluación (entre eyebrow y título).
+   El SVG ya viene coloreado con el color oficial del pilar. */
+.test-intro__icon {
+  display: block;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto var(--s-4);
+}
+
 .test-intro__title {
   font-family: var(--font-display);
   font-size: clamp(2rem, 5vw, 3rem);
