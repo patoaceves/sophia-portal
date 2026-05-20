@@ -6,7 +6,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 
 // Cursos que tienen una portada local en /assets/img/{slug}/portada.png
 // (fallback cuando no hay COVER_IMAGE en Airtable)
-const LOCAL_COVERS = new Set(["happiness-workshop"]);
+const LOCAL_COVERS = new Set(["happiness-workshop", "fundamentos-de-coaching"]);
 
 (async () => {
   const persona = await requireAuth();
