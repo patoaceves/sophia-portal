@@ -46,9 +46,7 @@ Ya incluidos en `/assets/pdf/`:
 - ✅ `coaching-carta-bienvenida.pdf` (1.3 MB) — versión corregida (tabla dice "sábados", ya no "jueves")
 - ✅ `coaching-happy-secret.pdf` (81 KB)
 - ✅ `coaching-handbook-cap1.pdf` (1.3 MB)
-
-Pendiente:
-- ⏳ `coaching-evaluacion-s1.pdf` — el quiz de 5 preguntas con respuestas marcadas se entregará como PDF
+- ✅ `coaching-evaluacion-s1.pdf` (4.7 KB) — quiz de 5 preguntas con respuestas marcadas
 
 ## Portada del curso
 
@@ -105,11 +103,18 @@ todavía el `Cover image` cargado. Cuando se suba la portada a Airtable, esa tom
 - **Meeting ID:** 842 2259 0212
 - **Passcode:** SOPHIA
 
-## Pendientes para que el curso quede activo
+## Estado actual (20/may/2026)
 
-1. Recibir `coaching-evaluacion-s1.pdf` (lección 7)
-2. Definir color primario del curso (hex)
-3. Definir descripción corta y larga del curso
-4. Crear en Airtable: Curso → Módulo 1 → 9 Lecciones → Cohorte inicial
-5. Foto de Irelda Walls Boone (para el email de bienvenida del portal)
-6. Continuar con módulos 2–19 conforme se reciba el temario
+✅ **Curso creado en Airtable:** `recDnA1GTjUi54GMJ` — "Fundamentos de Coaching SOPHIA" (slug `fundamentos-de-coaching`, estatus `published`)
+✅ **Módulo 1 creado:** `recFpQjCqJhrzTecM` — "Sesión 1: Identidad y Ética Profesional"
+✅ **9 Lecciones creadas y linkeadas al módulo** (con contenidos cargados)
+✅ **Cohorte inicial creada:** `recaVisdV1jQYktY8` — "Fundamentos de Coaching - 23.05.2026" (estatus `planeada`)
+✅ **3 invitaciones activas** generadas para Pedro Mariscal, Mateo Villarreal, Patricio González
+✅ **Todos los PDFs y la portada** en el repo
+
+## Pendientes
+
+1. Hacer push y deploy a Vercel para que `assets/pdf/coaching-*.pdf` y `assets/img/fundamentos-de-coaching/portada.png` queden servidos en producción
+2. Color primario del curso (hex) — opcional, falta cargar en Airtable
+3. Foto de Irelada Walls Boone para el email de bienvenida del portal — opcional
+4. Continuar con módulos 2–19 conforme se reciba el temario
