@@ -104,7 +104,7 @@ Tokens de un solo uso. Se crean cuando alguien paga / recibe cortesía. El email
 | Cohorte | `fldKDSCMDaJgHKZ60` | multipleRecordLinks → Cohortes | |
 | Email destinatario | `fldZK5s5m208cR5r6` | email | si se llena, sólo ese email puede canjear |
 | Origen | `fldw4WgogSTJamWsq` | singleSelect | `manual` / `stripe` / `transferencia` / `cortesia` / `bulk` |
-| Estatus | `fldHtt9NUtcU0795f` | singleSelect | `activa` / `canjeada` / `expirada` / `revocada` |
+| Estatus | `fldHtt9NUtcU0795f` | singleSelect | `pendiente` (estado inicial, igual que crea el script de altas, lo cual permite reconciliación huérfana en `auth-bootstrap` y `claim-by-email`) / `activa` / `canjeada` / `expirada` / `revocada`. NOTA: para crear invitaciones nuevas usar siempre `pendiente`, no `activa` — el flujo huérfano solo recoge las que están en `pendiente`. |
 | Persona | `fldXW2phqZuQyQnFj` | multipleRecordLinks → Personas (Portal) | se llena al canjear |
 | Fecha canje | `fld5bV3P0iNSJpaBV` | dateTime | se llena al canjear |
 | Expira el | `fldQQSYSLabCd9eeP` | date | opcional |
