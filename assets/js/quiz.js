@@ -107,7 +107,7 @@ function render(state) {
   }
 
   if (state.submitted) {
-    state.container.innerHTML = renderResumen();
+    state.container.innerHTML = renderResumen(state);
     return;
   }
 
@@ -235,10 +235,15 @@ function renderTextArea(p, value) {
 }
 
 /**
- * Pantalla de cierre — se muestra tras enviar Y al volver a entrar a una
- * actividad ya completada. Solo confirma; no muestra las respuestas.
+ * Pantalla de cierre — dos variantes:
+ *   - Sin scoring (def.preguntas no tiene `correcta`): mensaje reflexivo
+ *   - Con scoring (al menos una pregunta tiene `correcta`): score + revela
+ *     correctas/incorrectas + botón para reintentar.
  */
-function renderResumen() {
+function renderResumen(state) {
+  if (hasScoring(state.def)) {
+    return renderResumenConScore(state);
+  }
   return `
     <div class="quiz-resumen">
       <div class="quiz-resumen__head">
@@ -250,6 +255,73 @@ function renderResumen() {
       </div>
     </div>
   `;
+}
+
+/**
+ * Resumen con score: cuenta aciertos sobre preguntas con `correcta` definida,
+ * lista todas las preguntas marcando ✓ o ✗, y ofrece botón para reintentar.
+ */
+function renderResumenConScore(state) {
+  const scored = state.def.preguntas.filter((p) => typeof p.correcta === "number");
+  let aciertos = 0;
+  const items = scored.map((p) => {
+    const respuestaUsuario = state.respuestas[p.id];
+    const opcionCorrecta = p.opciones[p.correcta];
+    const acerto = respuestaUsuario === opcionCorrecta;
+    if (acerto) aciertos += 1;
+    const userHtml = respuestaUsuario
+      ? `<div class="quiz-resumen-item__user">Tu respuesta: <strong>${escapeHtml(respuestaUsuario)}</strong></div>`
+      : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">No respondida</div>`;
+    const correctHtml = acerto
+      ? ""
+      : `<div class="quiz-resumen-item__correct">Respuesta correcta: <strong>${escapeHtml(opcionCorrecta)}</strong></div>`;
+    return `
+      <li class="quiz-resumen-item quiz-resumen-item--${acerto ? "ok" : "ko"}">
+        <div class="quiz-resumen-item__marker" aria-hidden="true">
+          ${acerto ? icon("check") : icon("close")}
+        </div>
+        <div class="quiz-resumen-item__body">
+          <div class="quiz-resumen-item__q">${escapeHtml(p.texto)}</div>
+          ${userHtml}
+          ${correctHtml}
+        </div>
+      </li>
+    `;
+  }).join("");
+
+  const total = scored.length;
+  const pct = total > 0 ? Math.round((aciertos / total) * 100) : 0;
+  const aprobado = pct >= 60;
+  const tone = aprobado ? "ok" : "ko";
+  const titulo = aprobado ? "¡Bien hecho!" : "Sigue practicando";
+  const lead = aprobado
+    ? "Tienes una base sólida sobre los temas de la sesión. Revisa abajo las respuestas correctas y, si quieres, reintenta el quiz."
+    : "Repasa el material de la sesión y vuelve a intentarlo. Las respuestas correctas están marcadas abajo.";
+
+  return `
+    <div class="quiz-resumen quiz-resumen--scored quiz-resumen--${tone}">
+      <div class="quiz-resumen__head">
+        <div class="quiz-resumen__score" aria-label="Resultado">
+          <span class="quiz-resumen__score-num">${aciertos}</span>
+          <span class="quiz-resumen__score-sep">/</span>
+          <span class="quiz-resumen__score-total">${total}</span>
+        </div>
+        <h2 class="quiz-resumen__title">${titulo}</h2>
+        <p class="quiz-resumen__lead">${lead}</p>
+      </div>
+      <ol class="quiz-resumen-list">${items}</ol>
+      <div class="quiz-resumen__actions">
+        <button class="btn btn-secondary" data-quiz-action="retry" type="button">
+          ${icon("refresh")}
+          <span>Reintentar quiz</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function hasScoring(def) {
+  return (def?.preguntas || []).some((p) => typeof p.correcta === "number");
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -267,6 +339,19 @@ function clickHandler(state, e) {
   if (action === "start") {
     state.currentIndex = 0;
     persistState(state);
+    render(state);
+    return;
+  }
+
+  if (action === "retry") {
+    // Reintentar quiz scored: limpia respuestas y vuelve a la intro.
+    // No borramos el record en Airtable — submit-quiz lo sobrescribe (idempotente).
+    state.respuestas = {};
+    state.currentIndex = -1;
+    state.submitted = false;
+    state.submitting = false;
+    state.completedAt = null;
+    clearState(state.leccionId);
     render(state);
     return;
   }

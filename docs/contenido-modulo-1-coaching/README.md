@@ -105,33 +105,84 @@ todavía el `Cover image` cargado. Cuando se suba la portada a Airtable, esa tom
 
 ## Estado actual (20/may/2026)
 
-✅ **Curso creado en Airtable:** `recDnA1GTjUi54GMJ` — "Fundamentos de Coaching SOPHIA" (slug `fundamentos-de-coaching`, estatus `published`)
+✅ **Curso creado en Airtable:** `recDnA1GTjUi54GMJ` — "Fundamentos de Coaching SOPHIA"
 ✅ **Módulo 1 creado:** `recFpQjCqJhrzTecM` — "Sesión 1: Identidad y Ética Profesional"
-✅ **9 Lecciones creadas y linkeadas al módulo** (con contenidos cargados)
-✅ **Cohorte inicial creada:** `recaVisdV1jQYktY8` — "Fundamentos de Coaching - 23.05.2026" (estatus `planeada`)
-✅ **3 invitaciones `pendiente`** generadas para Pedro Mariscal, Mateo Villarreal, Patricio González
-✅ **Todos los PDFs y la portada** en el repo
-✅ `LOCAL_COVERS` en `cursos.js` Y `curso.js` actualizado con `fundamentos-de-coaching`
+✅ **9 Lecciones creadas y linkeadas al módulo** — incluye 4 quizzes y 1 tarea
+✅ **Cohorte inicial:** `recaVisdV1jQYktY8` (23/may → 04/oct/2026)
+✅ **3 invitaciones `pendiente`** para Pedro, Mateo, Patricio
+✅ **Foto de Irelada Walls Boone** en `/assets/img/brand/irelda-walls.png`
 
-## ⚠️ Importante: requiere deploy
+## Mapeo final de lecciones
 
-Hasta que se hagan **push + deploy a Vercel**, los siguientes elementos NO se ven en producción:
+| # | Lección | Tipo | Quiz key / contenido |
+|---|---|---|---|
+| 1 | Carta de bienvenida | `pdf` | `/assets/pdf/coaching-carta-bienvenida.pdf` |
+| 2 | Trabajo previo a la sesión | `texto` | HTML con link YouTube |
+| 3 | Quiz: The happy secret to better work | `quiz` | `coaching-happy-secret` (reflexivo, sin score) |
+| 4 | Lectura: Capítulo 1 del Complete Handbook | `pdf` | `/assets/pdf/coaching-handbook-cap1.pdf` |
+| 5 | Reflexión personal | `quiz` | `coaching-reflexion-s1` (1 pregunta texto) |
+| 6 | Journaling | `quiz` | `coaching-journaling-s1` (1 pregunta texto) |
+| 7 | Evaluación | `quiz` | `coaching-evaluacion-s1` (5 preguntas CON SCORE, retry) |
+| 8 | Tarea | `tarea` | Upload de N archivos (max 20MB c/u) + comentario |
+| 9 | Grabación de la sesión | `video` | — (vacía) |
 
-1. **Portada del curso** — ahora muestra placeholder "F". El archivo `/assets/img/fundamentos-de-coaching/portada.png` no está deployado todavía.
-2. **PDFs** — las lecciones tipo `pdf` apuntan a URLs en `portal.sophiamx.org/assets/pdf/coaching-*.pdf` que aún no existen.
-3. **Cambio de `LOCAL_COVERS` en `curso.js`** — sin esto, el fallback de portada local no funciona en la página individual del curso.
+## ⚠️ Requiere deploy
 
-**Workaround sin deploy** (opcional): subir `portada.png` como attachment al campo `Cover image` del curso en Airtable. Esto hace que `coverUrl` venga de Airtable y se vea sin depender del fallback local.
+### Frontend (Vercel)
+- `assets/js/quiz.js`, `quiz-defs.js`, `tarea.js` (NUEVO), `api.js`, `leccion.js`, `icons.js`
+- `assets/css/shell.css`
+- `assets/pdf/coaching-*.pdf` (4 archivos)
+- `assets/img/fundamentos-de-coaching/portada.png`
+- `assets/img/brand/irelda-walls.png`
+
+### Edge Functions (Supabase)
+- `submit-quiz` (MODIFICADA — idempotente upsert para reintentos)
+- `submit-tarea` (NUEVA — upload de archivos)
+- `delete-entrega-archivo` (NUEVA — quitar archivos de la entrega)
+- `get-resultados-quiz` (MODIFICADA — devuelve archivos + comentario)
+
+### Airtable (ya aplicado)
+- Tabla "Actividades en Clase" — 2 nuevos campos:
+  - `Archivos` (multipleAttachments) → `fldbUYXX6v8m4oLIv`
+  - `Comentario` (multilineText) → `fldLLBYOl8SPkCDmA`
+- 4 lecciones convertidas a tipo `quiz` con sus `Url_Externa`
+- Lección 8 cambiada a tipo `tarea`
 
 ## Notas técnicas
 
-- **Sanitizer bloquea iframes y atributos `style`.** Por eso el embed de YouTube en la lección "Trabajo previo" se cambió de `<iframe>` a un link estilizado con clase `btn btn-accent`.
-- **Airtable richText escapa guiones bajos** dentro de atributos HTML (ej. `target="_blank"` → `target="\_blank"`). Por eso los links a YouTube se dejan sin `target="_blank"` (abren en la misma pestaña).
-- **Invitaciones huérfanas: estatus debe ser `pendiente`, no `activa`.** El flujo de reconciliación en `auth-bootstrap` y `claim-by-email` filtra por `pendiente`. Doc actualizado en `airtable-schema.md`.
+- **Quiz con scoring** retro-compatible: pregunta tipo `choice` con `correcta: <índice>` se evalúa. Sin `correcta`, comportamiento original (sin score).
+- **Reintentos de quiz**: el frontend resetea respuestas, el backend hace upsert por (Lección × Inscripción) — no crea duplicados.
+- **Reflexión y Journaling**: implementados como quizzes de 1 pregunta tipo `texto`.
+- **Tarea con upload**:
+  - Bucket reusa `sophia-portal-uploads` (público) con path `tareas/{leccionId}/{personaPortalId}/{uuid}-{filename}`
+  - Reusa tabla "Actividades en Clase" — 1 record por (Lección × Inscripción), N archivos en `multipleAttachments`
+  - Sin límite de archivos por entrega, 20 MB por archivo, cualquier formato
+  - Drag & drop + click-to-pick, barra de progreso, lista con delete individual
+  - Textarea de comentario con save independiente
+- **Sanitizer bloquea iframes y `style`** en HTML de Airtable. Los embeds de YouTube usan `<a class="btn btn-accent">`.
+- **Airtable richText escapa `_`** en atributos HTML. Los links se dejan sin `target="_blank"`.
+- **Invitaciones nuevas**: estatus `pendiente` (no `activa`) para que la reconciliación huérfana las detecte.
 
 ## Pendientes
 
-1. Hacer push y deploy a Vercel para que `assets/pdf/coaching-*.pdf` y `assets/img/fundamentos-de-coaching/portada.png` queden servidos en producción
-2. Color primario del curso (hex) — opcional
-3. Foto de Irelada Walls Boone para el email de bienvenida del portal — opcional
-4. Continuar con módulos 2–19 conforme se reciba el temario
+1. Push + deploy a Vercel
+2. Re-deploy de 4 edge functions a Supabase (ver instrucciones más abajo)
+3. **Módulo 0** — Sesión inaugural 23/may, pendiente contenido
+4. Módulos 2–19 conforme se reciba temario
+
+## Cómo deployar edge functions
+
+**Desde dashboard de Supabase** (más rápido):
+1. https://supabase.com/dashboard → tu proyecto → Edge Functions
+2. Para cada función (`submit-quiz`, `submit-tarea`, `delete-entrega-archivo`, `get-resultados-quiz`):
+   - Click el botón de edición
+   - Reemplaza el código con el contenido de `supabase/functions/{nombre}/index.ts`
+   - Deploy
+
+**Con Supabase CLI**:
+```bash
+supabase functions deploy submit-quiz
+supabase functions deploy submit-tarea
+supabase functions deploy delete-entrega-archivo
+supabase functions deploy get-resultados-quiz
+```

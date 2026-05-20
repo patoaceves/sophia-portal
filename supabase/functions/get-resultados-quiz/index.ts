@@ -35,6 +35,8 @@ const FIELDS = {
     INSCRIPCION: "fldoZwq6JeRdjm3gj",
     RESPUESTAS_JSON: "flduVXSkzzUCjB6ks",
     FECHA: "fldE610Bqq0mMOLnz",
+    ARCHIVOS: "fldbUYXX6v8m4oLIv",      // multipleAttachments (tareas)
+    COMENTARIO: "fldLLBYOl8SPkCDmA",    // multilineText (tareas)
   },
   PERSONAS_CRM: {
     AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
@@ -362,6 +364,24 @@ Deno.serve(async (req) => {
       payload = {};
     }
 
+    // Para tareas: archivos (multipleAttachments) y comentario.
+    interface Attachment {
+      id?: string;
+      url: string;
+      filename: string;
+      size?: number;
+      type?: string;
+    }
+    const rawArchivos = (rec.fields[FIELDS.ACTIVIDADES.ARCHIVOS] as Attachment[]) ?? [];
+    const archivos = rawArchivos.map((a) => ({
+      id: a.id,
+      url: a.url,
+      filename: a.filename,
+      size: a.size,
+      type: a.type,
+    }));
+    const comentario = (rec.fields[FIELDS.ACTIVIDADES.COMENTARIO] as string) ?? null;
+
     return jsonResponse(req, {
       tieneResultados: true,
       respuestaId: rec.id,
@@ -374,6 +394,8 @@ Deno.serve(async (req) => {
         payload.completedAt ??
         (rec.fields[FIELDS.ACTIVIDADES.FECHA] as string) ??
         null,
+      archivos,
+      comentario,
     });
   } catch (e) {
     if (e instanceof HttpError) {

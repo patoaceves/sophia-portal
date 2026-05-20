@@ -417,7 +417,25 @@ Deno.serve(async (req) => {
       [FIELDS.ACTIVIDADES.COMPLETADO]: true,
     };
 
-    const rec = await createRecord(BASES.PORTAL, TABLES.ACTIVIDADES, fields);
+    // Upsert: si ya existe un registro para esta (Lección × Inscripción),
+    // lo actualizamos en lugar de crear duplicado. Esto soporta reintentos
+    // (quizzes con score) y re-edición de actividades reflexivas. Buscamos
+    // en JS — NUNCA por nombre de campo en filterByFormula, que sería frágil.
+    const previas = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
+      filterByFormula:
+        `AND(` +
+          `SEARCH('${leccionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.LECCION}})),` +
+          `SEARCH('${inscripcionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.INSCRIPCION}}))` +
+        `)`,
+      maxRecords: 1,
+    });
+
+    let rec;
+    if (previas.length > 0) {
+      rec = await updateRecord(BASES.PORTAL, TABLES.ACTIVIDADES, previas[0].id, fields);
+    } else {
+      rec = await createRecord(BASES.PORTAL, TABLES.ACTIVIDADES, fields);
+    }
 
     return jsonResponse(req, {
       ok: true,

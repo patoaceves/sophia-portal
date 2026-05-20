@@ -20,6 +20,7 @@ import { mountWizard as mountAutoevalWizard } from "./autoeval.js";
 import { AUTOEVAL_KEYS } from "./autoeval-defs.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
+import { mountTarea } from "./tarea.js";
 
 // ─────────────────────────────────────────────────────────────────────
 // DOMPurify (cliente) — segunda capa de defensa.
@@ -160,6 +161,9 @@ function renderLeccion(persona, payload, cursoContext) {
   // "Actividad en clase": lección tipo quiz. Monta el wizard de quiz; la
   // clave del quiz (qué preguntas mostrar) viene en leccion.urlExterna.
   const isQuiz = leccion.tipo === "quiz";
+  // Lección tipo `tarea`: el alumno sube N archivos + comentario opcional.
+  // El componente vive en tarea.js y guarda en tabla "Actividades en Clase".
+  const isTarea = leccion.tipo === "tarea";
 
   renderShell({
     persona,
@@ -200,6 +204,10 @@ function renderLeccion(persona, payload, cursoContext) {
           ${isTest ? `<div id="testEmbed"></div>`
             : isEvaluacion ? `<div id="evalEmbed"></div>`
             : isQuiz ? `<div id="quizEmbed"></div>`
+            : isTarea ? `
+                ${leccion.contenidoHTML ? `<div class="leccion-html">${leccion.contenidoHTML}</div>` : ""}
+                <div id="tareaEmbed"></div>
+              `
             : renderContent(leccion)}
         </div>
 
@@ -214,7 +222,7 @@ function renderLeccion(persona, payload, cursoContext) {
             </div>
             <div></div>
           </footer>
-        ` : isQuiz ? `
+        ` : isQuiz || isTarea ? `
           <footer class="leccion-page__footer">
             <div>
               ${prevId
@@ -369,6 +377,26 @@ function renderLeccion(persona, payload, cursoContext) {
           }
         }
         // Mostrar el botón de avance externo
+        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+      },
+    });
+  } else if (isTarea) {
+    // Mount componente de entrega de tarea. El alumno sube archivos y
+    // opcionalmente agrega un comentario. Se marca completada cuando
+    // hay al menos un archivo subido.
+    const container = document.getElementById("tareaEmbed");
+    mountTarea({
+      container,
+      leccionId: leccion.id,
+      inscripcionId,
+      onComplete: async () => {
+        if (inscripcionId) {
+          try {
+            await api.marcarLeccion(leccion.id, inscripcionId);
+          } catch (e) {
+            console.warn("Could not mark tarea lesson complete:", e);
+          }
+        }
         document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
       },
     });

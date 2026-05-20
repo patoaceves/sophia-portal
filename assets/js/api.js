@@ -336,6 +336,75 @@ export const api = {
   },
 
   /**
+   * POST /submit-tarea · sube un archivo (opcional) + comentario (opcional)
+   * a una lección tipo `tarea`. Hace upsert por (Lección × Inscripción) y
+   * agrega el archivo al array `Archivos` existente (sin reemplazar).
+   *
+   * @param {object} opts
+   * @param {string} opts.leccionId
+   * @param {string} opts.inscripcionId
+   * @param {File} [opts.file]            · opcional si solo se actualiza comentario
+   * @param {string} [opts.comentario]    · opcional
+   * @param {(p:number)=>void} [opts.onProgress] · 0..1
+   * @returns {Promise<{ ok: boolean, respuestaId: string, archivos: Array, comentario: string|null }>}
+   */
+  async submitTarea({ leccionId, inscripcionId, file, comentario, onProgress }) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) throw new ApiError("Not authenticated", 401);
+
+    const url = new URL("/functions/v1/submit-tarea", SUPABASE_URL);
+    const fd = new FormData();
+    if (file) fd.append("file", file);
+    fd.append("leccionId", leccionId);
+    fd.append("inscripcionId", inscripcionId);
+    if (comentario != null) fd.append("comentario", comentario);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url.toString());
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
+
+      if (onProgress && xhr.upload) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) onProgress(e.loaded / e.total);
+        };
+      }
+
+      xhr.onload = () => {
+        let payload = null;
+        try { payload = JSON.parse(xhr.responseText); } catch { /* not json */ }
+        if (xhr.status >= 200 && xhr.status < 300 && payload?.ok) {
+          resolve(payload);
+        } else {
+          const msg = payload?.error || `Submit tarea failed (${xhr.status})`;
+          reject(new ApiError(msg, xhr.status, payload));
+        }
+      };
+      xhr.onerror = () => reject(new ApiError("Network error", 0));
+      xhr.send(fd);
+    });
+  },
+
+  /**
+   * POST /delete-entrega-archivo · quita UN archivo de la entrega.
+   *
+   * @param {object} opts
+   * @param {string} opts.leccionId
+   * @param {string} opts.inscripcionId
+   * @param {string} opts.attachmentId · id del archivo en Airtable (att...)
+   * @returns {Promise<{ ok: boolean, archivos: Array }>}
+   */
+  async deleteEntregaArchivo({ leccionId, inscripcionId, attachmentId }) {
+    const { data } = await callEdge("delete-entrega-archivo", {
+      method: "POST",
+      body: { leccionId, inscripcionId, attachmentId },
+    });
+    return data;
+  },
+
+  /**
    * POST /submit-evaluacion · guarda las respuestas del wizard de evaluación
    * de sesión en la tabla "Evaluaciones Sesión" de Airtable.
    *
