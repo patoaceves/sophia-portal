@@ -174,7 +174,7 @@ function renderPregunta(state, idx) {
   // Botón "Siguiente / Enviar": para choice aparece al responder; para
   // texto siempre visible (porque puede ser opcional o requerir confirmar).
   const showNext = p.tipo === "texto" || isAnswered || !p.obligatoria;
-  const nextLabel = isLast ? "Enviar" : "Siguiente";
+  const nextLabel = isLast ? "Completar" : "Siguiente";
 
   return `
     <article class="test-question">
@@ -191,7 +191,7 @@ function renderPregunta(state, idx) {
         </button>
         ${showNext ? `
           <button class="btn btn-accent" data-quiz-action="next" type="button" ${state.submitting ? "disabled" : ""} ${p.obligatoria && !isAnswered ? "disabled" : ""}>
-            <span>${state.submitting ? "Enviando…" : nextLabel}</span>
+            <span>${state.submitting ? "Completando…" : nextLabel}</span>
             ${isLast ? "" : icon("arrowRight")}
           </button>
         ` : `<span></span>`}
@@ -237,6 +237,7 @@ function renderTextArea(p, value) {
 /**
  * Pantalla de cierre — dos variantes:
  *   - Sin scoring (def.preguntas no tiene `correcta`): mensaje reflexivo
+ *     personalizable vía def.doneTitle / def.doneLead
  *   - Con scoring (al menos una pregunta tiene `correcta`): score + revela
  *     correctas/incorrectas + botón para reintentar.
  */
@@ -244,14 +245,14 @@ function renderResumen(state) {
   if (hasScoring(state.def)) {
     return renderResumenConScore(state);
   }
+  const titulo = state.def.doneTitle || "Actividad completada";
+  const lead = state.def.doneLead || "Gracias por tomarte el tiempo de reflexionar sobre ti mismo.";
   return `
     <div class="quiz-resumen">
       <div class="quiz-resumen__head">
         <div class="quiz-resumen__icon">${icon("check")}</div>
-        <h2 class="quiz-resumen__title">Actividad completada</h2>
-        <p class="quiz-resumen__lead">
-          Gracias por tomarte el tiempo de reflexionar sobre ti mismo.
-        </p>
+        <h2 class="quiz-resumen__title">${escapeHtml(titulo)}</h2>
+        <p class="quiz-resumen__lead">${escapeHtml(lead)}</p>
       </div>
     </div>
   `;

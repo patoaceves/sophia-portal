@@ -1,15 +1,26 @@
 // SOPHIA Portal · Tarea (entrega de archivo) — componente nativo
 //
-// Renderiza la UI para lecciones tipo `tarea`:
-//   - Drag & drop / file picker
-//   - Lista de archivos ya subidos con opción de borrar
-//   - Textarea opcional para comentario
-//   - Botón "Guardar comentario"
+// Modelo "staging": el alumno puede seleccionar N archivos locales y editar
+// el comentario libremente. Nada se guarda en backend hasta que pulsa
+// "Guardar entrega". En ese momento se sube todo en una sola request y se
+// muestra el mensaje de éxito.
+//
+// Estado interno:
+//   - savedFiles: archivos ya guardados en Airtable (vienen de get-resultados-quiz)
+//   - pendingFiles: archivos seleccionados localmente, todavía no subidos
+//   - savedComentario: lo que está en Airtable
+//   - draftComentario: lo que el alumno está escribiendo (puede diferir)
+//   - removedAttachmentIds: archivos previamente guardados que el alumno
+//     marcó para eliminar (se procesan al guardar)
+//
+// Botón "Guardar entrega":
+//   1) Por cada attachmentId en removedAttachmentIds → delete-entrega-archivo
+//   2) submit-tarea con files=pendingFiles + comentario=draftComentario
+//   3) Muestra mensaje de éxito
 //
 // Storage en Airtable: tabla "Actividades en Clase" con un record por
 // (Lección × Inscripción), campos `Archivos` (multipleAttachments) y
-// `Comentario`. La lección se marca como completada cuando hay al menos
-// un archivo subido (lo evalúa get-leccion vía progreso).
+// `Comentario`.
 //
 // Uso:
 //   import { mountTarea } from "./tarea.js";
@@ -29,25 +40,33 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
     leccionId,
     inscripcionId,
     onComplete,
-    archivos: [],
-    comentario: "",
+    // Archivos ya guardados (vienen del backend)
+    savedFiles: [],
+    // Archivos seleccionados localmente, todavía no subidos
+    pendingFiles: [],
+    // attachmentIds de archivos saved que el alumno marcó para borrar
+    // (no se procesan hasta que pulse "Guardar entrega")
+    removedAttachmentIds: new Set(),
+    // Comentario en Airtable
+    savedComentario: "",
+    // Comentario que el alumno está escribiendo
+    draftComentario: "",
     loading: true,
-    uploading: false,
-    uploadProgress: 0,
-    uploadFilename: "",
-    savingComment: false,
-    deletingId: null,
+    saving: false,
+    saveProgress: 0,
+    showSuccessFlash: false,
     error: null,
   };
 
   render(state);
 
-  // Cargar estado actual: ¿ya tiene archivos subidos?
+  // Cargar estado actual desde backend
   try {
     const prev = await api.resultadosQuiz(leccionId);
     if (prev?.tieneResultados) {
-      state.archivos = Array.isArray(prev.archivos) ? prev.archivos : [];
-      state.comentario = prev.comentario || "";
+      state.savedFiles = Array.isArray(prev.archivos) ? prev.archivos : [];
+      state.savedComentario = prev.comentario || "";
+      state.draftComentario = state.savedComentario;
     }
   } catch (err) {
     console.warn("[tarea] no se pudo cargar entrega previa:", err);
@@ -65,6 +84,25 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Derived state
+// ─────────────────────────────────────────────────────────────────────
+
+function hasDirtyChanges(state) {
+  if (state.pendingFiles.length > 0) return true;
+  if (state.removedAttachmentIds.size > 0) return true;
+  if (state.draftComentario !== state.savedComentario) return true;
+  return false;
+}
+
+function visibleSavedFiles(state) {
+  return state.savedFiles.filter((a) => !state.removedAttachmentIds.has(a.id));
+}
+
+function totalEntregadosTrasGuardar(state) {
+  return visibleSavedFiles(state).length + state.pendingFiles.length;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Render
 // ─────────────────────────────────────────────────────────────────────
 
@@ -79,36 +117,45 @@ function render(state) {
     return;
   }
 
-  const hasFiles = state.archivos.length > 0;
+  const savedVisible = visibleSavedFiles(state);
+  const hasAnySaved = savedVisible.length > 0;
+  const dirty = hasDirtyChanges(state);
 
   state.container.innerHTML = `
     <div class="tarea-component">
-      ${hasFiles ? `
+      ${state.showSuccessFlash ? `
+        <div class="tarea-status tarea-status--ok" data-tarea-flash>
+          ${icon("check")}
+          <span>Entrega guardada con éxito.</span>
+        </div>
+      ` : hasAnySaved && !dirty ? `
         <div class="tarea-status tarea-status--ok">
           ${icon("check")}
-          <span>Tu tarea está entregada (${state.archivos.length} ${state.archivos.length === 1 ? "archivo" : "archivos"}). Puedes agregar más archivos o actualizar tu comentario.</span>
+          <span>Tu tarea está entregada (${savedVisible.length} ${savedVisible.length === 1 ? "archivo" : "archivos"}).</span>
         </div>
       ` : ""}
 
       ${renderDropzone(state)}
 
-      ${hasFiles ? renderArchivosList(state) : ""}
+      ${(savedVisible.length > 0 || state.pendingFiles.length > 0) ? renderFilesList(state) : ""}
 
       ${renderComentario(state)}
 
       ${state.error ? `<div class="tarea-error">${escapeHtml(state.error)}</div>` : ""}
+
+      ${renderSaveBar(state)}
     </div>
   `;
 }
 
 function renderDropzone(state) {
-  if (state.uploading) {
-    const pct = Math.round(state.uploadProgress * 100);
+  if (state.saving) {
+    const pct = Math.round(state.saveProgress * 100);
     return `
       <div class="tarea-dropzone tarea-dropzone--uploading">
         <div class="tarea-dropzone__icon">${icon("upload")}</div>
         <div class="tarea-dropzone__text">
-          <strong>Subiendo ${escapeHtml(state.uploadFilename)}…</strong>
+          <strong>Guardando tu entrega…</strong>
           <div class="tarea-progress">
             <div class="tarea-progress__fill" style="width:${pct}%"></div>
           </div>
@@ -119,51 +166,70 @@ function renderDropzone(state) {
   }
   return `
     <label class="tarea-dropzone" data-tarea-dropzone>
-      <input type="file" hidden data-tarea-file-input>
+      <input type="file" hidden multiple data-tarea-file-input>
       <div class="tarea-dropzone__icon">${icon("upload")}</div>
       <div class="tarea-dropzone__text">
-        <strong>Arrastra un archivo aquí o haz clic para seleccionar</strong>
-        <span class="tarea-dropzone__hint">Cualquier formato · máximo 20 MB por archivo · puedes subir varios</span>
+        <strong>Arrastra archivos aquí o haz clic para seleccionar</strong>
+        <span class="tarea-dropzone__hint">Cualquier formato · máximo 20 MB por archivo · puedes adjuntar varios</span>
       </div>
     </label>
   `;
 }
 
-function renderArchivosList(state) {
-  const items = state.archivos.map((a) => {
-    const deleting = state.deletingId === a.id;
-    return `
-      <li class="tarea-archivo ${deleting ? "tarea-archivo--deleting" : ""}">
-        <div class="tarea-archivo__icon">${icon(iconForFile(a))}</div>
-        <div class="tarea-archivo__body">
-          <a href="${escapeHtml(a.url)}" target="_blank" rel="noopener" class="tarea-archivo__name">
-            ${escapeHtml(a.filename)}
-          </a>
-          <div class="tarea-archivo__meta">
-            ${formatSize(a.size)}
-          </div>
-        </div>
-        <button
-          type="button"
-          class="tarea-archivo__delete"
-          data-tarea-action="delete"
-          data-attachment-id="${escapeHtml(a.id || "")}"
-          aria-label="Eliminar ${escapeHtml(a.filename)}"
-          ${deleting ? "disabled" : ""}
-        >
-          ${deleting ? `<span class="tarea-mini-spinner"></span>` : icon("close")}
-        </button>
-      </li>
-    `;
-  }).join("");
+function renderFilesList(state) {
+  const savedVisible = visibleSavedFiles(state);
 
-  return `
-    <ul class="tarea-archivos-list">${items}</ul>
-  `;
+  const savedItems = savedVisible.map((a) => `
+    <li class="tarea-archivo">
+      <div class="tarea-archivo__icon">${icon(iconForFile(a))}</div>
+      <div class="tarea-archivo__body">
+        <a href="${escapeHtml(a.url)}" target="_blank" rel="noopener" class="tarea-archivo__name">
+          ${escapeHtml(a.filename)}
+        </a>
+        <div class="tarea-archivo__meta">
+          ${a.size ? formatSize(a.size) : "Entregado"}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="tarea-archivo__delete"
+        data-tarea-action="remove-saved"
+        data-attachment-id="${escapeHtml(a.id || "")}"
+        aria-label="Quitar ${escapeHtml(a.filename)}"
+        ${state.saving ? "disabled" : ""}
+      >
+        ${icon("close")}
+      </button>
+    </li>
+  `).join("");
+
+  const pendingItems = state.pendingFiles.map((p, idx) => `
+    <li class="tarea-archivo tarea-archivo--pending">
+      <div class="tarea-archivo__icon">${icon(iconForFile({ filename: p.file.name, type: p.file.type }))}</div>
+      <div class="tarea-archivo__body">
+        <span class="tarea-archivo__name">${escapeHtml(p.file.name)}</span>
+        <div class="tarea-archivo__meta">
+          <span class="tarea-archivo__badge">Pendiente de guardar</span>
+          ${formatSize(p.file.size)}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="tarea-archivo__delete"
+        data-tarea-action="remove-pending"
+        data-pending-idx="${idx}"
+        aria-label="Quitar ${escapeHtml(p.file.name)}"
+        ${state.saving ? "disabled" : ""}
+      >
+        ${icon("close")}
+      </button>
+    </li>
+  `).join("");
+
+  return `<ul class="tarea-archivos-list">${savedItems}${pendingItems}</ul>`;
 }
 
 function renderComentario(state) {
-  const initial = state.comentario || "";
   return `
     <div class="tarea-comentario">
       <label class="tarea-comentario__label" for="tarea-comentario-${state.leccionId}">
@@ -176,17 +242,43 @@ function renderComentario(state) {
         rows="3"
         maxlength="4000"
         placeholder="Si quieres acompañar tu entrega con notas, déjalas aquí."
-      >${escapeHtml(initial)}</textarea>
-      <div class="tarea-comentario__actions">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          data-tarea-action="save-comment"
-          ${state.savingComment ? "disabled" : ""}
-        >
-          ${state.savingComment ? `<span class="tarea-mini-spinner"></span> Guardando…` : `${icon("check")} Guardar comentario`}
-        </button>
-      </div>
+        ${state.saving ? "disabled" : ""}
+      >${escapeHtml(state.draftComentario || "")}</textarea>
+    </div>
+  `;
+}
+
+function renderSaveBar(state) {
+  const dirty = hasDirtyChanges(state);
+  const totalFinal = totalEntregadosTrasGuardar(state);
+  // Permitimos guardar incluso cuando totalFinal=0 (caso: alumno borra todo
+  // y solo deja un comentario). Solo deshabilitamos si no hay cambios.
+  const canSave = dirty && !state.saving;
+
+  let hint = "";
+  if (state.saving) {
+    hint = "Guardando…";
+  } else if (state.pendingFiles.length > 0) {
+    hint = `${state.pendingFiles.length} ${state.pendingFiles.length === 1 ? "archivo pendiente" : "archivos pendientes"} de guardar`;
+  } else if (state.removedAttachmentIds.size > 0 && state.draftComentario !== state.savedComentario) {
+    hint = "Cambios sin guardar";
+  } else if (state.removedAttachmentIds.size > 0) {
+    hint = `${state.removedAttachmentIds.size} ${state.removedAttachmentIds.size === 1 ? "archivo por quitar" : "archivos por quitar"}`;
+  } else if (state.draftComentario !== state.savedComentario) {
+    hint = "Comentario sin guardar";
+  }
+
+  return `
+    <div class="tarea-savebar">
+      <div class="tarea-savebar__hint">${escapeHtml(hint)}</div>
+      <button
+        type="button"
+        class="btn btn-accent"
+        data-tarea-action="save"
+        ${canSave ? "" : "disabled"}
+      >
+        ${state.saving ? `<span class="tarea-mini-spinner"></span> Guardando…` : `${icon("check")} Guardar entrega`}
+      </button>
     </div>
   `;
 }
@@ -199,27 +291,32 @@ function clickHandler(state, e) {
   const btn = e.target.closest("[data-tarea-action]");
   if (!btn) return;
   const action = btn.dataset.tareaAction;
-  if (action === "delete") {
+  if (action === "remove-saved") {
     const id = btn.dataset.attachmentId;
-    if (id) deleteArchivo(state, id);
-  } else if (action === "save-comment") {
-    saveComentarioOnly(state);
+    if (id) markSavedForRemoval(state, id);
+  } else if (action === "remove-pending") {
+    const idx = parseInt(btn.dataset.pendingIdx, 10);
+    if (!Number.isNaN(idx)) removePendingAt(state, idx);
+  } else if (action === "save") {
+    commitEntrega(state);
   }
 }
 
 function changeHandler(state, e) {
   const input = e.target.closest("[data-tarea-file-input]");
   if (!input || !input.files || input.files.length === 0) return;
-  const file = input.files[0];
+  const fileList = Array.from(input.files);
   input.value = ""; // permitir re-seleccionar mismo archivo
-  uploadArchivo(state, file);
+  addPendingFiles(state, fileList);
 }
 
 function inputHandler(state, e) {
   const ta = e.target.closest("[data-tarea-comentario]");
   if (!ta) return;
-  state.comentario = ta.value;
-  // No re-render para no perder focus.
+  state.draftComentario = ta.value;
+  // Re-render solo la save bar (no toda la UI para no perder focus)
+  const sb = state.container.querySelector(".tarea-savebar");
+  if (sb) sb.outerHTML = renderSaveBar(state);
 }
 
 function dragOverHandler(state, e) {
@@ -240,50 +337,135 @@ function dropHandler(state, e) {
   if (!dz) return;
   e.preventDefault();
   dz.classList.remove("is-dragover");
-  const file = e.dataTransfer?.files?.[0];
-  if (file) uploadArchivo(state, file);
+  const files = e.dataTransfer?.files;
+  if (files && files.length > 0) {
+    addPendingFiles(state, Array.from(files));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Actions
+// State mutations
 // ─────────────────────────────────────────────────────────────────────
 
-async function uploadArchivo(state, file) {
-  if (state.uploading) return;
-
-  // Validar tamaño antes de mandar
-  if (file.size > MAX_BYTES) {
-    const mb = (file.size / 1024 / 1024).toFixed(1);
-    state.error = `El archivo pesa ${mb} MB. El máximo es 20 MB.`;
-    render(state);
-    return;
-  }
-
+function addPendingFiles(state, fileList) {
   state.error = null;
-  state.uploading = true;
-  state.uploadProgress = 0;
-  state.uploadFilename = file.name || "archivo";
+  state.showSuccessFlash = false;
+  const errors = [];
+  for (const f of fileList) {
+    if (f.size > MAX_BYTES) {
+      const mb = (f.size / 1024 / 1024).toFixed(1);
+      errors.push(`"${f.name}" pesa ${mb} MB. El máximo es 20 MB.`);
+      continue;
+    }
+    state.pendingFiles.push({ file: f, id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
+  }
+  if (errors.length > 0) {
+    state.error = errors.join(" ");
+  }
+  render(state);
+}
+
+function removePendingAt(state, idx) {
+  state.pendingFiles.splice(idx, 1);
+  state.showSuccessFlash = false;
+  render(state);
+}
+
+function markSavedForRemoval(state, attachmentId) {
+  state.removedAttachmentIds.add(attachmentId);
+  state.showSuccessFlash = false;
+  render(state);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Commit
+// ─────────────────────────────────────────────────────────────────────
+
+async function commitEntrega(state) {
+  if (state.saving) return;
+  if (!hasDirtyChanges(state)) return;
+
+  state.saving = true;
+  state.saveProgress = 0;
+  state.error = null;
+  state.showSuccessFlash = false;
   render(state);
 
   try {
-    const res = await api.submitTarea({
-      leccionId: state.leccionId,
-      inscripcionId: state.inscripcionId,
-      file,
-      onProgress: (p) => {
-        state.uploadProgress = p;
-        // Update solo la barra para no re-render todo (mantiene fluidez)
-        const fill = state.container.querySelector(".tarea-progress__fill");
-        const label = state.container.querySelector(".tarea-progress__label");
-        if (fill) fill.style.width = `${Math.round(p * 100)}%`;
-        if (label) label.textContent = `${Math.round(p * 100)}%`;
-      },
-    });
-    state.archivos = Array.isArray(res.archivos) ? res.archivos : state.archivos;
-    state.uploading = false;
+    // 1) Eliminar archivos marcados para borrar (uno por uno; el backend
+    //    no soporta batch delete y son pocos en general).
+    for (const attachmentId of state.removedAttachmentIds) {
+      try {
+        await api.deleteEntregaArchivo({
+          leccionId: state.leccionId,
+          inscripcionId: state.inscripcionId,
+          attachmentId,
+        });
+      } catch (err) {
+        // Si el archivo ya no existía (fue borrado en otra pestaña), seguimos.
+        // Para errores reales abortamos.
+        if (err?.status !== 404) {
+          throw err;
+        }
+      }
+    }
+
+    // 2) Subir archivos nuevos + actualizar comentario en una sola request
+    const files = state.pendingFiles.map((p) => p.file);
+    const commentChanged = state.draftComentario !== state.savedComentario;
+
+    // Si NO hay archivos nuevos pero hubo borrados y/o cambio de comentario,
+    // de todas formas llamamos submit-tarea (con files=[] y comentario) para
+    // actualizar el comentario. Si solo hubo borrados sin nada más, también
+    // funciona porque submit-tarea sí acepta zero archivos cuando hay comentario.
+    if (files.length > 0 || commentChanged || state.removedAttachmentIds.size === 0) {
+      const res = await api.submitTarea({
+        leccionId: state.leccionId,
+        inscripcionId: state.inscripcionId,
+        files,
+        comentario: commentChanged ? state.draftComentario : undefined,
+        onProgress: (p) => {
+          state.saveProgress = p;
+          const fill = state.container.querySelector(".tarea-progress__fill");
+          const label = state.container.querySelector(".tarea-progress__label");
+          if (fill) fill.style.width = `${Math.round(p * 100)}%`;
+          if (label) label.textContent = `${Math.round(p * 100)}%`;
+        },
+      });
+      state.savedFiles = Array.isArray(res.archivos) ? res.archivos : state.savedFiles;
+      state.savedComentario = res.comentario ?? state.savedComentario;
+    } else {
+      // Solo borrados, sin upload ni cambio de comentario. Refrescamos
+      // savedFiles desde el backend para reflejar el estado actual.
+      const fresh = await api.resultadosQuiz(state.leccionId);
+      if (fresh?.tieneResultados) {
+        state.savedFiles = Array.isArray(fresh.archivos) ? fresh.archivos : [];
+        state.savedComentario = fresh.comentario || "";
+      } else {
+        state.savedFiles = [];
+        state.savedComentario = "";
+      }
+    }
+
+    // 3) Reset state local
+    state.pendingFiles = [];
+    state.removedAttachmentIds = new Set();
+    state.draftComentario = state.savedComentario;
+    state.saving = false;
+    state.saveProgress = 0;
+    state.showSuccessFlash = true;
     render(state);
 
-    if (typeof state.onComplete === "function") {
+    // Quitar flash después de 4 segundos
+    setTimeout(() => {
+      if (state.showSuccessFlash) {
+        state.showSuccessFlash = false;
+        render(state);
+      }
+    }, 4000);
+
+    // Marcar lección como completada si hay archivos
+    if (state.savedFiles.length > 0 && typeof state.onComplete === "function") {
       try {
         await state.onComplete();
       } catch (err) {
@@ -291,56 +473,10 @@ async function uploadArchivo(state, file) {
       }
     }
   } catch (err) {
-    console.error("tarea upload failed:", err);
-    state.uploading = false;
-    state.error = err?.message || "No pudimos subir el archivo. Intenta de nuevo.";
-    render(state);
-  }
-}
-
-async function deleteArchivo(state, attachmentId) {
-  if (state.deletingId) return;
-  state.deletingId = attachmentId;
-  state.error = null;
-  render(state);
-
-  try {
-    const res = await api.deleteEntregaArchivo({
-      leccionId: state.leccionId,
-      inscripcionId: state.inscripcionId,
-      attachmentId,
-    });
-    state.archivos = Array.isArray(res.archivos) ? res.archivos : [];
-    state.deletingId = null;
-    render(state);
-  } catch (err) {
-    console.error("tarea delete failed:", err);
-    state.deletingId = null;
-    state.error = err?.message || "No pudimos eliminar el archivo.";
-    render(state);
-  }
-}
-
-async function saveComentarioOnly(state) {
-  if (state.savingComment) return;
-  state.savingComment = true;
-  state.error = null;
-  render(state);
-
-  try {
-    const res = await api.submitTarea({
-      leccionId: state.leccionId,
-      inscripcionId: state.inscripcionId,
-      comentario: state.comentario,
-    });
-    state.archivos = Array.isArray(res.archivos) ? res.archivos : state.archivos;
-    state.comentario = res.comentario ?? state.comentario;
-    state.savingComment = false;
-    render(state);
-  } catch (err) {
-    console.error("tarea save comment failed:", err);
-    state.savingComment = false;
-    state.error = err?.message || "No pudimos guardar el comentario.";
+    console.error("commit tarea failed:", err);
+    state.saving = false;
+    state.saveProgress = 0;
+    state.error = err?.message || "No pudimos guardar tu entrega. Intenta de nuevo.";
     render(state);
   }
 }

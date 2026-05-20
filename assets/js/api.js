@@ -336,26 +336,26 @@ export const api = {
   },
 
   /**
-   * POST /submit-tarea · sube un archivo (opcional) + comentario (opcional)
+   * POST /submit-tarea · sube N archivos + comentario en una sola request
    * a una lección tipo `tarea`. Hace upsert por (Lección × Inscripción) y
-   * agrega el archivo al array `Archivos` existente (sin reemplazar).
+   * agrega los archivos al array `Archivos` existente (merge, no reemplaza).
    *
    * @param {object} opts
    * @param {string} opts.leccionId
    * @param {string} opts.inscripcionId
-   * @param {File} [opts.file]            · opcional si solo se actualiza comentario
+   * @param {File[]} [opts.files]         · array de File (puede estar vacío)
    * @param {string} [opts.comentario]    · opcional
-   * @param {(p:number)=>void} [opts.onProgress] · 0..1
+   * @param {(p:number)=>void} [opts.onProgress] · 0..1 (progreso TOTAL del request)
    * @returns {Promise<{ ok: boolean, respuestaId: string, archivos: Array, comentario: string|null }>}
    */
-  async submitTarea({ leccionId, inscripcionId, file, comentario, onProgress }) {
+  async submitTarea({ leccionId, inscripcionId, files, comentario, onProgress }) {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
     if (!token) throw new ApiError("Not authenticated", 401);
 
     const url = new URL("/functions/v1/submit-tarea", SUPABASE_URL);
     const fd = new FormData();
-    if (file) fd.append("file", file);
+    (files || []).forEach((f) => fd.append("file", f));
     fd.append("leccionId", leccionId);
     fd.append("inscripcionId", inscripcionId);
     if (comentario != null) fd.append("comentario", comentario);

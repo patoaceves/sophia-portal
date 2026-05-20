@@ -1187,7 +1187,7 @@
   color: var(--color-text);
 }
 
-.quiz-resumen--ok .quiz-resumen__score-num { color: var(--color-success); }
+.quiz-resumen--ok .quiz-resumen__score-num { color: var(--color-success-tech); }
 .quiz-resumen--ko .quiz-resumen__score-num { color: var(--color-danger); }
 
 .quiz-resumen__score-sep,
@@ -1218,8 +1218,8 @@
 }
 
 .quiz-resumen-item--ok {
-  border-color: var(--color-success);
-  background: var(--color-success-soft);
+  border-color: var(--color-success-tech);
+  background: var(--color-success-tech-soft);
 }
 
 .quiz-resumen-item--ko {
@@ -1238,7 +1238,7 @@
 }
 
 .quiz-resumen-item--ok .quiz-resumen-item__marker {
-  background: var(--color-success);
+  background: var(--color-success-tech);
   color: white;
 }
 
@@ -1275,7 +1275,7 @@
 }
 
 .quiz-resumen-item__correct strong {
-  color: var(--color-success);
+  color: var(--color-success-tech);
 }
 
 .quiz-resumen__actions {
@@ -1339,8 +1339,8 @@
 }
 
 .tarea-status--ok {
-  border-color: var(--color-success);
-  background: var(--color-success-soft);
+  border-color: var(--color-success-tech);
+  background: var(--color-success-tech-soft);
   color: var(--color-text);
 }
 
@@ -1348,7 +1348,7 @@
   flex: 0 0 auto;
   width: 22px;
   height: 22px;
-  color: var(--color-success);
+  color: var(--color-success-tech);
 }
 
 .tarea-dropzone {
@@ -1549,14 +1549,54 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
-.tarea-comentario__actions {
-  display: flex;
-  justify-content: flex-start;
+.tarea-comentario__textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.tarea-comentario__actions .btn svg {
+/* Save bar — barra inferior con hint a la izquierda + botón a la derecha */
+.tarea-savebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) 0 0 0;
+  flex-wrap: wrap;
+}
+
+.tarea-savebar__hint {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.tarea-savebar .btn svg {
   width: 16px;
   height: 16px;
+}
+
+.tarea-savebar .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Badge para archivos pendientes (no guardados aún) */
+.tarea-archivo--pending {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 4%, var(--color-bg-elevated));
+}
+
+.tarea-archivo__badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-right: var(--s-2);
 }
 
 .tarea-error {
@@ -4077,6 +4117,12 @@
 
 @media (max-width: 900px) {
   .resumen-row { grid-template-columns: 1fr; }
+}
+
+/* Variante de una sola card (cursos sin Test de Felicidad) — el foro
+   toma todo el ancho en vez de quedar a la mitad. */
+.resumen-row--single {
+  grid-template-columns: 1fr;
 }
 
 .continue-card {

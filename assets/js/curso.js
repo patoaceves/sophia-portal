@@ -428,22 +428,35 @@ function renderTabsNav(slug, currentTab) {
 function renderResumenTab(ctx) {
   const { modulos, totalLecc, completadas, resultadoAutoconocimiento, slug } = ctx;
 
-  return `
-    <div class="resumen-row">
-      ${renderForoPreviewCard(ctx)}
-      ${renderTestCajita(ctx)}
-    </div>
+  // El Test de Felicidad y las 8 dimensiones del bienestar son específicos
+  // del Happiness Workshop. En otros cursos (ej. Fundamentos de Coaching)
+  // estas secciones no aplican.
+  const isHappinessWorkshop = slug === "happiness-workshop";
 
-    <section class="pillar-grid">
-      <header class="pillar-grid__header">
-        <span class="pillar-grid__eyebrow">Las 8 dimensiones del bienestar</span>
-        <h3 class="pillar-grid__title">Tu camino, módulo por módulo</h3>
-        <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su módulo.</p>
-      </header>
-      <div class="pillar-grid__grid">
-        ${PILARES.map((p, i) => renderPillarIcon(p, i, modulos, { resultadoAutoconocimiento, slug })).join("")}
+  return `
+    ${isHappinessWorkshop ? `
+      <div class="resumen-row">
+        ${renderForoPreviewCard(ctx)}
+        ${renderTestCajita(ctx)}
       </div>
-    </section>
+    ` : `
+      <div class="resumen-row resumen-row--single">
+        ${renderForoPreviewCard(ctx)}
+      </div>
+    `}
+
+    ${isHappinessWorkshop ? `
+      <section class="pillar-grid">
+        <header class="pillar-grid__header">
+          <span class="pillar-grid__eyebrow">Las 8 dimensiones del bienestar</span>
+          <h3 class="pillar-grid__title">Tu camino, módulo por módulo</h3>
+          <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su módulo.</p>
+        </header>
+        <div class="pillar-grid__grid">
+          ${PILARES.map((p, i) => renderPillarIcon(p, i, modulos, { resultadoAutoconocimiento, slug })).join("")}
+        </div>
+      </section>
+    ` : ""}
 
     <section class="resumen-extras">
       <header class="resumen-extras__header">

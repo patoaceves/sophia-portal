@@ -1,24 +1,22 @@
 // SOPHIA Portal · submit-tarea
 //
-// Recibe un archivo (multipart/form-data) de una lección tipo `tarea`,
-// lo sube a Supabase Storage, y lo agrega como attachment al registro de
-// "Actividades en Clase" para esta (Lección × Inscripción). Si ya existe
-// un registro, agrega el archivo al array `Archivos` existente (no
-// reemplaza). Si es la primera entrega, crea el registro.
-//
-// También acepta un campo `comentario` opcional (multilineText) — si llega
-// vacío, no toca el campo existente.
+// Recibe N archivos (multipart/form-data, campo "file" repetido) + comentario
+// opcional para una lección tipo `tarea`. Sube todos los archivos a Supabase
+// Storage en una sola request y los agrega como attachments al registro de
+// "Actividades en Clase" para esta (Lección × Inscripción). Si ya existe un
+// registro, hace merge con los archivos previos. Si es la primera entrega,
+// crea el registro.
 //
 // Endpoint:   POST /submit-tarea
 // Headers:    Authorization: Bearer <jwt>
 // Body:       multipart/form-data
-//   file:           File (binary)            — opcional si solo se actualiza comentario
+//   file:           File (binary)  — puede repetirse para varios archivos
 //   leccionId:      string (recXXX)
 //   inscripcionId:  string (recXXX)
 //   comentario:     string (opcional)
 //
 // Response 200:
-//   { ok: true, respuestaId, archivos: [{ url, filename, size }, ...] }
+//   { ok: true, respuestaId, archivos: [{ url, filename, size }, ...], comentario }
 // Response 4xx/5xx:
 //   { ok: false, error, code? }
 
@@ -257,7 +255,7 @@ Deno.serve(async (req) => {
       return errorResponse(req, "Cuerpo inválido. Esperaba multipart/form-data.", 400, "bad_body");
     }
 
-    const file = formData.get("file");
+    const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
     const leccionId = String(formData.get("leccionId") ?? "");
     const inscripcionId = String(formData.get("inscripcionId") ?? "");
     const comentarioRaw = formData.get("comentario");
@@ -315,50 +313,58 @@ Deno.serve(async (req) => {
     const existingFiles =
       (existingRec?.fields[FIELDS.ACTIVIDADES.ARCHIVOS] as AirtableAttachment[]) ?? [];
 
-    // ── Subir archivo nuevo (si hay) ────────────────────────────────
+    // ── Subir archivos nuevos (si hay) ──────────────────────────────
+    // El frontend puede mandar N archivos en una sola request (campo "file"
+    // repetido). Los validamos primero y luego subimos en secuencia. Si uno
+    // falla, abortamos y devolvemos error (los previos quedan en Storage
+    // pero no se asocian a Airtable — cleanup-orphan-uploads los recoge).
     const newFiles: AirtableAttachment[] = [];
-    if (file instanceof File && file.size > 0) {
-      if (file.size > MAX_FILE_BYTES) {
-        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-        return errorResponse(
-          req,
-          `El archivo pesa ${sizeMB} MB. El máximo es 20 MB.`,
-          400,
-          "too_large",
-        );
+    if (files.length > 0) {
+      // Validar todos antes de subir cualquiera
+      for (const f of files) {
+        if (f.size > MAX_FILE_BYTES) {
+          const sizeMB = (f.size / 1024 / 1024).toFixed(1);
+          return errorResponse(
+            req,
+            `El archivo "${f.name}" pesa ${sizeMB} MB. El máximo es 20 MB.`,
+            400,
+            "too_large",
+          );
+        }
       }
-
-      const safeName = sanitizeFilename(file.name || "archivo");
-      const storagePath = `tareas/${leccionId}/${personaPortalId}/${crypto.randomUUID()}-${safeName}`;
 
       const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-      const arrayBuffer = await file.arrayBuffer();
-      const { error: uploadErr } = await supabaseAdmin
-        .storage
-        .from(STORAGE_BUCKET)
-        .upload(storagePath, arrayBuffer, {
-          contentType: file.type || "application/octet-stream",
-          cacheControl: "31536000",
-          upsert: false,
-        });
-      if (uploadErr) {
-        console.error("Storage upload failed:", uploadErr);
-        return errorResponse(
-          req,
-          `No pudimos guardar el archivo. ${uploadErr.message}`,
-          500,
-          "upload_failed",
-        );
-      }
-      const { data: urlData } = supabaseAdmin
-        .storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(storagePath);
+      for (const f of files) {
+        const safeName = sanitizeFilename(f.name || "archivo");
+        const storagePath = `tareas/${leccionId}/${personaPortalId}/${crypto.randomUUID()}-${safeName}`;
+        const arrayBuffer = await f.arrayBuffer();
+        const { error: uploadErr } = await supabaseAdmin
+          .storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, arrayBuffer, {
+            contentType: f.type || "application/octet-stream",
+            cacheControl: "31536000",
+            upsert: false,
+          });
+        if (uploadErr) {
+          console.error("Storage upload failed:", uploadErr);
+          return errorResponse(
+            req,
+            `No pudimos guardar "${f.name}". ${uploadErr.message}`,
+            500,
+            "upload_failed",
+          );
+        }
+        const { data: urlData } = supabaseAdmin
+          .storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(storagePath);
 
-      newFiles.push({
-        url: urlData.publicUrl,
-        filename: file.name || safeName,
-      });
+        newFiles.push({
+          url: urlData.publicUrl,
+          filename: f.name || safeName,
+        });
+      }
     }
 
     // Si no llegó archivo ni comentario nuevo, no hay nada que hacer.
