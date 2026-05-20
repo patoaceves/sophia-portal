@@ -23,7 +23,7 @@ import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 import { openForoLightbox } from "./foro-lightbox.js";
 import { bandaColor as autoevalBandaColor } from "./autoeval-defs.js";
 
-const LOCAL_COVERS = new Set(["happiness-workshop"]);
+const LOCAL_COVERS = new Set(["happiness-workshop", "fundamentos-de-coaching"]);
 
 const PILARES = [
   { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },      // mod 2
