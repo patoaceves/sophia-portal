@@ -180,7 +180,7 @@ function renderPregunta(state, idx) {
     <article class="test-question">
       <div class="test-question__pilar">${escapeHtml(p.eyebrow || "Reflexión")}</div>
       <h2 class="test-question__texto">${escapeHtml(p.texto)}</h2>
-      ${!p.obligatoria ? `<p class="quiz-optional-note">Opcional — puedes dejarla en blanco si aún no tienes la respuesta.</p>` : ""}
+      ${!p.obligatoria ? `<p class="quiz-optional-note">Opcional – puedes dejarla en blanco si aún no tienes la respuesta.</p>` : ""}
 
       ${body}
 

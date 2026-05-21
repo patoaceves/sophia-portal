@@ -273,7 +273,7 @@ export const AUTOEVALS = {
     accentColor: "#66A3F4",
     preguntas: preguntas([
       "Por lo general me esfuerzo en que mi trabajo esté hecho de modo excelente.",
-      "Experimento un disfrute más allá del logro material o del reconocimiento externo —plenitud, inspiración, gratitud o conexión profunda— con lo que hago y para quién lo hago.",
+      "Experimento un disfrute más allá del logro material o del reconocimiento externo –plenitud, inspiración, gratitud o conexión profunda– con lo que hago y para quién lo hago.",
       "Me siento en armonía y con una perspectiva positiva hacia el futuro en relación con mi trabajo.",
       "Desarrollo mis ocupaciones del trabajo con entrega y dedicación.",
       "Tengo la posibilidad de experimentar éxito o crecimiento en mis ocupaciones.",
@@ -427,7 +427,7 @@ export const AUTOEVALS = {
     ]),
     bandas: {
       "Fortaleza Actual": {
-        lead: "Tienes un marco —espiritual, filosófico, o ambos— que da sentido a tu vida y te ancla cuando las circunstancias se mueven. Lo vives con constancia, se hace más hondo con el tiempo y te abre al otro y a un sentido de lo Absoluto.",
+        lead: "Tienes un marco –espiritual, filosófico, o ambos– que da sentido a tu vida y te ancla cuando las circunstancias se mueven. Lo vives con constancia, se hace más hondo con el tiempo y te abre al otro y a un sentido de lo Absoluto.",
         steps: [
           "Sostén una práctica regular de lectura o reflexión contemplativa.",
           "Comparte tus convicciones en una conversación profunda y abierta.",
@@ -441,7 +441,7 @@ export const AUTOEVALS = {
         ],
       },
       "Área de Atención": {
-        lead: "Las preguntas grandes —sentido, trascendencia, qué guía tu vida— suelen quedar aplazadas. Tienes intuiciones, pero falta arraigo y constancia. No es un defecto: es una invitación abierta.",
+        lead: "Las preguntas grandes –sentido, trascendencia, qué guía tu vida– suelen quedar aplazadas. Tienes intuiciones, pero falta arraigo y constancia. No es un defecto: es una invitación abierta.",
         steps: [
           "Dedica un momento semanal a una lectura o conversación sobre el sentido de vida.",
           "Identifica un valor que sí te orienta y vuélvelo explícito en tus decisiones.",

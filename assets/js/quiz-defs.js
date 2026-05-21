@@ -315,7 +315,7 @@ export const QUIZZES = {
       "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
     ],
     doneTitle: "Reflexión guardada",
-    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 1 — vamos a profundizar en estas fronteras del coaching juntos.",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 1 – vamos a profundizar en estas fronteras del coaching juntos.",
     preguntas: [
       {
         id: "reflexion_fronteras",

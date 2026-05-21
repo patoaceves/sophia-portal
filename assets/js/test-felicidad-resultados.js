@@ -185,13 +185,13 @@ function renderBloques(scores, analisis) {
 function strongestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   const k = sorted[0]?.[0];
-  return k ? (nombres?.[k] || k) : "—";
+  return k ? (nombres?.[k] || k) : "–";
 }
 
 function weakestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
   const k = sorted[0]?.[0];
-  return k ? (nombres?.[k] || k) : "—";
+  return k ? (nombres?.[k] || k) : "–";
 }
 
 /**
@@ -228,17 +228,17 @@ function buildHolisticAnalysis(scores, nombres) {
 
   // Construcción del texto según los tiers
   if (tone === "alto" && balanced) {
-    return `Tu diagrama refleja una vida con cimientos firmes y bien distribuidos. Tu fortaleza en ${fuerte} convive con un cuidado parejo de tus otras áreas — eso habla de hábitos integrados, no de un solo pilar cargando con todo. La oportunidad ahora es sostener este equilibrio y profundizar, sin perder de vista ${vulnerable.toLowerCase()}, que aunque está cerca de las demás, podría ser tu próximo lugar de exploración.`;
+    return `Tu diagrama refleja una vida con cimientos firmes y bien distribuidos. Tu fortaleza en ${fuerte} convive con un cuidado parejo de tus otras áreas – eso habla de hábitos integrados, no de un solo pilar cargando con todo. La oportunidad ahora es sostener este equilibrio y profundizar, sin perder de vista ${vulnerable.toLowerCase()}, que aunque está cerca de las demás, podría ser tu próximo lugar de exploración.`;
   }
   if (tone === "alto" && !balanced) {
-    return `Tu pilar más fuerte, ${fuerte}, está claramente nutrido y se nota. Sin embargo, hay una distancia notable con ${vulnerable.toLowerCase()}, lo que sugiere que estás invirtiendo mucho en ciertas áreas y descuidando otras. La invitación es a llevar parte de la energía que ya sabes generar hacia el pilar más vulnerable — no para descuidar tu fortaleza, sino para que el conjunto te sostenga.`;
+    return `Tu pilar más fuerte, ${fuerte}, está claramente nutrido y se nota. Sin embargo, hay una distancia notable con ${vulnerable.toLowerCase()}, lo que sugiere que estás invirtiendo mucho en ciertas áreas y descuidando otras. La invitación es a llevar parte de la energía que ya sabes generar hacia el pilar más vulnerable – no para descuidar tu fortaleza, sino para que el conjunto te sostenga.`;
   }
   if (tone === "medio-alto") {
-    return `Tu rueda muestra una base sólida con espacios claros de crecimiento. ${fuerte} es tu ancla y eso es una buena señal: ya sabes lo que se siente cuidar bien un área. ${vulnerable} aparece como tu invitación más directa — no como déficit, sino como el lugar donde el siguiente módulo puede florecer. Pequeños movimientos consistentes ahí mueven mucho el conjunto.`;
+    return `Tu rueda muestra una base sólida con espacios claros de crecimiento. ${fuerte} es tu ancla y eso es una buena señal: ya sabes lo que se siente cuidar bien un área. ${vulnerable} aparece como tu invitación más directa – no como déficit, sino como el lugar donde el siguiente módulo puede florecer. Pequeños movimientos consistentes ahí mueven mucho el conjunto.`;
   }
   if (tone === "medio") {
-    return `Tu diagrama dice algo importante: estás en una zona de cultivo. Ningún pilar está abandonado, pero ninguno está en su mejor momento tampoco. ${fuerte} es por dónde empezar a sostenerte — usa lo que ya funciona ahí como punto de apoyo. ${vulnerable} merece atención específica, idealmente con una práctica concreta y sostenida más que con un cambio drástico.`;
+    return `Tu diagrama dice algo importante: estás en una zona de cultivo. Ningún pilar está abandonado, pero ninguno está en su mejor momento tampoco. ${fuerte} es por dónde empezar a sostenerte – usa lo que ya funciona ahí como punto de apoyo. ${vulnerable} merece atención específica, idealmente con una práctica concreta y sostenida más que con un cambio drástico.`;
   }
   // explorador (avg < 5)
-  return `Tu diagrama refleja un momento de exploración. Es honesto y vale la pena reconocerlo: estás registrando dónde estás hoy, no dónde "deberías" estar. Empieza por ${fuerte} — incluso si no se siente fuerte, es tu mayor punto de apoyo. ${vulnerable} probablemente requiere acompañamiento o una decisión estructural, no solo voluntad. Este es un buen lugar desde el cual empezar.`;
+  return `Tu diagrama refleja un momento de exploración. Es honesto y vale la pena reconocerlo: estás registrando dónde estás hoy, no dónde "deberías" estar. Empieza por ${fuerte} – incluso si no se siente fuerte, es tu mayor punto de apoyo. ${vulnerable} probablemente requiere acompañamiento o una decisión estructural, no solo voluntad. Este es un buen lugar desde el cual empezar.`;
 }

@@ -36,7 +36,7 @@ const PAISES = [
   if (!persona) return;
 
   const session = await getSession();
-  const email = session?.user?.email || persona.email || "—";
+  const email = session?.user?.email || persona.email || "–";
 
   const nombre = persona.nombre || "";
   const apellidos = persona.apellidos || "";

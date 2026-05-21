@@ -23,7 +23,10 @@ import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 import { openForoLightbox } from "./foro-lightbox.js";
 import { bandaColor as autoevalBandaColor } from "./autoeval-defs.js";
 
-const LOCAL_COVERS = new Set(["happiness-workshop", "fundamentos-de-coaching"]);
+const LOCAL_COVERS = new Map([
+  ["happiness-workshop", "png"],
+  ["fundamentos-de-coaching", "jpg"],
+]);
 
 const PILARES = [
   { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },      // mod 2
@@ -105,8 +108,9 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
 
   const next = findNextLeccion(modulos);
 
+  const localExt = LOCAL_COVERS.get(slug);
   const coverUrl = curso.coverUrl
-    || (LOCAL_COVERS.has(slug) ? `/assets/img/${slug}/portada.png` : null);
+    || (localExt ? `/assets/img/${slug}/portada.${localExt}` : null);
 
   const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento };
 

@@ -4,9 +4,14 @@ import { requireAuth, tryClaimPendingInvite, getPendingInvite, bootstrapPersona 
 import { callEdge } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 
-// Cursos que tienen una portada local en /assets/img/{slug}/portada.png
-// (fallback cuando no hay COVER_IMAGE en Airtable)
-const LOCAL_COVERS = new Set(["happiness-workshop", "fundamentos-de-coaching"]);
+// Cursos que tienen una portada local en /assets/img/{slug}/portada.{ext}
+// (fallback cuando no hay COVER_IMAGE en Airtable). El valor es la extensión
+// del archivo (png/jpg) — usamos png para ilustraciones generadas, jpg para
+// fotos con muchos gradientes (mucho más liviano).
+const LOCAL_COVERS = new Map([
+  ["happiness-workshop", "png"],
+  ["fundamentos-de-coaching", "jpg"],
+]);
 
 (async () => {
   const persona = await requireAuth();
@@ -107,8 +112,9 @@ function renderCursos(cursos, opts = {}) {
 function renderCursoCard(c) {
   const slug = c.slug || c.id;
   // Fallback: si Airtable no tiene cover, usar la portada local (si existe).
+  const localExt = LOCAL_COVERS.get(slug);
   const coverUrl = c.coverUrl
-    || (LOCAL_COVERS.has(slug) ? `/assets/img/${slug}/portada.png` : null);
+    || (localExt ? `/assets/img/${slug}/portada.${localExt}` : null);
 
   const cover = coverUrl
     ? `<img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(c.titulo)}" loading="lazy">`

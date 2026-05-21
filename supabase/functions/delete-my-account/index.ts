@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
       return jsonResponse(req, {
         ok: true,
         partial: true,
-        warning: "Datos eliminados de Airtable. Borrado del usuario Auth falló — contacta soporte.",
+        warning: "Datos eliminados de Airtable. Borrado del usuario Auth falló – contacta soporte.",
         contadores: {
           inscripciones: inscripciones.length,
           progreso: progreso.length,

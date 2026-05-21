@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return jsonResponse({ ok: false, error: "Body inválido — se esperaba JSON" }, 400);
+      return jsonResponse({ ok: false, error: "Body inválido – se esperaba JSON" }, 400);
     }
 
     // ── 2. Validar token estático ───────────────────────────────────────
