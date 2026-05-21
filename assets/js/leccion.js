@@ -21,6 +21,7 @@ import { AUTOEVAL_KEYS } from "./autoeval-defs.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 import { mountTarea } from "./tarea.js";
+import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 
 // ─────────────────────────────────────────────────────────────────────
 // DOMPurify (cliente) — segunda capa de defensa.
@@ -406,6 +407,11 @@ function renderLeccion(persona, payload, cursoContext) {
     // Lecciones tipo pdf: PDF.js rellena los contenedores .leccion-pdf.
     // No-op si la lección no tiene ninguno.
     mountPdfViewers();
+    // Si la lección incluye un slot <div id="foro-composer-slot">,
+    // montamos un composer del foro inline. Útil para lecciones tipo
+    // "trabajo previo" donde el alumno debe publicar una presentación o
+    // reflexión en el foro del curso sin salirse de la lección.
+    mountForoComposerIfSlot(persona, cursoId);
   }
 
   // Prefetch adyacentes en background para que la navegacion sea instantanea
@@ -653,6 +659,65 @@ function loadPdfjs() {
     });
   }
   return _pdfjsLibPromise;
+}
+
+/**
+ * Si la lección incluye un slot con id="foro-composer-slot", monta un
+ * composer pill del foro en ese lugar. Permite al alumno publicar en el
+ * foro del curso sin salirse de la lección.
+ *
+ * El HTML de la lección (en Airtable, campo Contenido_HTML) debe incluir
+ * el slot donde quieras que aparezca el composer, ej:
+ *
+ *   <h2>Tu presentación</h2>
+ *   <p>Publica tu presentación en el foro:</p>
+ *   <div id="foro-composer-slot"></div>
+ *
+ * El sanitizer permite `id`, `class`, así que el slot pasa intacto.
+ */
+function mountForoComposerIfSlot(persona, cursoId) {
+  const slot = document.getElementById("foro-composer-slot");
+  if (!slot || !cursoId) return;
+
+  // Wrap del composer + link al foro completo.
+  slot.classList.add("leccion-foro-embed");
+  slot.innerHTML = `
+    <div class="leccion-foro-embed__header">
+      <span class="leccion-foro-embed__label">Publica en el foro del curso</span>
+      <a class="leccion-foro-embed__link" href="/app/curso?id=${encodeURIComponent(cursoId)}#foro">
+        Ver el foro completo →
+      </a>
+    </div>
+    <div class="leccion-foro-embed__composer">
+      ${renderComposerPill(persona, { placeholder: "Escribe tu presentación o reflexión..." })}
+    </div>
+    <div class="leccion-foro-embed__feedback" hidden></div>
+  `;
+
+  const pill = slot.querySelector("[data-foro-pill]");
+  if (!pill) return;
+
+  wireComposerPill(pill, {
+    cursoId,
+    onPublished: (post) => {
+      const feedback = slot.querySelector(".leccion-foro-embed__feedback");
+      if (feedback) {
+        feedback.hidden = false;
+        feedback.innerHTML = `
+          <div class="leccion-foro-embed__success">
+            ${icon("check")}
+            <span>Tu publicación se compartió en el foro del curso.</span>
+          </div>
+        `;
+        setTimeout(() => {
+          if (feedback) {
+            feedback.hidden = true;
+            feedback.innerHTML = "";
+          }
+        }, 6000);
+      }
+    },
+  });
 }
 
 async function mountPdfViewers() {

@@ -147,7 +147,7 @@ function renderIntro(state) {
     .join("");
   return `
     <div class="test-intro">
-      <span class="test-intro__eyebrow">${escapeHtml(def.introEyebrow || "Actividad en clase")}</span>
+      <span class="test-intro__eyebrow">${escapeHtml(def.introEyebrow || "Actividad")}</span>
       <h2 class="test-intro__title">${escapeHtml(def.introTitle || def.titulo)}</h2>
       ${leadHtml}
       <button class="btn btn-accent btn-lg" data-quiz-action="start" type="button">
@@ -286,15 +286,18 @@ function renderResumen(state) {
 /**
  * Resumen con score: cuenta aciertos sobre preguntas con `correcta` definida,
  * lista todas las preguntas marcando ✓ o ✗, y ofrece botón para reintentar.
+ *
+ * Si NO aprobó (< 60%), el botón principal es "Volver a intentar" y se le
+ * indica al alumno que debe pasar para avanzar.
  */
 function renderResumenConScore(state) {
-  const scored = state.def.preguntas.filter((p) => typeof p.correcta === "number");
-  let aciertos = 0;
+  const score = calcularScore(state.def, state.respuestas);
+  const { scored, aciertos, total, pct, aprobado } = score;
+
   const items = scored.map((p) => {
     const respuestaUsuario = state.respuestas[p.id];
     const opcionCorrecta = p.opciones[p.correcta];
     const acerto = respuestaUsuario === opcionCorrecta;
-    if (acerto) aciertos += 1;
     const userHtml = respuestaUsuario
       ? `<div class="quiz-resumen-item__user">Tu respuesta: <strong>${escapeHtml(respuestaUsuario)}</strong></div>`
       : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">No respondida</div>`;
@@ -315,14 +318,13 @@ function renderResumenConScore(state) {
     `;
   }).join("");
 
-  const total = scored.length;
-  const pct = total > 0 ? Math.round((aciertos / total) * 100) : 0;
-  const aprobado = pct >= 60;
   const tone = aprobado ? "ok" : "ko";
-  const titulo = aprobado ? "¡Bien hecho!" : "Sigue practicando";
+  const titulo = aprobado ? "¡Bien hecho!" : "No aprobaste, sigue practicando";
   const lead = aprobado
     ? "Tienes una base sólida sobre los temas de la sesión. Revisa abajo las respuestas correctas y, si quieres, reintenta el quiz."
-    : "Repasa el material de la sesión y vuelve a intentarlo. Las respuestas correctas están marcadas abajo.";
+    : `Obtuviste ${pct}%. Necesitas al menos 60% para aprobar y avanzar a la siguiente lección. Revisa las respuestas correctas abajo y vuelve a intentarlo.`;
+  const btnLabel = aprobado ? "Reintentar quiz" : "Volver a intentar";
+  const btnClass = aprobado ? "btn-secondary" : "btn-accent";
 
   return `
     <div class="quiz-resumen quiz-resumen--scored quiz-resumen--${tone}">
@@ -337,13 +339,32 @@ function renderResumenConScore(state) {
       </div>
       <ol class="quiz-resumen-list">${items}</ol>
       <div class="quiz-resumen__actions">
-        <button class="btn btn-secondary" data-quiz-action="retry" type="button">
+        <button class="btn ${btnClass}" data-quiz-action="retry" type="button">
           ${icon("refresh")}
-          <span>Reintentar quiz</span>
+          <span>${btnLabel}</span>
         </button>
       </div>
     </div>
   `;
+}
+
+/**
+ * Calcula el score de un quiz scored.
+ * Devuelve { scored, aciertos, total, pct, aprobado } o null si no aplica.
+ * Umbral de aprobación: 60%.
+ */
+function calcularScore(def, respuestas) {
+  if (!hasScoring(def)) return null;
+  const scored = def.preguntas.filter((p) => typeof p.correcta === "number");
+  let aciertos = 0;
+  for (const p of scored) {
+    const opcionCorrecta = p.opciones[p.correcta];
+    if (respuestas[p.id] === opcionCorrecta) aciertos += 1;
+  }
+  const total = scored.length;
+  const pct = total > 0 ? Math.round((aciertos / total) * 100) : 0;
+  const aprobado = pct >= 60;
+  return { scored, aciertos, total, pct, aprobado };
 }
 
 function hasScoring(def) {
@@ -461,8 +482,15 @@ async function submit(state) {
     // Limpiamos el borrador local — ya está persistido en backend
     clearState(state.leccionId);
 
-    // Marcar la lección como completada (best-effort)
-    if (typeof state.onComplete === "function") {
+    // Marcar la lección como completada SOLO si:
+    //   - el quiz NO tiene scoring (reflexivo, siempre cuenta como completado), o
+    //   - el quiz SÍ tiene scoring y el alumno aprobó (≥ 60%).
+    // Si reprobó un quiz scored, NO se marca completada y NO aparece el
+    // botón "Avanzar" en el footer de la lección. Debe reintentar.
+    const score = calcularScore(state.def, state.respuestas);
+    const completaLeccion = !score || score.aprobado;
+
+    if (completaLeccion && typeof state.onComplete === "function") {
       try {
         await state.onComplete();
       } catch (err) {

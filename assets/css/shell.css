@@ -1687,6 +1687,71 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * Foro composer embebido en lecciones
+ * Para lecciones (ej. Trabajo previo) que incluyen un slot
+ * <div id="foro-composer-slot"></div> donde se monta un pill del foro.
+ * ────────────────────────────────────────────────────────────────── */
+
+.leccion-foro-embed {
+  margin: var(--s-5) 0;
+  padding: var(--s-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.leccion-foro-embed__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.leccion-foro-embed__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.leccion-foro-embed__link {
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.leccion-foro-embed__link:hover {
+  text-decoration: underline;
+}
+
+.leccion-foro-embed__composer {
+  /* el composer-pill ya trae su propio styling */
+}
+
+.leccion-foro-embed__success {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--color-success-tech);
+  background: var(--color-success-tech-soft);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+}
+
+.leccion-foro-embed__success svg {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--color-success-tech);
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * Profile
  * ────────────────────────────────────────────────────────────────── */
 

@@ -23,7 +23,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "gnothi-seauton": {
     titulo: "Gnóthi Seautón",
-    introEyebrow: "Actividad en clase",
+    introEyebrow: "Actividad",
     introTitle: "Gnóthi Seautón · Conócete a ti mismo",
     introLead: [
       "Sócrates pensaba que la clave para vivir una buena vida radica en el " +
