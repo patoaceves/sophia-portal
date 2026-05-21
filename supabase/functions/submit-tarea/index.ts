@@ -378,9 +378,9 @@ Deno.serve(async (req) => {
     }
 
     // ── Upsert en Airtable ──────────────────────────────────────────
-    // Importante: para mantener attachments existentes en multipleAttachments
-    // hay que mandar el array completo (existentes + nuevos). Airtable
-    // reemplaza el array, no merge.
+    // Para mantener attachments existentes en multipleAttachments hay que
+    // mandar el array completo (existentes + nuevos). Airtable reemplaza
+    // el array, no merge.
     const mergedFiles = [
       ...existingFiles.map((f) => ({ url: f.url, filename: f.filename })),
       ...newFiles,
@@ -388,6 +388,29 @@ Deno.serve(async (req) => {
 
     const completedAt = new Date().toISOString();
     const fechaCorta = completedAt.slice(0, 10);
+
+    // ── Historial de comentarios (append-only) ──────────────────────
+    // El campo Comentario en Airtable guarda el comentario MÁS RECIENTE
+    // (la directora lo ve directo). El historial completo se guarda en
+    // RESPUESTAS_JSON con shape { comentarios: [{texto, ts}, ...] }.
+    // Cada vez que llega un comentario NO VACÍO y distinto al último, se
+    // agrega una entrada nueva. Comentarios vacíos no se loggean.
+    let payload: { comentarios?: Array<{ texto: string; ts: string }> } = {};
+    try {
+      const rawJson = existingRec?.fields[FIELDS.ACTIVIDADES.RESPUESTAS_JSON] as string | undefined;
+      if (rawJson) payload = JSON.parse(rawJson);
+    } catch {
+      payload = {};
+    }
+    if (!Array.isArray(payload.comentarios)) payload.comentarios = [];
+
+    const trimmed = (comentario ?? "").trim();
+    const lastEntry = payload.comentarios[payload.comentarios.length - 1];
+    const shouldAppend =
+      comentario != null && trimmed.length > 0 && lastEntry?.texto !== trimmed;
+    if (shouldAppend) {
+      payload.comentarios.push({ texto: trimmed, ts: completedAt });
+    }
 
     const fields: Record<string, unknown> = {
       [FIELDS.ACTIVIDADES.LECCION]: [leccionId],
@@ -397,9 +420,13 @@ Deno.serve(async (req) => {
       [FIELDS.ACTIVIDADES.FECHA]: completedAt,
       [FIELDS.ACTIVIDADES.COMPLETADO]: mergedFiles.length > 0,
       [FIELDS.ACTIVIDADES.ARCHIVOS]: mergedFiles,
+      [FIELDS.ACTIVIDADES.RESPUESTAS_JSON]: JSON.stringify(payload),
     };
+    // El campo Comentario refleja siempre la última entrada del historial
+    // (o queda vacío si nunca hubo comentario). Esto permite a la directora
+    // ver el comentario actual en Airtable sin parsear JSON.
     if (comentario != null) {
-      fields[FIELDS.ACTIVIDADES.COMENTARIO] = comentario;
+      fields[FIELDS.ACTIVIDADES.COMENTARIO] = trimmed;
     }
 
     let rec: AirtableRecord;
@@ -409,8 +436,7 @@ Deno.serve(async (req) => {
       rec = await createRecord(BASES.PORTAL, TABLES.ACTIVIDADES, fields);
     }
 
-    // Devuelve solo los archivos finales (Airtable rellena id/size/type
-    // después del upsert; los leemos del response).
+    // Devuelve archivos + comentario actual + historial completo.
     const finalAttachments =
       (rec.fields[FIELDS.ACTIVIDADES.ARCHIVOS] as AirtableAttachment[]) ?? mergedFiles;
 
@@ -425,6 +451,7 @@ Deno.serve(async (req) => {
         type: a.type,
       })),
       comentario: (rec.fields[FIELDS.ACTIVIDADES.COMENTARIO] as string) ?? null,
+      comentariosHistorial: payload.comentarios,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

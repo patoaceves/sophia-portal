@@ -1,26 +1,31 @@
 // SOPHIA Portal · Tarea (entrega de archivo) — componente nativo
 //
-// Modelo "staging": el alumno puede seleccionar N archivos locales y editar
-// el comentario libremente. Nada se guarda en backend hasta que pulsa
-// "Guardar entrega". En ese momento se sube todo en una sola request y se
-// muestra el mensaje de éxito.
+// Modelo "staging" con historial append-only de comentarios:
+//   - Archivos: el alumno puede agregar/quitar libremente; nada se guarda
+//     en backend hasta que pulsa "Guardar".
+//   - Comentarios: cada vez que el alumno escribe algo en el textarea y
+//     pulsa "Guardar", se AGREGA al historial como entrada nueva con
+//     timestamp. El textarea queda vacío después de guardar; el alumno
+//     ve sus reflexiones anteriores en la lista debajo.
 //
 // Estado interno:
-//   - savedFiles: archivos ya guardados en Airtable (vienen de get-resultados-quiz)
+//   - savedFiles: archivos ya guardados en Airtable
 //   - pendingFiles: archivos seleccionados localmente, todavía no subidos
-//   - savedComentario: lo que está en Airtable
-//   - draftComentario: lo que el alumno está escribiendo (puede diferir)
-//   - removedAttachmentIds: archivos previamente guardados que el alumno
-//     marcó para eliminar (se procesan al guardar)
+//   - removedAttachmentIds: archivos guardados que el alumno marcó para borrar
+//   - comentariosHistorial: array completo de entradas { texto, ts }
+//   - newComentario: lo que el alumno está escribiendo ahora (próxima entrada)
 //
-// Botón "Guardar entrega":
+// Botón "Guardar":
 //   1) Por cada attachmentId en removedAttachmentIds → delete-entrega-archivo
-//   2) submit-tarea con files=pendingFiles + comentario=draftComentario
-//   3) Muestra mensaje de éxito
+//   2) submit-tarea con files=pendingFiles + comentario=newComentario
+//   3) Backend agrega newComentario al historial si no está vacío
+//   4) Frontend recibe historial actualizado, vacía textarea, muestra éxito
 //
 // Storage en Airtable: tabla "Actividades en Clase" con un record por
-// (Lección × Inscripción), campos `Archivos` (multipleAttachments) y
-// `Comentario`.
+// (Lección × Inscripción). Campos:
+//   - Archivos (multipleAttachments) — todos los archivos actuales
+//   - Comentario (multilineText) — la última entrada del historial
+//   - Respuestas (JSON) — objeto { comentarios: [{texto, ts}, ...] }
 //
 // Uso:
 //   import { mountTarea } from "./tarea.js";
@@ -45,12 +50,14 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
     // Archivos seleccionados localmente, todavía no subidos
     pendingFiles: [],
     // attachmentIds de archivos saved que el alumno marcó para borrar
-    // (no se procesan hasta que pulse "Guardar entrega")
+    // (no se procesan hasta que pulse "Guardar")
     removedAttachmentIds: new Set(),
-    // Comentario en Airtable
-    savedComentario: "",
-    // Comentario que el alumno está escribiendo
-    draftComentario: "",
+    // Historial completo de comentarios guardados, append-only.
+    // Cada entrada: { texto, ts }
+    comentariosHistorial: [],
+    // Comentario que el alumno está escribiendo AHORA. Si tiene texto al
+    // guardar, se agrega como nueva entrada al historial.
+    newComentario: "",
     loading: true,
     saving: false,
     saveProgress: 0,
@@ -65,8 +72,9 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
     const prev = await api.resultadosQuiz(leccionId);
     if (prev?.tieneResultados) {
       state.savedFiles = Array.isArray(prev.archivos) ? prev.archivos : [];
-      state.savedComentario = prev.comentario || "";
-      state.draftComentario = state.savedComentario;
+      state.comentariosHistorial = Array.isArray(prev.comentariosHistorial)
+        ? prev.comentariosHistorial
+        : [];
     }
   } catch (err) {
     console.warn("[tarea] no se pudo cargar entrega previa:", err);
@@ -90,7 +98,7 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
 function hasDirtyChanges(state) {
   if (state.pendingFiles.length > 0) return true;
   if (state.removedAttachmentIds.size > 0) return true;
-  if (state.draftComentario !== state.savedComentario) return true;
+  if (state.newComentario.trim().length > 0) return true;
   return false;
 }
 
@@ -230,10 +238,40 @@ function renderFilesList(state) {
 }
 
 function renderComentario(state) {
+  const historial = Array.isArray(state.comentariosHistorial)
+    ? state.comentariosHistorial
+    : [];
+  const hasHistorial = historial.length > 0;
+
+  // Render historial: cronológico inverso (más reciente arriba).
+  const historialHtml = hasHistorial ? `
+    <div class="tarea-historial">
+      <div class="tarea-historial__label">
+        ${hasHistorial && historial.length === 1 ? "Tu comentario anterior" : `Tus ${historial.length} comentarios anteriores`}
+      </div>
+      <ol class="tarea-historial__list">
+        ${historial.slice().reverse().map((entry) => `
+          <li class="tarea-historial__item">
+            <div class="tarea-historial__meta">
+              <span class="tarea-historial__date">${escapeHtml(formatTimestamp(entry.ts))}</span>
+            </div>
+            <div class="tarea-historial__text">${escapeHtml(entry.texto)}</div>
+          </li>
+        `).join("")}
+      </ol>
+    </div>
+  ` : "";
+
+  const labelTexto = hasHistorial ? "Agregar otro comentario" : "Comentario (opcional)";
+  const placeholderTexto = hasHistorial
+    ? "Escribe una nueva reflexión y se agregará a tu historial al guardar."
+    : "Si quieres acompañar tu entrega con notas, déjalas aquí.";
+
   return `
+    ${historialHtml}
     <div class="tarea-comentario">
       <label class="tarea-comentario__label" for="tarea-comentario-${state.leccionId}">
-        Comentario (opcional)
+        ${escapeHtml(labelTexto)}
       </label>
       <textarea
         id="tarea-comentario-${state.leccionId}"
@@ -241,11 +279,32 @@ function renderComentario(state) {
         data-tarea-comentario
         rows="3"
         maxlength="4000"
-        placeholder="Si quieres acompañar tu entrega con notas, déjalas aquí."
+        placeholder="${escapeHtml(placeholderTexto)}"
         ${state.saving ? "disabled" : ""}
-      >${escapeHtml(state.draftComentario || "")}</textarea>
+      >${escapeHtml(state.newComentario || "")}</textarea>
     </div>
   `;
+}
+
+/**
+ * Formato de timestamp humano: "Hoy, 14:32" / "Ayer, 09:15" / "20 may, 17:48"
+ * Usa zona local del navegador.
+ */
+function formatTimestamp(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yest = new Date(today);
+  yest.setDate(yest.getDate() - 1);
+  const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const hh = d.getHours().toString().padStart(2, "0");
+  const mm = d.getMinutes().toString().padStart(2, "0");
+  if (dDay.getTime() === today.getTime()) return `Hoy, ${hh}:${mm}`;
+  if (dDay.getTime() === yest.getTime()) return `Ayer, ${hh}:${mm}`;
+  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return `${d.getDate()} ${meses[d.getMonth()]}, ${hh}:${mm}`;
 }
 
 function renderSaveBar(state) {
@@ -256,15 +315,18 @@ function renderSaveBar(state) {
   const canSave = dirty && !state.saving;
 
   let hint = "";
+  const hasNewComment = state.newComentario.trim().length > 0;
   if (state.saving) {
     hint = "Guardando…";
+  } else if (state.pendingFiles.length > 0 && hasNewComment) {
+    hint = `${state.pendingFiles.length} ${state.pendingFiles.length === 1 ? "archivo" : "archivos"} + comentario sin guardar`;
   } else if (state.pendingFiles.length > 0) {
     hint = `${state.pendingFiles.length} ${state.pendingFiles.length === 1 ? "archivo pendiente" : "archivos pendientes"} de guardar`;
-  } else if (state.removedAttachmentIds.size > 0 && state.draftComentario !== state.savedComentario) {
+  } else if (state.removedAttachmentIds.size > 0 && hasNewComment) {
     hint = "Cambios sin guardar";
   } else if (state.removedAttachmentIds.size > 0) {
     hint = `${state.removedAttachmentIds.size} ${state.removedAttachmentIds.size === 1 ? "archivo por quitar" : "archivos por quitar"}`;
-  } else if (state.draftComentario !== state.savedComentario) {
+  } else if (hasNewComment) {
     hint = "Comentario sin guardar";
   }
 
@@ -277,7 +339,7 @@ function renderSaveBar(state) {
         data-tarea-action="save"
         ${canSave ? "" : "disabled"}
       >
-        ${state.saving ? `<span class="tarea-mini-spinner"></span> Guardando…` : `${icon("check")} Guardar entrega`}
+        ${state.saving ? `<span class="tarea-mini-spinner"></span> Guardando…` : `${icon("check")} Guardar`}
       </button>
     </div>
   `;
@@ -313,7 +375,7 @@ function changeHandler(state, e) {
 function inputHandler(state, e) {
   const ta = e.target.closest("[data-tarea-comentario]");
   if (!ta) return;
-  state.draftComentario = ta.value;
+  state.newComentario = ta.value;
   // Re-render solo la save bar (no toda la UI para no perder focus)
   const sb = state.container.querySelector(".tarea-savebar");
   if (sb) sb.outerHTML = renderSaveBar(state);
@@ -410,20 +472,23 @@ async function commitEntrega(state) {
       }
     }
 
-    // 2) Subir archivos nuevos + actualizar comentario en una sola request
+    // 2) Subir archivos nuevos + agregar comentario al historial en una sola request
     const files = state.pendingFiles.map((p) => p.file);
-    const commentChanged = state.draftComentario !== state.savedComentario;
+    const newComment = state.newComentario.trim();
+    const hasNewComment = newComment.length > 0;
 
-    // Si NO hay archivos nuevos pero hubo borrados y/o cambio de comentario,
-    // de todas formas llamamos submit-tarea (con files=[] y comentario) para
-    // actualizar el comentario. Si solo hubo borrados sin nada más, también
-    // funciona porque submit-tarea sí acepta zero archivos cuando hay comentario.
-    if (files.length > 0 || commentChanged || state.removedAttachmentIds.size === 0) {
+    // Llamamos submit-tarea si hay archivos, comentario nuevo, o si NO hubo
+    // borrados (último caso: el alumno pulsó Guardar sin nada pendiente, no
+    // debería ocurrir porque el botón está deshabilitado, pero defensivo).
+    if (files.length > 0 || hasNewComment || state.removedAttachmentIds.size === 0) {
       const res = await api.submitTarea({
         leccionId: state.leccionId,
         inscripcionId: state.inscripcionId,
         files,
-        comentario: commentChanged ? state.draftComentario : undefined,
+        // Mandamos el comentario solo si tiene contenido — el backend lo
+        // agrega como nueva entrada del historial. Si está vacío, no se
+        // toca el campo.
+        comentario: hasNewComment ? newComment : undefined,
         onProgress: (p) => {
           state.saveProgress = p;
           const fill = state.container.querySelector(".tarea-progress__fill");
@@ -433,24 +498,28 @@ async function commitEntrega(state) {
         },
       });
       state.savedFiles = Array.isArray(res.archivos) ? res.archivos : state.savedFiles;
-      state.savedComentario = res.comentario ?? state.savedComentario;
+      if (Array.isArray(res.comentariosHistorial)) {
+        state.comentariosHistorial = res.comentariosHistorial;
+      }
     } else {
-      // Solo borrados, sin upload ni cambio de comentario. Refrescamos
-      // savedFiles desde el backend para reflejar el estado actual.
+      // Solo borrados, sin upload ni comentario nuevo. Refrescamos estado
+      // desde el backend.
       const fresh = await api.resultadosQuiz(state.leccionId);
       if (fresh?.tieneResultados) {
         state.savedFiles = Array.isArray(fresh.archivos) ? fresh.archivos : [];
-        state.savedComentario = fresh.comentario || "";
+        state.comentariosHistorial = Array.isArray(fresh.comentariosHistorial)
+          ? fresh.comentariosHistorial
+          : [];
       } else {
         state.savedFiles = [];
-        state.savedComentario = "";
+        state.comentariosHistorial = [];
       }
     }
 
-    // 3) Reset state local
+    // 3) Reset state local — el textarea queda vacío para nueva entrada
     state.pendingFiles = [];
     state.removedAttachmentIds = new Set();
-    state.draftComentario = state.savedComentario;
+    state.newComentario = "";
     state.saving = false;
     state.saveProgress = 0;
     state.showSuccessFlash = true;

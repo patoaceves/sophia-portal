@@ -356,6 +356,7 @@ Deno.serve(async (req) => {
       actividad?: string;
       respuestas?: Record<string, string>;
       completedAt?: string;
+      comentarios?: Array<{ texto: string; ts: string }>;
     } = {};
     try {
       const raw = rec.fields[FIELDS.ACTIVIDADES.RESPUESTAS_JSON] as string | undefined;
@@ -364,7 +365,7 @@ Deno.serve(async (req) => {
       payload = {};
     }
 
-    // Para tareas: archivos (multipleAttachments) y comentario.
+    // Para tareas: archivos (multipleAttachments) y comentario + historial.
     interface Attachment {
       id?: string;
       url: string;
@@ -381,6 +382,9 @@ Deno.serve(async (req) => {
       type: a.type,
     }));
     const comentario = (rec.fields[FIELDS.ACTIVIDADES.COMENTARIO] as string) ?? null;
+    const comentariosHistorial = Array.isArray(payload.comentarios)
+      ? payload.comentarios
+      : [];
 
     return jsonResponse(req, {
       tieneResultados: true,
@@ -396,6 +400,7 @@ Deno.serve(async (req) => {
         null,
       archivos,
       comentario,
+      comentariosHistorial,
     });
   } catch (e) {
     if (e instanceof HttpError) {
