@@ -247,7 +247,7 @@ function renderComentario(state) {
   const historialHtml = hasHistorial ? `
     <div class="tarea-historial">
       <div class="tarea-historial__label">
-        ${hasHistorial && historial.length === 1 ? "Tu comentario anterior" : `Tus ${historial.length} comentarios anteriores`}
+        Tus comentarios
       </div>
       <ol class="tarea-historial__list">
         ${historial.slice().reverse().map((entry) => `

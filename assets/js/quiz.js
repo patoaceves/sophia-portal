@@ -236,8 +236,9 @@ function renderTextArea(p, value) {
 
 /**
  * Pantalla de cierre — dos variantes:
- *   - Sin scoring (def.preguntas no tiene `correcta`): mensaje reflexivo
- *     personalizable vía def.doneTitle / def.doneLead
+ *   - Sin scoring (def.preguntas no tiene `correcta`): muestra título +
+ *     lead reflexivos, lista de respuestas que dio el alumno, y botón
+ *     "Volver a contestar" para editar.
  *   - Con scoring (al menos una pregunta tiene `correcta`): score + revela
  *     correctas/incorrectas + botón para reintentar.
  */
@@ -247,12 +248,36 @@ function renderResumen(state) {
   }
   const titulo = state.def.doneTitle || "Actividad completada";
   const lead = state.def.doneLead || "Gracias por tomarte el tiempo de reflexionar sobre ti mismo.";
+
+  // Lista de respuestas que dio el alumno (siempre, no solo cuando hay score).
+  const items = state.def.preguntas.map((p) => {
+    const respuesta = state.respuestas[p.id];
+    const respuestaHtml = respuesta
+      ? `<div class="quiz-resumen-item__user">${escapeHtml(respuesta)}</div>`
+      : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">Sin respuesta</div>`;
+    return `
+      <li class="quiz-resumen-item quiz-resumen-item--reflexivo">
+        <div class="quiz-resumen-item__body">
+          <div class="quiz-resumen-item__q">${escapeHtml(p.texto)}</div>
+          ${respuestaHtml}
+        </div>
+      </li>
+    `;
+  }).join("");
+
   return `
-    <div class="quiz-resumen">
+    <div class="quiz-resumen quiz-resumen--reflexivo">
       <div class="quiz-resumen__head">
         <div class="quiz-resumen__icon">${icon("check")}</div>
         <h2 class="quiz-resumen__title">${escapeHtml(titulo)}</h2>
         <p class="quiz-resumen__lead">${escapeHtml(lead)}</p>
+      </div>
+      <ol class="quiz-resumen-list">${items}</ol>
+      <div class="quiz-resumen__actions">
+        <button class="btn btn-secondary" data-quiz-action="retry" type="button">
+          ${icon("refresh")}
+          <span>Volver a contestar</span>
+        </button>
       </div>
     </div>
   `;

@@ -418,20 +418,31 @@ Deno.serve(async (req) => {
     };
 
     // Upsert: si ya existe un registro para esta (Lección × Inscripción),
-    // lo actualizamos en lugar de crear duplicado. Esto soporta reintentos
-    // (quizzes con score) y re-edición de actividades reflexivas. Buscamos
-    // en JS — NUNCA por nombre de campo en filterByFormula, que sería frágil.
-    const previas = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
-      filterByFormula:
-        `AND(` +
-          `SEARCH('${leccionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.LECCION}})),` +
-          `SEARCH('${inscripcionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.INSCRIPCION}}))` +
-        `)`,
-      maxRecords: 1,
+    // lo actualizamos en lugar de crear duplicado.
+    //
+    // IMPORTANTE: filterByFormula con ARRAYJOIN sobre linked fields devuelve
+    // los NOMBRES (primary field) de los records linkeados, no los IDs.
+    // Por eso filtramos: pre-filtramos por `Actividad` (text plano que sí
+    // funciona en formula) y matcheamos leccionId/inscripcionId en JS.
+    const candidatos = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
+      filterByFormula: `{${FIELDS.ACTIVIDADES.ACTIVIDAD}} = '${actividad.replace(/'/g, "\\'")}'`,
+    });
+    const previas = candidatos.filter((r) => {
+      const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
+      const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];
+      return leccionLinks.includes(leccionId) && inscLinks.includes(inscripcionId);
     });
 
     let rec;
     if (previas.length > 0) {
+      // Si hubo duplicados previos (bug histórico), actualizamos el más
+      // reciente. Los demás quedan como huérfanos — no los borramos para
+      // no perder datos del alumno.
+      previas.sort((a, b) => {
+        const da = (a.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
+        const db = (b.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
+        return db.localeCompare(da);
+      });
       rec = await updateRecord(BASES.PORTAL, TABLES.ACTIVIDADES, previas[0].id, fields);
     } else {
       rec = await createRecord(BASES.PORTAL, TABLES.ACTIVIDADES, fields);

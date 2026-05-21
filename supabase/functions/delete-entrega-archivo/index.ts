@@ -28,6 +28,7 @@ const TABLES = {
 const FIELDS = {
   INSCRIPCIONES: { PERSONA: "fldsgcanUDaXzX20x" },
   ACTIVIDADES: {
+    ACTIVIDAD: "fldumUkw9GPp8gF9A",
     LECCION: "fldD7y3DXBGUnKOpa",
     INSCRIPCION: "fldoZwq6JeRdjm3gj",
     ARCHIVOS: "fldbUYXX6v8m4oLIv",
@@ -200,13 +201,20 @@ Deno.serve(async (req) => {
     }
 
     // Buscar el registro de entrega
-    const previas = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
-      filterByFormula:
-        `AND(` +
-          `SEARCH('${leccionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.LECCION}})),` +
-          `SEARCH('${inscripcionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.INSCRIPCION}}))` +
-        `)`,
-      maxRecords: 1,
+    // IMPORTANTE: filterByFormula con ARRAYJOIN sobre linked fields devuelve
+    // nombres, no IDs. Filtramos en JS, pre-acotando por `Actividad`.
+    const candidatos = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
+      filterByFormula: `{${FIELDS.ACTIVIDADES.ACTIVIDAD}} = 'tarea'`,
+    });
+    const previas = candidatos.filter((r) => {
+      const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
+      const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];
+      return leccionLinks.includes(leccionId) && inscLinks.includes(inscripcionId);
+    });
+    previas.sort((a, b) => {
+      const da = (a.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
+      const db = (b.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
+      return db.localeCompare(da);
     });
     if (previas.length === 0) {
       return errorResponse(req, "Entrega no encontrada", 404, "no_entrega");

@@ -301,13 +301,23 @@ Deno.serve(async (req) => {
     }
 
     // ── Buscar registro previo (si existe) ──────────────────────────
-    const previas = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
-      filterByFormula:
-        `AND(` +
-          `SEARCH('${leccionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.LECCION}})),` +
-          `SEARCH('${inscripcionId}', ARRAYJOIN({${FIELDS.ACTIVIDADES.INSCRIPCION}}))` +
-        `)`,
-      maxRecords: 1,
+    // IMPORTANTE: filterByFormula con ARRAYJOIN sobre linked fields devuelve
+    // los NOMBRES (primary field) de los records linkeados, no los IDs.
+    // Por eso filtramos: pre-filtramos por `Actividad` = "tarea" (text plano
+    // que sí funciona en formula) y matcheamos leccionId/inscripcionId en JS.
+    const candidatos = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
+      filterByFormula: `{${FIELDS.ACTIVIDADES.ACTIVIDAD}} = 'tarea'`,
+    });
+    const previas = candidatos.filter((r) => {
+      const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
+      const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];
+      return leccionLinks.includes(leccionId) && inscLinks.includes(inscripcionId);
+    });
+    // Si hay duplicados previos (bug histórico), tomamos el más reciente.
+    previas.sort((a, b) => {
+      const da = (a.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
+      const db = (b.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
+      return db.localeCompare(da);
     });
     const existingRec = previas[0] ?? null;
     const existingFiles =

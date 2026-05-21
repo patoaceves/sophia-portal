@@ -1188,7 +1188,7 @@
 }
 
 .quiz-resumen--ok .quiz-resumen__score-num { color: var(--color-success-tech); }
-.quiz-resumen--ko .quiz-resumen__score-num { color: var(--color-danger); }
+.quiz-resumen--ko .quiz-resumen__score-num { color: var(--color-danger-tech); }
 
 .quiz-resumen__score-sep,
 .quiz-resumen__score-total {
@@ -1223,8 +1223,19 @@
 }
 
 .quiz-resumen-item--ko {
-  border-color: var(--color-danger);
-  background: var(--color-danger-soft);
+  border-color: var(--color-danger-tech);
+  background: var(--color-danger-tech-soft);
+}
+
+/* Variante "reflexivo" — quizzes sin score (Reflexión, Journaling, Happy
+ * Secret). Sin marker; muestra pregunta + respuesta del alumno. */
+.quiz-resumen-item--reflexivo {
+  border-left: 3px solid var(--color-success-tech);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
+.quiz-resumen-item--reflexivo .quiz-resumen-item__body {
+  margin-left: 0;
 }
 
 .quiz-resumen-item__marker {
@@ -1243,7 +1254,7 @@
 }
 
 .quiz-resumen-item--ko .quiz-resumen-item__marker {
-  background: var(--color-danger);
+  background: var(--color-danger-tech);
   color: white;
 }
 
@@ -1276,6 +1287,20 @@
 
 .quiz-resumen-item__correct strong {
   color: var(--color-success-tech);
+}
+
+/* Sobre fondo rojo-tech (item KO), el verde estándar pierde contraste.
+ * Usamos un verde más oscuro y saturado para mejor legibilidad. */
+.quiz-resumen-item--ko .quiz-resumen-item__correct {
+  color: #064e3b; /* emerald-900 */
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--color-danger-tech) 25%, transparent);
+}
+
+.quiz-resumen-item--ko .quiz-resumen-item__correct strong {
+  color: #047857; /* emerald-700 — contraste sólido sobre rosa claro */
+  font-weight: 600;
 }
 
 .quiz-resumen__actions {
@@ -1506,9 +1531,9 @@
 }
 
 .tarea-archivo__delete:hover:not(:disabled) {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-  background: var(--color-danger-soft);
+  color: var(--color-danger-tech);
+  border-color: var(--color-danger-tech);
+  background: var(--color-danger-tech-soft);
 }
 
 .tarea-archivo__delete:disabled {
@@ -1655,9 +1680,9 @@
 .tarea-error {
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
-  border: 1px solid var(--color-danger);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  border: 1px solid var(--color-danger-tech);
+  background: var(--color-danger-tech-soft);
+  color: var(--color-danger-tech);
   font-size: 0.9375rem;
 }
 

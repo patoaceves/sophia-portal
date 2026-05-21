@@ -34,6 +34,12 @@
   --color-success-tech-soft: #d1fae5;
   --color-danger: #b04a3e;
   --color-danger-soft: #f0d8d3;
+  /* Rojo tech BRILLANTE — solo para mensajes de error específicos y
+     respuestas incorrectas en quizzes evaluables. Se aplica explícitamente
+     vía .quiz-resumen-item--ko, .tarea-error, etc. NO usar para
+     elementos de identidad de marca SOPHIA (que usan --color-danger). */
+  --color-danger-tech: #ef4444;
+  --color-danger-tech-soft: #fee2e2;
 
   /* Dimensional colors of the Rueda de Felicidad model.
      Each maps to one of the 4 dimensions (with 2 pillars each):

@@ -324,12 +324,14 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { tieneResultados: false });
     }
 
-    // Respuestas de actividades en clase ligadas a esta lección. Filtramos
-    // server-side por el link de Lección (con field ID, ver regla de oro) y
-    // luego en JS por inscripción del usuario.
-    const all = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
-      filterByFormula: `FIND('${leccionId.replace(/'/g, "\\'")}', ARRAYJOIN({${FIELDS.ACTIVIDADES.LECCION}}))`,
-    });
+    // Respuestas de actividades en clase ligadas a esta lección.
+    //
+    // IMPORTANTE: filterByFormula con ARRAYJOIN sobre linked fields devuelve
+    // los NOMBRES (primary field), no los IDs. Por eso no podemos filtrar
+    // por leccionId en la formula. En su lugar listamos todas las actividades
+    // (de cualquier lección y usuario) y filtramos en JS. Es una tabla
+    // pequeña relativa al uso, no hay riesgo de timeout.
+    const all = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {});
     const mine = all.filter((r) => {
       const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
       const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];
