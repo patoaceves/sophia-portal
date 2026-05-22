@@ -1070,6 +1070,26 @@
   margin: var(--s-4) 0;
 }
 
+/* Variante binaria (Sí/No típicamente): 2 columnas en una sola fila. */
+.quiz-choice-list--binary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+
+.quiz-choice-list--binary .quiz-choice {
+  justify-content: center;
+}
+
+.quiz-choice-list--binary .quiz-choice__label {
+  font-weight: 500;
+}
+
+/* En móviles muy estrechos, volvemos a 1 columna para no apretar el toque. */
+@media (max-width: 380px) {
+  .quiz-choice-list--binary { grid-template-columns: 1fr; }
+}
+
 .quiz-choice {
   display: flex;
   align-items: center;
@@ -8098,6 +8118,34 @@ button.foro-preview-item__thumb {
     gap: var(--s-5);
     padding: var(--s-5);
   }
+}
+
+/* Variante inline (dentro de una lección): sin border ni padding extra
+   porque ya estamos dentro del .leccion-page__body. Mantenemos el grid
+   2-cols pero sin background propio. */
+.autoeval-result--inline {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+/* Eyebrow pequeño antes del bloque inline para dar contexto temporal */
+.autoeval-inline-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--s-4);
+}
+
+/* Estado de carga mientras se piden resultados */
+.autoeval-inline-loading {
+  padding: var(--s-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
 }
 
 .autoeval-result__visual {

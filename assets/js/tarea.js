@@ -75,6 +75,12 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
       state.comentariosHistorial = Array.isArray(prev.comentariosHistorial)
         ? prev.comentariosHistorial
         : [];
+      // Si ya tiene archivos entregados, revelar el botón "Avanzar" del
+      // footer externo (renderizado por leccion.js) que viene oculto por
+      // defecto.
+      if (state.savedFiles.length > 0) {
+        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+      }
     }
   } catch (err) {
     console.warn("[tarea] no se pudo cargar entrega previa:", err);

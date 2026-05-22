@@ -18,6 +18,8 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
 import { mountWizard as mountAutoevalWizard } from "./autoeval.js";
 import { AUTOEVAL_KEYS } from "./autoeval-defs.js";
+import { renderAutoevalResultadosInto } from "./autoeval-resultados.js";
+import { renderTestFelicidadInto } from "./test-felicidad-resultados.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 import { mountTarea } from "./tarea.js";
@@ -122,7 +124,7 @@ loadPurify();
   }
 
   stopLoader();
-  renderLeccion(persona, leccionData, cursoContext);
+  await renderLeccion(persona, leccionData, cursoContext);
 })();
 
 async function fetchCursoContext(cursoId) {
@@ -133,7 +135,7 @@ async function fetchCursoContext(cursoId) {
   return { ...detalle, slug: c.slug };
 }
 
-function renderLeccion(persona, payload, cursoContext) {
+async function renderLeccion(persona, payload, cursoContext) {
   const { leccion, moduloId, modulo: modInfo, cursoId, inscripcionId, prevId, nextId } = payload;
 
   let modCompleto = null;
@@ -221,7 +223,23 @@ function renderLeccion(persona, payload, cursoContext) {
                    </a>`
                 : ""}
             </div>
-            <div></div>
+            <div class="leccion-page__cta">
+              <a
+                id="quizAdvanceBtn"
+                class="leccion-cta is-checked"
+                href="${escapeHtml(nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref)}"
+                hidden
+              >
+                <span class="leccion-cta__check" aria-hidden="true">
+                  <span class="leccion-cta__check-box">${icon("check")}</span>
+                </span>
+                <span class="leccion-cta__label">
+                  <span class="leccion-cta__label-full">${nextId ? "Avanzar" : "Volver al temario"}</span>
+                  <span class="leccion-cta__label-short">${nextId ? "Avanzar" : "Volver al temario"}</span>
+                </span>
+                <span class="leccion-cta__arrow" aria-hidden="true">${icon("arrowRight")}</span>
+              </a>
+            </div>
           </footer>
         ` : isQuiz || isTarea ? `
           <footer class="leccion-page__footer">
@@ -237,7 +255,7 @@ function renderLeccion(persona, payload, cursoContext) {
                 id="quizAdvanceBtn"
                 class="leccion-cta is-checked"
                 href="${escapeHtml(nextId ? `/app/leccion?id=${encodeURIComponent(nextId)}` : backHref)}"
-                ${leccion.completada ? "" : "hidden"}
+                hidden
               >
                 <span class="leccion-cta__check" aria-hidden="true">
                   <span class="leccion-cta__check-box">${icon("check")}</span>
@@ -289,36 +307,74 @@ function renderLeccion(persona, payload, cursoContext) {
     const resolvedKey = autoevalKey || (autoevalTipo === "autoconocimiento" ? "autoconocimiento" : "");
     if (AUTOEVAL_KEYS.includes(resolvedKey)) {
       const effectiveKey = resolvedKey;
-      mountAutoevalWizard({
-        container,
-        autoevalKey: effectiveKey,
-        inscripcionId,
-        leccionId: leccion.id,
-        cursoSlug,
-        embedded: true,
-        onComplete: (result) => {
-          const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
-          location.href =
-            `/app/autoevaluacion/resultados?autoeval=${encodeURIComponent(effectiveKey)}` +
-            `&id=${encodeURIComponent(result.respuestaId)}` +
-            `&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
-        },
-      });
+
+      // ¿El alumno ya hizo esta autoeval antes? Si sí, renderizamos
+      // resultados inline directamente (sin wizard), igual que como
+      // queda al completarla por primera vez. Si no, montamos el wizard.
+      let alreadyDone = false;
+      try {
+        const prev = await api.resultadosAutoeval(effectiveKey);
+        if (prev?.tieneResultados && prev.respuestaId) {
+          alreadyDone = true;
+          await renderAutoevalResultadosInto(container, effectiveKey, prev.respuestaId);
+          document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+        }
+      } catch (err) {
+        console.warn("autoeval prev check failed:", err);
+      }
+
+      if (!alreadyDone) {
+        mountAutoevalWizard({
+          container,
+          autoevalKey: effectiveKey,
+          inscripcionId,
+          leccionId: leccion.id,
+          cursoSlug,
+          embedded: true,
+          onComplete: async (result) => {
+            // Render resultados inline en el mismo container — sin redirect.
+            try {
+              await renderAutoevalResultadosInto(container, effectiveKey, result.respuestaId);
+            } catch (err) {
+              console.error("inline autoeval resultados failed:", err);
+            }
+            // Revelar el botón "Avanzar" del footer para continuar.
+            document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+          },
+        });
+      }
     } else {
-      mountTestWizard({
-        container,
-        inscripcionId,
-        leccionId: leccion.id,
-        cursoSlug,
-        embedded: true,
-        onComplete: (result) => {
-          // After submitting, navigate to results within the same UX feel.
-          // The lesson is already marked completed by the wizard.
-          // Pasamos `next` para que resultados mande al siguiente paso (no al dashboard).
-          const nextParam = nextId ? `&next=${encodeURIComponent(nextId)}` : "";
-          location.href = `/app/test-felicidad/resultados?id=${encodeURIComponent(result.respuestaId)}&slug=${encodeURIComponent(cursoSlug)}${nextParam}`;
-        },
-      });
+      // Test de Felicidad. Misma estrategia que autoeval: si ya hay
+      // resultados previos, render inline directo; si no, montamos el wizard.
+      let alreadyDone = false;
+      try {
+        const prev = await api.resultadosTest();
+        if (prev?.tieneResultados && prev.respuestaId) {
+          alreadyDone = true;
+          await renderTestFelicidadInto(container, prev.respuestaId);
+          document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+        }
+      } catch (err) {
+        console.warn("test felicidad prev check failed:", err);
+      }
+
+      if (!alreadyDone) {
+        mountTestWizard({
+          container,
+          inscripcionId,
+          leccionId: leccion.id,
+          cursoSlug,
+          embedded: true,
+          onComplete: async (result) => {
+            try {
+              await renderTestFelicidadInto(container, result.respuestaId);
+            } catch (err) {
+              console.error("inline test felicidad failed:", err);
+            }
+            document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+          },
+        });
+      }
     }
   } else if (isEvaluacion) {
     // Mount evaluación nativa (reemplaza el iframe del Google Form)
@@ -747,6 +803,12 @@ async function renderPdfInto(pdfjsLib, host, src) {
   const doc = await pdfjsLib.getDocument({
     url: src,
     standardFontDataUrl: `${PDFJS_BASE}/standard_fonts/`,
+    // disableFontFace fuerza a PDF.js a renderizar glyphs como paths en
+    // lugar de inyectar @font-face dinámicos. Es un poco más lento pero
+    // evita problemas con PDFs exportados de Google Docs (Skia/PDF) que
+    // tienen subsets de fuentes con encoding Identity-H que rompen el
+    // renderer normal.
+    disableFontFace: true,
   }).promise;
 
   host.classList.add("leccion-pdf--ready");

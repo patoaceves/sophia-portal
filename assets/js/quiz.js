@@ -83,6 +83,16 @@ export async function mountQuiz({ container, quizKey, leccionId, inscripcionId, 
       if (prev.respuestas && typeof prev.respuestas === "object") {
         state.respuestas = prev.respuestas;
       }
+      // El alumno ya completó previamente: revelar el botón "Avanzar" del
+      // footer externo (renderizado por leccion.js) que viene oculto por
+      // defecto. Esto le permite ver el resumen Y avanzar a la siguiente
+      // lección sin tener que re-submittear.
+      // Excepción: para quizzes scored solo lo mostramos si aprobó.
+      const score = calcularScore(def, state.respuestas);
+      const puedeAvanzar = !score || score.aprobado;
+      if (puedeAvanzar) {
+        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+      }
     }
   } catch (err) {
     console.warn("resultadosQuiz check failed (continuing):", err);
@@ -216,7 +226,11 @@ function renderChoiceList(p, value) {
     `;
   }).join("");
 
-  return `<div class="quiz-choice-list">${opts}</div>`;
+  // Variante 2-columnas para preguntas binarias (Sí/No típicamente):
+  // si solo hay 2 opciones y ambas son cortas, las ponemos lado a lado.
+  const isBinary = (p.opciones || []).length === 2
+    && (p.opciones || []).every((o) => (o || "").length <= 6);
+  return `<div class="quiz-choice-list ${isBinary ? "quiz-choice-list--binary" : ""}">${opts}</div>`;
 }
 
 function renderTextArea(p, value) {
@@ -249,21 +263,27 @@ function renderResumen(state) {
   const titulo = state.def.doneTitle || "Actividad completada";
   const lead = state.def.doneLead || "Gracias por tomarte el tiempo de reflexionar sobre ti mismo.";
 
-  // Lista de respuestas que dio el alumno (siempre, no solo cuando hay score).
-  const items = state.def.preguntas.map((p) => {
-    const respuesta = state.respuestas[p.id];
-    const respuestaHtml = respuesta
-      ? `<div class="quiz-resumen-item__user">${escapeHtml(respuesta)}</div>`
-      : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">Sin respuesta</div>`;
-    return `
-      <li class="quiz-resumen-item quiz-resumen-item--reflexivo">
-        <div class="quiz-resumen-item__body">
-          <div class="quiz-resumen-item__q">${escapeHtml(p.texto)}</div>
-          ${respuestaHtml}
-        </div>
-      </li>
-    `;
-  }).join("");
+  // showAnswers (default true): si false, NO listamos las respuestas — solo
+  // mostramos el mensaje de éxito. Útil para checklists de autodiagnóstico
+  // donde repasar 35 sí/no sería ruidoso.
+  const showAnswers = state.def.showAnswers !== false;
+
+  const items = showAnswers
+    ? state.def.preguntas.map((p) => {
+        const respuesta = state.respuestas[p.id];
+        const respuestaHtml = respuesta
+          ? `<div class="quiz-resumen-item__user">${escapeHtml(respuesta)}</div>`
+          : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">Sin respuesta</div>`;
+        return `
+          <li class="quiz-resumen-item quiz-resumen-item--reflexivo">
+            <div class="quiz-resumen-item__body">
+              <div class="quiz-resumen-item__q">${escapeHtml(p.texto)}</div>
+              ${respuestaHtml}
+            </div>
+          </li>
+        `;
+      }).join("")
+    : "";
 
   return `
     <div class="quiz-resumen quiz-resumen--reflexivo">
@@ -272,7 +292,7 @@ function renderResumen(state) {
         <h2 class="quiz-resumen__title">${escapeHtml(titulo)}</h2>
         <p class="quiz-resumen__lead">${escapeHtml(lead)}</p>
       </div>
-      <ol class="quiz-resumen-list">${items}</ol>
+      ${showAnswers ? `<ol class="quiz-resumen-list">${items}</ol>` : ""}
       <div class="quiz-resumen__actions">
         <button class="btn btn-secondary" data-quiz-action="retry" type="button">
           ${icon("refresh")}

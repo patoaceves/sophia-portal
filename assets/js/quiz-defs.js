@@ -371,6 +371,9 @@ export const QUIZZES = {
     ],
     doneTitle: "¡Listo! Checklist completado",
     doneLead: "Tu autodiagnóstico quedó registrado. Nos veremos en la sesión en vivo para profundizar en las áreas donde quieras crecer.",
+    // No mostrar lista de 35 respuestas al final — son binarias y mucho ruido.
+    // Solo el mensaje de éxito y la opción de volver a contestar.
+    showAnswers: false,
     preguntas: [
       // — Sueño (5) —
       { id: "sueno_horas", tipo: "choice", eyebrow: "Sueño · 1 de 35", texto: "¿Duermo al menos 7 horas cada noche?", opciones: ["Sí", "No"], obligatoria: true },

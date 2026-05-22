@@ -1,15 +1,12 @@
 // SOPHIA Portal · Resultados de Autoevaluación (genérico, 8 pilares).
 //
-// Lee ?autoeval=<key>&id=<respuestaId> y pinta el resultado:
-//   - Wedge SVG (cuarto de círculo en 5 anillos, llenado proporcional al %)
-//   - Banda tag (Fortaleza Actual / Zona Crecimiento / Área Atención / Área Vulnerable)
-//   - Lead + 2 siguientes pasos (tomados de autoeval-defs.js por pilar+banda)
-//   - Nota disclaimer
-//
-// El backend (`get-resultados-autoeval`) entrega solo números (total, pct,
-// banda). El texto de banda vive en autoeval-defs.js.
-//
-// Reemplaza al antiguo test-autoconocimiento-resultados.js.
+// Dos modos:
+//   1. IIFE (page mode): se ejecuta como módulo de página standalone
+//      en /app/autoevaluacion/resultados, lee URL params.
+//   2. Export: `renderAutoevalResultadosInto(container, autoevalKey, respuestaId)`
+//      monta los mismos resultados en CUALQUIER container, sin redirect.
+//      Se usa desde leccion.js para mostrar resultados inline después de
+//      completar la autoeval en la propia lección.
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
@@ -18,7 +15,97 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { icon } from "./icons.js";
 import { getAutoevalDef, NOTE, bandaColor } from "./autoeval-defs.js";
 
-(async () => {
+/**
+ * Renderiza los resultados de una autoevaluación dentro de un container
+ * arbitrario. Sin shell de página, sin header de SOPHIA — solo el wedge
+ * + banda + texto. Diseñado para embeber inline en una lección.
+ *
+ * @param {HTMLElement} container - donde montar
+ * @param {string} autoevalKey - ej. "bienestar_fisico"
+ * @param {string} respuestaId - id del record de respuesta
+ * @returns {Promise<void>}
+ */
+export async function renderAutoevalResultadosInto(container, autoevalKey, respuestaId) {
+  if (!container) return;
+  const def = getAutoevalDef(autoevalKey);
+  if (!def) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state__title">Autoevaluación no encontrada</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="autoeval-inline-loading">Cargando resultados…</div>`;
+
+  try {
+    const data = await api.resultadosAutoeval(autoevalKey, respuestaId);
+    if (!data.tieneResultados) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state__title">Aún no has tomado esta autoevaluación</div>
+        </div>`;
+      return;
+    }
+    renderResultadosInline(container, def, data);
+  } catch (e) {
+    console.error("get-resultados-autoeval inline failed:", e);
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state__title">No pudimos cargar tus resultados</div>
+        <p class="empty-state__desc">${escapeHtml(e.message || "Intenta recargar.")}</p>
+      </div>`;
+  }
+}
+
+/**
+ * Versión inline (sin <header> de página) — solo el wedge + banda + steps.
+ */
+function renderResultadosInline(container, def, data) {
+  const { total, pct, banda, completedAt } = data;
+  const bandaDef = def.bandas[banda] || {};
+  const lead = data.lead || bandaDef.lead || "";
+  const steps = (data.steps && data.steps.length ? data.steps : bandaDef.steps) || [];
+  const note = data.note || NOTE;
+  const accent = def.accentColor;
+  const fecha = completedAt
+    ? new Date(completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  container.innerHTML = `
+    <div class="autoeval-inline-eyebrow">Tu integración de ${escapeHtml(def.pilar)}${fecha ? ` · ${escapeHtml(fecha)}` : ""}</div>
+    <section class="autoeval-result autoeval-result--inline">
+      <div class="autoeval-result__visual">
+        <div class="autoeval-wedge-wrap">
+          <div data-wedge-mount></div>
+          <div class="autoeval-wedge-pct">${pct}%</div>
+        </div>
+      </div>
+      <div class="autoeval-result__body">
+        <div class="autoeval-band-tag" data-band="${escapeHtml(banda)}" style="--band-color:${bandaColor(banda)};">
+          ${escapeHtml(banda)}
+        </div>
+        <h3 class="autoeval-result__title">${escapeHtml(def.pilar)}</h3>
+        <p class="autoeval-result__lead">${escapeHtml(lead)}</p>
+        <div class="autoeval-result__steps-label">Siguiente paso (1–2 semanas)</div>
+        <ul class="autoeval-result__steps">
+          ${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}
+        </ul>
+        <p class="autoeval-result__note">${escapeHtml(note)}</p>
+      </div>
+    </section>
+  `;
+
+  drawWedge(container.querySelector("[data-wedge-mount]"), pct, accent);
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Página standalone (IIFE) — solo se ejecuta si estamos en /app/autoevaluacion/resultados
+// ────────────────────────────────────────────────────────────────────
+
+const isStandalonePage = location.pathname.includes("/autoevaluacion/resultados");
+
+if (isStandalonePage) (async () => {
   const persona = await requireAuth();
   if (!persona) return;
 
@@ -115,7 +202,7 @@ function renderResultados(def, data, cursoSlug, nextLeccionId) {
     <section class="autoeval-result">
       <div class="autoeval-result__visual">
         <div class="autoeval-wedge-wrap">
-          <div id="wedgeMount"></div>
+          <div data-wedge-mount></div>
           <div class="autoeval-wedge-pct">${pct}%</div>
         </div>
       </div>
@@ -134,7 +221,7 @@ function renderResultados(def, data, cursoSlug, nextLeccionId) {
     </section>
   `;
 
-  drawWedge(document.getElementById("wedgeMount"), pct, accent);
+  drawWedge(document.querySelector("[data-wedge-mount]"), pct, accent);
 }
 
 // ────────────────────────────────────────────────────────────────────

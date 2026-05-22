@@ -1,4 +1,9 @@
 // SOPHIA Portal · Resultados del Test de Felicidad
+//
+// Dos modos:
+//   1. IIFE (page mode): standalone en /app/test-felicidad/resultados.
+//   2. Export: `renderTestFelicidadInto(container, respuestaId)` para
+//      embed inline en lección.
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
@@ -7,7 +12,93 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda, RUEDA_AXES } from "./rueda.js";
 import { icon } from "./icons.js";
 
-(async () => {
+/**
+ * Renderiza el resultado del Test de Felicidad inline dentro de un
+ * container, sin header de página ni footer con CTA. Para usar desde
+ * leccion.js después de completar el test.
+ *
+ * @param {HTMLElement} container
+ * @param {string} [respuestaId] - opcional; si no viene, usa el último intento
+ */
+export async function renderTestFelicidadInto(container, respuestaId) {
+  if (!container) return;
+  container.innerHTML = `<div class="autoeval-inline-loading">Cargando resultados…</div>`;
+  try {
+    const data = await api.resultadosTest(respuestaId);
+    if (!data.tieneResultados) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state__title">Aún no has tomado el test</div>
+        </div>`;
+      return;
+    }
+    renderResultadosInline(container, data);
+  } catch (e) {
+    console.error("test-felicidad inline failed:", e);
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state__title">No pudimos cargar tus resultados</div>
+        <p class="empty-state__desc">${escapeHtml(e.message || "Intenta recargar.")}</p>
+      </div>`;
+  }
+}
+
+function renderResultadosInline(container, data) {
+  const { scores, analisis, pilarNombres, completedAt } = data;
+  const fecha = completedAt
+    ? new Date(completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  // Generamos IDs únicos para esta instancia (por si hay múltiples en la
+  // misma página por error). Usamos el container para query relativos.
+  const uid = `tf${Math.random().toString(36).slice(2, 8)}`;
+
+  container.innerHTML = `
+    <div class="autoeval-inline-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</div>
+    <section class="resultados-overview">
+      <div class="rueda-wrap">
+        <svg id="rueda-svg-${uid}" class="rueda-svg-full"></svg>
+        <div class="rueda-tooltip" id="rueda-tooltip-${uid}">
+          <div class="rueda-tooltip__title"></div>
+          <div class="rueda-tooltip__score"></div>
+        </div>
+      </div>
+      <div class="resultados-summary">
+        <h3 class="resultados-summary__title">Análisis de tu diagrama</h3>
+        <div class="resultados-summary__pillars">
+          <div class="resultados-summary__pillar">
+            <span class="resultados-summary__pillar-label">Tu pilar más fuerte</span>
+            <span class="resultados-summary__pillar-value resultados-summary__pillar-value--strong">${escapeHtml(strongestPilar(scores, pilarNombres))}</span>
+          </div>
+          <div class="resultados-summary__pillar">
+            <span class="resultados-summary__pillar-label">Tu pilar más vulnerable</span>
+            <span class="resultados-summary__pillar-value resultados-summary__pillar-value--weak">${escapeHtml(weakestPilar(scores, pilarNombres))}</span>
+          </div>
+        </div>
+        <p class="resultados-summary__lead">${escapeHtml(buildHolisticAnalysis(scores, pilarNombres))}</p>
+      </div>
+    </section>
+
+    <section class="resultados-bloques">
+      ${renderBloques(scores, analisis)}
+    </section>
+  `;
+
+  mountRueda({
+    svg: document.getElementById(`rueda-svg-${uid}`),
+    scores,
+    pilarNombres,
+    tooltipEl: document.getElementById(`rueda-tooltip-${uid}`),
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Página standalone (IIFE) — solo en /app/test-felicidad/resultados
+// ────────────────────────────────────────────────────────────────────
+
+const isStandalonePage = location.pathname.includes("/test-felicidad/resultados");
+
+if (isStandalonePage) (async () => {
   const persona = await requireAuth();
   if (!persona) return;
 
