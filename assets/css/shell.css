@@ -3827,6 +3827,9 @@
 .tab-panel {
   display: none;
   min-height: 400px;
+  /* Espacio inferior para que el último item de la tab (ej. una card de
+     módulo o lección) no quede pegado al borde del área de contenido. */
+  padding-bottom: var(--s-7);
 }
 
 .tab-panel.is-active { display: block; }

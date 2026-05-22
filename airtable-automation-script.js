@@ -122,6 +122,30 @@ function whatsappDigits(phone) {
   return String(phone || "").replace(/[^\d]/g, "");
 }
 
+// Formatea un teléfono mexicano para que se vea legible en el email.
+// Acepta cualquier input con o sin "+" y produce "+52 81 8011 1608"
+// para los números mexicanos típicos (LADA 2 + 8 dígitos = 10 dígitos
+// después del 52). Para otros formatos devuelve el input tal cual con
+// un espacio después del país, intentando no romper.
+function whatsappPretty(phone) {
+  const digits = whatsappDigits(phone);
+  if (!digits) return "";
+  // Mexico: 52 + 10 dígitos → +52 LA AAAA BBBB (lada 2 + 4+4)
+  if (digits.startsWith("52") && digits.length === 12) {
+    return `+52 ${digits.slice(2, 4)} ${digits.slice(4, 8)} ${digits.slice(8, 12)}`;
+  }
+  // Mexico móvil viejo: 521 + 10 dígitos (legacy, mismo display)
+  if (digits.startsWith("521") && digits.length === 13) {
+    return `+52 ${digits.slice(3, 5)} ${digits.slice(5, 9)} ${digits.slice(9, 13)}`;
+  }
+  // USA: 1 + 10 dígitos → +1 (AAA) BBB-CCCC
+  if (digits.startsWith("1") && digits.length === 11) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 11)}`;
+  }
+  // Fallback: solo agregar "+" al inicio
+  return `+${digits}`;
+}
+
 // ─── Extraer y normalizar inputs ─────────────────────────────────
 const nombres    = toArray(config.nombre);
 const apellidos  = toArray(config.apellidos);
@@ -178,6 +202,7 @@ try {
 
 const coordinadorIniciales = calcIniciales(coordinadorNombre);
 const coordinadorWhatsappDigits = whatsappDigits(coordinadorWhatsapp);
+const coordinadorWhatsappPretty = whatsappPretty(coordinadorWhatsapp);
 
 // ─── 2. Cargar Personas CRM una sola vez (para hacer lookup eficiente) ────
 const allPersonas = await PERSONAS_CRM.selectRecordsAsync({
@@ -278,6 +303,7 @@ for (let i = 0; i < emails.length; i++) {
         coordinadorEmail:            coordinadorEmail,
         coordinadorWhatsapp:         coordinadorWhatsapp,
         coordinadorWhatsappDigits:   coordinadorWhatsappDigits,
+        coordinadorWhatsappPretty:   coordinadorWhatsappPretty,
         coordinadorFotoUrl:          coordinadorFotoUrl,
         coordinadorMensaje:          coordinadorMensaje,
         coordinadorIniciales:        coordinadorIniciales,

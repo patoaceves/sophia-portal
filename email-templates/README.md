@@ -31,6 +31,7 @@ Settings → Custom Fields → Add Field. Todos tipo **Single line**, en folder 
 | Coordinador Email | `{{contact.coordinador_email}}` |
 | Coordinador WhatsApp | `{{contact.coordinador_whatsapp}}` |
 | Coordinador WhatsApp Digits | `{{contact.coordinador_whatsapp_digits}}` |
+| Coordinador WhatsApp Pretty | `{{contact.coordinador_whatsapp_pretty}}` |
 | Coordinador Foto URL | `{{contact.coordinador_foto_url}}` |
 | Coordinador Mensaje | `{{contact.coordinador_mensaje}}` |
 | Coordinador Iniciales | `{{contact.coordinador_iniciales}}` |
@@ -57,6 +58,7 @@ Mapeos (15 fields):
 | Coordinador Email | `{{inboundWebhookRequest.coordinadorEmail}}` |
 | Coordinador WhatsApp | `{{inboundWebhookRequest.coordinadorWhatsapp}}` |
 | Coordinador WhatsApp Digits | `{{inboundWebhookRequest.coordinadorWhatsappDigits}}` |
+| Coordinador WhatsApp Pretty | `{{inboundWebhookRequest.coordinadorWhatsappPretty}}` |
 | Coordinador Foto URL | `{{inboundWebhookRequest.coordinadorFotoUrl}}` |
 | Coordinador Mensaje | `{{inboundWebhookRequest.coordinadorMensaje}}` |
 | Coordinador Iniciales | `{{inboundWebhookRequest.coordinadorIniciales}}` |
@@ -90,6 +92,7 @@ Todas se llenan dinámicamente desde la cohorte en Airtable:
 | `{{contact.coordinador_email}}` | Cohorte Director email | irelda.walls@sophiamx.org |
 | `{{contact.coordinador_whatsapp}}` | Cohorte Coordinador WhatsApp | +528180111608 |
 | `{{contact.coordinador_whatsapp_digits}}` | Calculado (sin "+") | 528180111608 |
+| `{{contact.coordinador_whatsapp_pretty}}` | Calculado (formato legible) | +52 81 8011 1608 |
 | `{{contact.coordinador_foto_url}}` | Cohorte Coordinador Foto URL | https://portal.sophiamx.org/assets/img/brand/irelda-walls.png |
 | `{{contact.coordinador_mensaje}}` | Cohorte Coordinador Mensaje | "El coaching en SOPHIA es..." |
 | `{{contact.coordinador_iniciales}}` | Calculado del nombre | IW |
