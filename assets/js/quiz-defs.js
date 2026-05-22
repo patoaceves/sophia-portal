@@ -353,6 +353,75 @@ export const QUIZZES = {
       },
     ],
   },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
+  // Actividad previa de la sesión de Bienestar Físico (HW)
+  // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
+  // score — es un autodiagnóstico de hábitos que el alumno revisa luego
+  // con la facilitadora.
+  // ───────────────────────────────────────────────────────────────────
+  "bienestar-fisico-checklist": {
+    titulo: "Checklist de Salud y Bienestar",
+    introEyebrow: "Actividad previa · Bienestar Físico",
+    introTitle: "Checklist de Salud y Bienestar Corporal–Emocional",
+    introLead: [
+      "Esta autoevaluación te ayuda a tomar conciencia de tus hábitos actuales de bienestar físico en siete áreas: sueño, alimentación, movimiento, estética del entorno, ritmo y pausas, cuidado corporal y estado emocional.",
+      "Responde con honestidad. No hay respuestas correctas o incorrectas — solo tu retrato actual. Llevaremos las respuestas a la sesión en vivo para reflexionar juntos.",
+    ],
+    doneTitle: "¡Listo! Checklist completado",
+    doneLead: "Tu autodiagnóstico quedó registrado. Nos veremos en la sesión en vivo para profundizar en las áreas donde quieras crecer.",
+    preguntas: [
+      // — Sueño (5) —
+      { id: "sueno_horas", tipo: "choice", eyebrow: "Sueño · 1 de 35", texto: "¿Duermo al menos 7 horas cada noche?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "sueno_desconexion", tipo: "choice", eyebrow: "Sueño · 2 de 35", texto: "¿Tengo rituales de desconexión digital antes de dormir?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "sueno_reparador", tipo: "choice", eyebrow: "Sueño · 3 de 35", texto: "¿Mi sueño es reparador: despierto con energía?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "sueno_horario", tipo: "choice", eyebrow: "Sueño · 4 de 35", texto: "¿Tengo un horario establecido para ir a dormir?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "sueno_cena", tipo: "choice", eyebrow: "Sueño · 5 de 35", texto: "¿Procuro cenar saludable y al menos una hora antes de dormir?", opciones: ["Sí", "No"], obligatoria: true },
+
+      // — Alimentación (5) —
+      { id: "alim_frescos", tipo: "choice", eyebrow: "Alimentación · 6 de 35", texto: "¿Como alimentos frescos y variados en al menos 2 comidas al día?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "alim_ultraproc", tipo: "choice", eyebrow: "Alimentación · 7 de 35", texto: "¿Evito productos ultraprocesados o con alto contenido de azúcares?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "alim_atencion", tipo: "choice", eyebrow: "Alimentación · 8 de 35", texto: "¿Como con atención, sin distracciones digitales?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "alim_hidratacion", tipo: "choice", eyebrow: "Alimentación · 9 de 35", texto: "¿Mantengo una buena hidratación durante el día (2L de agua)?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "alim_digestion", tipo: "choice", eyebrow: "Alimentación · 10 de 35", texto: "¿Mi digestión es regular y sin malestares frecuentes?", opciones: ["Sí", "No"], obligatoria: true },
+
+      // — Movimiento (5) —
+      { id: "mov_ejercicio", tipo: "choice", eyebrow: "Movimiento · 11 de 35", texto: "¿Realizo actividad física al menos 3 veces por semana?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "mov_dia", tipo: "choice", eyebrow: "Movimiento · 12 de 35", texto: "¿Integro el movimiento en mi día a día (caminar, subir escaleras, estirarme)?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "mov_disfruto", tipo: "choice", eyebrow: "Movimiento · 13 de 35", texto: "¿Disfruto alguna forma de movimiento (baile, deporte, yoga, caminata contemplativa)?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "mov_animo", tipo: "choice", eyebrow: "Movimiento · 14 de 35", texto: "¿Siento que el movimiento mejora mi estado de ánimo?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "mov_beneficios", tipo: "choice", eyebrow: "Movimiento · 15 de 35", texto: "¿Reconozco los beneficios emocionales del ejercicio físico?", opciones: ["Sí", "No"], obligatoria: true },
+
+      // — Estética existencial y entorno (5) —
+      { id: "est_armonia", tipo: "choice", eyebrow: "Estética y entorno · 16 de 35", texto: "¿Mis espacios (hogar, trabajo) me resultan armónicos y ordenados?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "est_naturaleza", tipo: "choice", eyebrow: "Estética y entorno · 17 de 35", texto: "¿Tengo contacto frecuente con la naturaleza (plantas, luz natural, caminatas)?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "est_detalles", tipo: "choice", eyebrow: "Estética y entorno · 18 de 35", texto: "¿Cuido los detalles estéticos de mi entorno (colores, aromas, limpieza, música)?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "est_entorno_emocional", tipo: "choice", eyebrow: "Estética y entorno · 19 de 35", texto: "¿Siento que mi entorno favorece mi bienestar emocional?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "est_contemplacion", tipo: "choice", eyebrow: "Estética y entorno · 20 de 35", texto: "¿Dedico momentos a la contemplación o a la belleza en lo cotidiano?", opciones: ["Sí", "No"], obligatoria: true },
+
+      // — Ritmo y pausas (5) —
+      { id: "ritmo_pausas", tipo: "choice", eyebrow: "Ritmo y pausas · 21 de 35", texto: "¿Hago pausas conscientes durante el día para respirar o estirarme?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "ritmo_cansancio", tipo: "choice", eyebrow: "Ritmo y pausas · 22 de 35", texto: "¿Reconozco señales de cansancio y respondo adecuadamente?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "ritmo_no_hacer", tipo: "choice", eyebrow: "Ritmo y pausas · 23 de 35", texto: "¿Integro momentos de \u201cno hacer\u201d en mi rutina diaria?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "ritmo_limites", tipo: "choice", eyebrow: "Ritmo y pausas · 24 de 35", texto: "¿Respeto mis límites físicos y mentales?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "ritmo_desconexion", tipo: "choice", eyebrow: "Ritmo y pausas · 25 de 35", texto: "¿Encuentro momentos de verdadera desconexión?", opciones: ["Sí", "No"], obligatoria: true },
+
+      // — Cuidado corporal (5) —
+      { id: "cuerpo_digno", tipo: "choice", eyebrow: "Cuidado corporal · 26 de 35", texto: "¿Me baño y visto de forma que me haga sentir digno(a) y cómodo(a)?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "cuerpo_aliado", tipo: "choice", eyebrow: "Cuidado corporal · 27 de 35", texto: "¿Reconozco mi cuerpo como aliado, no como obstáculo?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "cuerpo_medico", tipo: "choice", eyebrow: "Cuidado corporal · 28 de 35", texto: "¿Hago revisiones médicas básicas con regularidad?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "cuerpo_autocuidado", tipo: "choice", eyebrow: "Cuidado corporal · 29 de 35", texto: "¿Tengo rituales de autocuidado que refuerzan mi autoestima?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "cuerpo_compasion", tipo: "choice", eyebrow: "Cuidado corporal · 30 de 35", texto: "¿Aunque busque mejorarlo, acepto mi cuerpo con compasión?", opciones: ["Sí", "No"], obligatoria: true },
+
+      // — Estado emocional (5) —
+      { id: "emo_identifico", tipo: "choice", eyebrow: "Estado emocional · 31 de 35", texto: "¿Identifico mis emociones cotidianamente y sé nombrarlas?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "emo_regular", tipo: "choice", eyebrow: "Estado emocional · 32 de 35", texto: "¿Siento que puedo regular mis emociones sin reprimirlas ni explotar?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "emo_alguien", tipo: "choice", eyebrow: "Estado emocional · 33 de 35", texto: "¿Tengo al menos una persona con quien hablar emocionalmente de forma segura?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "emo_valores", tipo: "choice", eyebrow: "Estado emocional · 34 de 35", texto: "¿Me siento conectado(a) conmigo mismo(a) y con mis valores?", opciones: ["Sí", "No"], obligatoria: true },
+      { id: "emo_satisfaccion", tipo: "choice", eyebrow: "Estado emocional · 35 de 35", texto: "¿Siento satisfacción con mi vida en general en la última semana?", opciones: ["Sí", "No"], obligatoria: true },
+    ],
+  },
 };
 
 export function getQuizDef(key) {
