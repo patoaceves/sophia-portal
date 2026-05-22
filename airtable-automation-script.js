@@ -37,8 +37,13 @@ const config = input.config();
 const PORTAL_BASE_ID     = "app0S6GrJQ8YatvCc";
 const INVITACIONES_TABLE = "tblzNARG9ahLsKR9c";
 const COHORTES_TABLE     = "tblMwkKfk6U7a75Ja";
-const FLD_FECHA_INICIO   = "fldoqWrG9zEdeKWGt";
-const FLD_HORA_INICIO    = "fld65dDf16bS1wR25";
+const FLD_FECHA_INICIO       = "fldoqWrG9zEdeKWGt";
+const FLD_HORA_INICIO        = "fld65dDf16bS1wR25";
+const FLD_COORD_NOMBRE       = "fldU2xqvEFk0dHo4T"; // Director / Coordinador (texto)
+const FLD_COORD_EMAIL        = "fldfNGBjnefsgapH7"; // Director email
+const FLD_COORD_WHATSAPP     = "fldcfirbPH4TmB7OW"; // Coordinador WhatsApp
+const FLD_COORD_FOTO_URL     = "fld4RobmNveKH3dLs"; // Coordinador Foto URL
+const FLD_COORD_MENSAJE      = "fldZlEH4zEhdrekEc"; // Coordinador Mensaje
 const INV = {
   TOKEN:              "fldn1D8JFG7n2RYfA",
   EMAIL_DESTINATARIO: "fldZK5s5m208cR5r6",
@@ -51,6 +56,7 @@ const P = {
   NOMBRE:    "fldEbEI3pLEAmlYAe",
   APELLIDOS: "fldCnRa0XFvH1FtfQ",
   EMAIL:     "fldJlxMp6NKCpvAuv",
+  ROL:       "fldOF0bnjfErxEOCO",  // singleSelect: participante / admin / instructor / profesor / facilitador / coordinador
 };
 const GHL_WEBHOOK = "https://services.leadconnectorhq.com/hooks/ek1LQvM0Kyj7fll9nDO7/webhook-trigger/845cecc4-28cd-4408-99b3-fd6622365af3";
 
@@ -101,6 +107,21 @@ function formatFechaEs(isoDate) {
   return `${dia}, ${numero} de ${mes} de ${ano}`;
 }
 
+// Calcula iniciales del coordinador: "Natalia Arriaga" → "NA",
+// "Irelda Walls Boone" → "IW". Útil como fallback para el avatar del email.
+function calcIniciales(fullName) {
+  const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "SC";
+  const first = parts[0][0] || "";
+  const second = parts[1] ? parts[1][0] : "";
+  return (first + second).toUpperCase();
+}
+
+// Para el link de WhatsApp, devolvemos solo dígitos (formato wa.me).
+function whatsappDigits(phone) {
+  return String(phone || "").replace(/[^\d]/g, "");
+}
+
 // ─── Extraer y normalizar inputs ─────────────────────────────────
 const nombres    = toArray(config.nombre);
 const apellidos  = toArray(config.apellidos);
@@ -124,9 +145,14 @@ if (!cohorteId || !portalPat) {
 
 console.log(`Procesando ${emails.length} participante(s) para cohorte ${cohorteNombre}`);
 
-// ─── 1. Fetch fecha y hora desde Cohortes (una sola vez, vale para todos) ──
+// ─── 1. Fetch fecha, hora y datos del coordinador desde Cohortes ──
 let primeraSesionFecha = "";
 let primeraSesionHora  = "";
+let coordinadorNombre   = "";
+let coordinadorEmail    = "";
+let coordinadorWhatsapp = "";
+let coordinadorFotoUrl  = "";
+let coordinadorMensaje  = "";
 try {
   const cohorteRes = await fetch(
     `https://api.airtable.com/v0/${PORTAL_BASE_ID}/${COHORTES_TABLE}/${cohorteId}?returnFieldsByFieldId=true`,
@@ -135,15 +161,23 @@ try {
   if (cohorteRes.ok) {
     const cohorteData = await cohorteRes.json();
     const rawFecha = String(cohorteData.fields?.[FLD_FECHA_INICIO] || "").trim();
-    primeraSesionFecha = formatFechaEs(rawFecha);
-    primeraSesionHora  = String(cohorteData.fields?.[FLD_HORA_INICIO]  || "").trim();
-    console.log(`Cohorte: fecha=${primeraSesionFecha} hora=${primeraSesionHora}`);
+    primeraSesionFecha   = formatFechaEs(rawFecha);
+    primeraSesionHora    = String(cohorteData.fields?.[FLD_HORA_INICIO]    || "").trim();
+    coordinadorNombre    = String(cohorteData.fields?.[FLD_COORD_NOMBRE]   || "").trim();
+    coordinadorEmail     = String(cohorteData.fields?.[FLD_COORD_EMAIL]    || "").trim();
+    coordinadorWhatsapp  = String(cohorteData.fields?.[FLD_COORD_WHATSAPP] || "").trim();
+    coordinadorFotoUrl   = String(cohorteData.fields?.[FLD_COORD_FOTO_URL] || "").trim();
+    coordinadorMensaje   = String(cohorteData.fields?.[FLD_COORD_MENSAJE]  || "").trim();
+    console.log(`Cohorte: fecha=${primeraSesionFecha} hora=${primeraSesionHora} coord=${coordinadorNombre}`);
   } else {
     console.error(`Cohorte fetch failed (${cohorteRes.status}): ${cohorteId}`);
   }
 } catch (e) {
   console.error(`Cohorte fetch threw: ${e.message || e}`);
 }
+
+const coordinadorIniciales = calcIniciales(coordinadorNombre);
+const coordinadorWhatsappDigits = whatsappDigits(coordinadorWhatsapp);
 
 // ─── 2. Cargar Personas CRM una sola vez (para hacer lookup eficiente) ────
 const allPersonas = await PERSONAS_CRM.selectRecordsAsync({
@@ -166,6 +200,12 @@ for (let i = 0; i < emails.length; i++) {
   // se inscribe una sola fila pero múltiples emails — raro, pero seguro)
   const nombre    = nombres[i]    ?? nombres[nombres.length - 1]       ?? "";
   const apellido  = apellidos[i]  ?? apellidos[apellidos.length - 1]   ?? "";
+  // Rol por participante. Default a "participante" si no viene o no
+  // empata con la lista del form. Esto evita romper Airtable si el
+  // singleSelect no tiene la opción exacta (aunque typecast: true las
+  // crea on-the-fly cuando llegan nuevas).
+  const rol       = (roles[i]     ?? roles[roles.length - 1]           ?? "participante")
+                      .toString().trim().toLowerCase() || "participante";
 
   if (!email || !nombre || !apellido) {
     errores.push({ email, motivo: "Faltan nombre, apellidos o email" });
@@ -180,9 +220,10 @@ for (let i = 0; i < emails.length; i++) {
         [P.NOMBRE]:    nombre,
         [P.APELLIDOS]: apellido,
         [P.EMAIL]:     email,
+        [P.ROL]:       { name: rol },
       });
       personaIdByEmail.set(email, personaId);
-      console.log(`✓ Persona CRM creada: ${personaId} (${email})`);
+      console.log(`✓ Persona CRM creada: ${personaId} (${email}, rol=${rol})`);
     } else {
       console.log(`↻ Persona CRM existente: ${personaId} (${email})`);
     }
@@ -225,13 +266,21 @@ for (let i = 0; i < emails.length; i++) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email:              email,
-        nombre:             nombre,
-        apellidos:          apellido,
-        cursoNombre:        cohorteNombre,
-        primeraSesionFecha: primeraSesionFecha,
-        primeraSesionHora:  primeraSesionHora,
-        linkInvitacion:     linkInvitacion,
+        email:                       email,
+        nombre:                      nombre,
+        apellidos:                   apellido,
+        rol:                         rol,
+        cursoNombre:                 cohorteNombre,
+        primeraSesionFecha:          primeraSesionFecha,
+        primeraSesionHora:           primeraSesionHora,
+        linkInvitacion:              linkInvitacion,
+        coordinadorNombre:           coordinadorNombre,
+        coordinadorEmail:            coordinadorEmail,
+        coordinadorWhatsapp:         coordinadorWhatsapp,
+        coordinadorWhatsappDigits:   coordinadorWhatsappDigits,
+        coordinadorFotoUrl:          coordinadorFotoUrl,
+        coordinadorMensaje:          coordinadorMensaje,
+        coordinadorIniciales:        coordinadorIniciales,
       }),
     });
 

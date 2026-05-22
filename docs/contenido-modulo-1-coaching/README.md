@@ -110,7 +110,7 @@ todavía el `Cover image` cargado. Cuando se suba la portada a Airtable, esa tom
 ✅ **9 Lecciones creadas y linkeadas al módulo** — incluye 4 quizzes y 1 tarea
 ✅ **Cohorte inicial:** `recaVisdV1jQYktY8` (23/may → 04/oct/2026)
 ✅ **3 invitaciones `pendiente`** para Pedro, Mateo, Patricio
-✅ **Foto de Irelada Walls Boone** en `/assets/img/brand/irelda-walls.png`
+✅ **Foto de Irelda Walls Boone** en `/assets/img/brand/irelda-walls.png`
 
 ## Mapeo final de lecciones
 
