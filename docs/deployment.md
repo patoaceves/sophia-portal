@@ -1,136 +1,132 @@
-# Deployment · SOPHIA Portal
+# Deployment
 
-## Pre-flight checklist
+Cómo desplegar cambios a cada capa del stack.
 
-Antes del primer deploy, asegúrate de tener:
+---
 
-- [ ] Cuenta de Vercel y dominio `portal.sophiamx.org` apuntando ahí
-- [ ] Proyecto de Supabase con auth providers configurados
-- [ ] Personal Access Token de Airtable con scopes correctos
-- [ ] Field IDs reales pegados en `supabase/functions/_shared/airtable.ts`
+## 1. Frontend (Vercel)
 
-## Paso 1 · Configurar variables de entorno
+El frontend es estático. Vercel deploya automáticamente cada push a `main`.
 
-### En el frontend (`assets/js/config.js`, gitignored)
+### Setup inicial (una sola vez)
 
-```js
-window.PORTAL_CONFIG = {
-  SUPABASE_URL: 'https://xxxxx.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOi...',
-  EDGE_FUNCTIONS_URL: 'https://xxxxx.supabase.co/functions/v1'
-};
-```
+- Proyecto conectado al repo en Vercel
+- `vercel.json` usa `@vercel/static` **únicamente** — NO agregar `@vercel/node`
+- Dominio: `portal.sophiamx.org` (apuntado a Vercel via DNS)
 
-### En Supabase Edge Functions (secrets)
+### Deploy normal
 
 ```bash
-supabase login
-supabase link --project-ref xxxxx
-
-supabase secrets set AIRTABLE_PAT=patXXXXX...
-supabase secrets set AIRTABLE_BASE_ID=app0S6GrJQ8YatvCc
-# SUPABASE_URL y SUPABASE_ANON_KEY se inyectan automáticamente
+git push origin main
 ```
 
-## Paso 2 · Deploy frontend a Vercel
+Vercel detecta el push, builds (no hay build step real), y publica en ~30 segundos. URL del deploy aparece en la PR de GitHub si abriste una.
 
+### vercel.json
+
+```json
+{
+  "version": 2,
+  "builds": [
+    { "src": "**", "use": "@vercel/static" }
+  ]
+}
+```
+
+No tocar este archivo. Si necesitas redirects/rewrites, agregarlos como `"routes"` o `"rewrites"`.
+
+---
+
+## 2. Edge Functions (Supabase)
+
+Despliegue manual desde el dashboard. No hay CLI configurado.
+
+### Pasos
+
+1. Ir a Supabase dashboard → Project → Edge Functions
+2. Seleccionar la función a desplegar
+3. Click en **"Deploy"** → pegar el contenido de `supabase/functions/<nombre>/index.ts`
+4. Si la función usa helpers de `_shared/`, asegurarse de que también estén actualizados
+5. Click **"Deploy function"**
+
+### Funciones que comparten código
+
+Varias edge functions importan helpers de `_shared/`:
+- `_shared/cors.ts`
+- `_shared/airtable.ts`
+- `_shared/auth.ts`
+
+Si modificas alguno, hay que re-deployar **todas** las funciones que lo usan.
+
+### Variables de entorno (Secrets)
+
+Settings → Edge Functions → Secrets:
+
+| Secret | Para qué |
+|---|---|
+| `AIRTABLE_PAT` | PAT con scope read/write a ambas bases |
+| `AIRTABLE_INSCRIPCION_WEBHOOK` | URL del webhook de Airtable Automation |
+| `IMPORT_PUBLIC_TOKEN` | Token compartido con `/embed/importar-participantes` |
+
+---
+
+## 3. Airtable Automation Script
+
+Cambios al script `airtable-automation-script.js`:
+
+1. Abrir base **CRM** en Airtable
+2. **Automations** → "Inscribir Participantes Webhook"
+3. Click en la acción **"Run a script — Crear invitación SOPHIA"**
+4. Borrar todo el código existente, pegar el nuevo
+5. **Verificar Input variables**: confirma que el panel tenga
+   - `nombre`, `apellidos`, `email`, `rol` ← Trigger > participantes > <field>
+   - `cohorteId`, `cohorteNombre` ← Trigger > <field>
+   - `portalPat` ← (texto fijo)
+6. Click **"Run a test"** con un participante de prueba
+7. Si pasa → **"Publish"** (botón verde arriba)
+
+---
+
+## 4. Email template (GHL)
+
+Cambios al template de bienvenida:
+
+1. Editar `email-templates/bienvenida-ghl.html` en el repo (para versionarlo)
+2. En GHL: Workflows → workflow de onboarding → action **Send Email**
+3. Editar el body → pegar el HTML nuevo
+4. **Send test** desde GHL para verificar render
+5. **Publish**
+
+Para agregar/modificar custom fields del contact, ver `email-templates/README.md`.
+
+---
+
+## Orden recomendado al hacer cambios cross-capa
+
+Si un cambio afecta varias capas (ej. agregar una variable nueva al correo):
+
+1. **Repo:** modificar `airtable-automation-script.js` y `email-templates/bienvenida-ghl.html`
+2. **GHL:** crear el custom field nuevo, mapearlo en Create Contact
+3. **GHL:** pegar el HTML nuevo en Send Email
+4. **Airtable:** pegar el script nuevo en la Automation, run test, publish
+5. **Test end-to-end:** alta de prueba en `/embed/importar-participantes`
+
+Hacerlo en este orden evita ventanas en las que el script manda una variable que GHL todavía no sabe recibir.
+
+---
+
+## Rollback
+
+### Frontend
 ```bash
-vercel --prod
+git revert <commit> && git push origin main
 ```
 
-Vercel detecta automáticamente la `vercel.json` y deploya como sitio estático.
+### Edge Function
+Re-deployar la versión anterior pegando código del commit anterior.
 
-**Importante:** después del primer deploy, configura en Vercel Dashboard:
-- Production Domain: `portal.sophiamx.org`
-- Edit Domain → DNS records (apunta a Vercel)
+### Airtable Automation
+Airtable mantiene "Runs history" pero no versionado del script. Hay que pegar la versión anterior manualmente (del repo, vía `git log` del archivo `airtable-automation-script.js`).
 
-## Paso 3 · Deploy Edge Functions
-
-```bash
-supabase functions deploy auth-bootstrap
-supabase functions deploy get-mis-cursos
-supabase functions deploy get-curso
-supabase functions deploy get-leccion
-supabase functions deploy marcar-leccion
-supabase functions deploy submit-test-felicidad
-supabase functions deploy get-resultados-test
-```
-
-O en un loop:
-```bash
-for fn in auth-bootstrap get-mis-cursos get-curso get-leccion marcar-leccion submit-test-felicidad get-resultados-test; do
-  supabase functions deploy "$fn"
-done
-```
-
-## Paso 4 · Configurar Auth providers
-
-En Supabase Dashboard → Authentication → Providers:
-
-### Google
-1. Google Cloud Console → APIs & Services → Credentials → Create OAuth 2.0 Client ID
-2. Authorized redirect URIs:
-   - `https://xxxxx.supabase.co/auth/v1/callback`
-3. Copia Client ID y Secret a Supabase
-4. **Save**
-
-### Microsoft (Azure)
-1. Azure Portal → App Registrations → New
-2. Redirect URI: `https://xxxxx.supabase.co/auth/v1/callback`
-3. Client Secrets → New client secret
-4. Copia Application (client) ID y Secret a Supabase
-
-### Magic Link
-1. Authentication → Providers → Email → enable
-2. **IMPORTANTE, Confirm email**: si esta opción está activada, los magic links no funcionarán correctamente porque Supabase espera el flujo de confirmación.
-   **Desactiva "Confirm email" para que el magic link funcione directamente.**
-
-### URL Configuration
-- Site URL: `https://portal.sophiamx.org`
-- Redirect URLs (lista permitida):
-  - `https://portal.sophiamx.org/auth/callback`
-  - `http://localhost:3000/auth/callback` (para dev)
-  - `http://localhost:8080/auth/callback`
-
-## Paso 5 · Crear el Test de Felicidad en Airtable
-
-En la tabla `Autoevaluaciones`, crear un registro:
-- Título: `Test de Felicidad`
-- Tipo: `evalfelicidad`
-
-Después, en la lección 5 del Módulo 1 de Happiness Workshop, linkearla a este registro.
-
-## Paso 6 · Cargar contenido del Módulo 1
-
-Abre los archivos en `docs/contenido-modulo-1/` y copia el HTML al campo `Contenido_HTML`
-de cada lección. Ver el README de esa carpeta para los detalles.
-
-## Paso 7 · Crear inscripción de prueba (Pato)
-
-En la tabla `Inscripciones`, crear un registro:
-- Persona: link a tu Persona del CRM (la que tiene `pato@sophiamx.org`)
-- Curso: link al curso `Happiness Workshop`
-- Estatus: `active`
-- Fecha inicio: hoy
-
-Listo. Entra a `https://portal.sophiamx.org/`, login con `pato@sophiamx.org`, deberías ver el curso.
-
-## Troubleshooting
-
-### "Authentication required" al cargar `/app`
-- Revisa que el navegador haya guardado la sesión (`localStorage.supabase.auth.token`)
-- Revisa que `assets/js/config.js` tenga la URL y anon key correctas
-
-### Edge Function devuelve 500
-- `supabase functions logs <name> --tail` para ver el error real
-- El más común: field IDs incorrectos en `airtable.ts`
-- O: PAT de Airtable sin scopes suficientes
-
-### "Curso no encontrado" pero sí existe
-- Probable: el campo `Slug` del curso no tiene exactamente el slug que pides
-- O: el filterByFormula está usando field name en vez de field ID
-
-### Magic link rebota
-- Confirm email activado → desactivar
-- Site URL no configurada → ponerla a `https://portal.sophiamx.org`
-- Redirect URL no en allowlist → agregarla
+### GHL template
+GHL guarda histórico de versiones del workflow. Settings del workflow → Versions → restore.

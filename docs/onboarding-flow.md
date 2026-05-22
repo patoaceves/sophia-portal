@@ -1,207 +1,235 @@
-# Onboarding flow · SOPHIA Portal
+# Onboarding flow
 
 Cómo una persona pasa de "le interesa un curso" → "ya está adentro del portal con su inscripción activa".
 
 ---
 
-## Modelo mental
+## Diagrama del flujo
 
 ```
-PAGA / RECIBE CORTESÍA
-  │
-  ▼
-[1] CREAR INVITACIÓN  (manual o automation)
-  │   token: inv_xxxxxxxx
-  │   cohorte: Happiness Workshop - 12.05.2026
-  │   email destinatario: usuario@gmail.com (opcional)
-  │
-  ▼
-[2] EMAIL AUTOMÁTICO  (Airtable Automation)
-  │   Sujeto: "Tu lugar en Happiness Workshop está confirmado"
-  │   Body: email-templates/bienvenida.html
-  │   CTA: https://portal.sophiamx.org/?invite=inv_xxxxxxxx
-  │
-  ▼
-[3] USUARIO HACE CLICK
-  │   Llega a portal.sophiamx.org/?invite=inv_xxxxxxxx
-  │   index.html captura el token → sessionStorage["sophia_pending_invite"]
-  │   Limpia la URL (history.replaceState)
-  │
-  ▼
-[4] LOGIN CON GOOGLE
-  │   redirectTo: /auth/callback
-  │
-  ▼
-[5] CALLBACK
-  │   - Espera a que la sesión esté lista
-  │   - auth-bootstrap crea Persona en CRM
-  │   - claim-invitation canjea el token:
-  │       a) Busca PersonaPortal (retry hasta 4.5s mientras espera el sync CRM→Portal)
-  │       b) Valida invitación (estatus, expiración, email, cohorte abierta)
-  │       c) Crea Inscripción ligada a la cohorte
-  │       d) Marca invitación como canjeada
-  │   - Redirige a /app/curso?slug={cursoSlug}&welcome=1
-  │
-  ▼
-[6] BIENVENIDA
-      Usuario adentro, inscrito, con acceso al contenido del Módulo 1.
+[1] /embed/importar-participantes  (form externo, sin login)
+    │   El equipo de ventas selecciona cohorte + agrega 1–15 participantes
+    │   Submit
+    ↓ POST
+[2] proxy-inscripcion  (Supabase Edge)
+    │   Valida IMPORT_PUBLIC_TOKEN
+    │   Reenvía body a AIRTABLE_INSCRIPCION_WEBHOOK
+    ↓ POST
+[3] Airtable Automation "Inscribir Participantes Webhook"  (base CRM)
+    │   Trigger: webhook received
+    │   Action: Run a script (airtable-automation-script.js)
+    │     Por cada participante:
+    │       - Encuentra/crea Persona CRM con rol
+    │       - Genera token inv_xxx
+    │       - Crea Invitación en Portal (estatus = "pendiente")
+    │       - Lee datos del coordinador desde la cohorte
+    │       - Llama webhook GHL con payload completo
+    ↓ HTTP webhook
+[4] GHL Workflow
+    │   Action 1: Create Contact con custom fields (curso, coordinador, etc.)
+    │   Action 2: Send Email con bienvenida-ghl.html
+    ↓ correo
+[5] Alumno hace click en "Entrar al Portal"
+    │   Link: https://portal.sophiamx.org/?invite=inv_xxx
+    ↓
+[6] index.html (landing)
+    │   Captura token → sessionStorage["sophia_pending_invite"]
+    │   history.replaceState para limpiar URL
+    │   Muestra login (Google / Magic Link)
+    ↓
+[7] auth/callback.html (PKCE)
+    │   exchangeCodeForSession
+    │   Lee pending_invite → llama claim-invitation
+    ↓ POST
+[8] claim-invitation  (Supabase Edge)
+    │   Busca invitación → cohorte → curso
+    │   Encuentra Persona Portal (synced de CRM, con retry)
+    │   Crea inscripción (estatus = "activa")
+    │   Marca invitación como "canjeada"
+    │   Devuelve cursoSlug
+    ↓
+[9] /app/cursos
+    Alumno ve su curso disponible
 ```
 
 ---
 
-## Casos que esto resuelve
+## Pieza por pieza
 
-### Caso 1 · Pato vende vía transferencia
-1. Recibe comprobante por WhatsApp.
-2. Va a Airtable → tabla **Invitaciones** → "+ New record".
-3. Escoge cohorte = "Happiness Workshop - 12.05.2026", pone email destinatario, Origen = "transferencia", Notas = "Pagó $X el día Y, comprobante en Drive".
-4. La automation manda el email automáticamente.
-5. La persona hace click → entra → ya está adentro.
+### 1. Form de alta (`/embed/importar-participantes`)
 
-### Caso 2 · Pato vende vía Stripe (futuro)
-- Stripe webhook → Supabase function → crea invitación con Origen = "stripe", token único, email destinatario del checkout.
-- Mismo flow desde [2] en adelante.
+Página HTML estática, sin login. Embedible (sin nav del portal).
 
-### Caso 3 · Cortesía / beca / referido
-- Se crea invitación con Origen = "cortesia", **sin email destinatario**.
-- La primera persona que use el link queda inscrita.
-- Para becas multi-uso, generar varias invitaciones (no soportado one-token-many-uses por diseño, un token, un canje).
+Config inline en el HTML:
+- `CURSOS_ENDPOINT` → URL del edge function `list-cursos-publico`
+- `WEBHOOK_URL` → URL del edge function `proxy-inscripcion`
+- `PUBLIC_TOKEN` → token compartido con Supabase
 
-### Caso 4 · Bulk import de cohorte completa
-- Pato sube CSV de invitaciones a Airtable o usa script de la base.
-- Automation manda emails masivos.
-- Cada quien activa cuando quiera.
+Carga las cohortes con estatus `abierta` y arma payload:
 
-### Caso 5 · Persona ya tiene cuenta y se inscribe a otra cohorte
-- Mismo flow. La Persona-CRM no se duplica (auth-bootstrap detecta auth_user_id existente).
-- Se crea una inscripción adicional ligada a la nueva cohorte.
-
-### Caso 6 · Persona entra al portal SIN invitación
-- Login con Google funciona (auth-bootstrap crea la Persona).
-- /app/cursos muestra empty state: "Si pagaste recientemente, busca tu email de bienvenida."
-- No hay self-enroll automático.
-
----
-
-## Edge cases manejados
-
-| Escenario | Respuesta |
-|---|---|
-| Token inválido (formato) | 400 `invalid_token` |
-| Token no existe | 404 `not_found` |
-| Token ya canjeado por otra persona | 400 `already_claimed` |
-| Token ya canjeado por mí (recargué) | 200 `alreadyClaimed: true` (idempotente) |
-| Token expirado por fecha | 400 `expired` (y se marca como `expirada` en Airtable) |
-| Token revocado manualmente | 400 `revoked` |
-| Email destinatario no coincide | 403 `email_mismatch` |
-| Cohorte cerrada/completada | 400 `cohort_closed` |
-| Sync CRM→Portal pendiente | 425 `sync_pending` (frontend reintenta) |
-
----
-
-## Cómo crear invitaciones desde Airtable
-
-Hay **3 formas** según la situación:
-
-### A) Manual, 1 sola invitación
-1. Tabla **Invitaciones** → "+ New record".
-2. Llenar:
-   - **Token:** `inv_` + 8-12 chars random. Genera uno con [random.org](https://www.random.org/strings/?num=1&len=12&digits=on&upperalpha=on&loweralpha=on).
-   - **Cohorte:** linkear a la cohorte correspondiente.
-   - **Email destinatario:** el email de la persona (recomendado).
-   - **Origen:** según corresponda.
-   - **Estatus:** `activa`.
-   - **Notas:** contexto de cómo pagó/por qué.
-3. La automation (configurar abajo) manda el email.
-
-### B) Script en Airtable · bulk
-Pegar este script en una vista de **Invitaciones** → menú → Run a script:
-
-```js
-// Bulk: crea invitaciones para una cohorte a partir de una lista de emails
-const cohorteTable = base.getTable("Cohortes");
-const invTable = base.getTable("Invitaciones");
-
-const cohortes = await cohorteTable.selectRecordsAsync({ fields: ["Nombre"] });
-const cohorte = await input.recordAsync("¿A qué cohorte?", cohortes);
-if (!cohorte) return;
-
-const emailsRaw = await input.textAsync(
-  "Pega los emails (uno por línea o separados por coma)"
-);
-const emails = emailsRaw
-  .split(/[\n,;]+/)
-  .map((e) => e.trim().toLowerCase())
-  .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
-
-const records = emails.map((email) => ({
-  fields: {
-    "Token": "inv_" + Math.random().toString(36).slice(2, 12),
-    "Cohorte": [{ id: cohorte.id }],
-    "Email destinatario": email,
-    "Origen": { name: "bulk" },
-    "Estatus": { name: "activa" },
-  },
-}));
-
-// Airtable script: crear de 50 en 50
-for (let i = 0; i < records.length; i += 50) {
-  await invTable.createRecordsAsync(records.slice(i, i + 50));
+```json
+{
+  "token": "<PUBLIC_TOKEN>",
+  "cohorteId": "rec...",
+  "cohorteNombre": "Fundamentos de Coaching - 23.05.2026",
+  "participantes": [
+    { "nombre": "Ana", "apellidos": "Martínez", "email": "ana@x.com", "rol": "participante" }
+  ]
 }
-
-output.text(`✅ Creadas ${records.length} invitaciones para "${cohorte.name}"`);
 ```
 
-### C) Stripe webhook (próxima fase)
-Cuando se conecte Stripe, un webhook → Supabase function `stripe-webhook` →
-crea la invitación automáticamente con Origen = "stripe" y los metadatos del payment intent.
+Roles disponibles: `participante`, `profesor`, `facilitador`, `coordinador`, `admin`.
+
+### 2. proxy-inscripcion (Supabase Edge)
+
+Proxy server-side hacia el webhook de Airtable. Necesario porque Airtable no sirve CORS — el browser no puede llamar `hooks.airtable.com` directamente.
+
+Responsabilidades:
+- Validar `IMPORT_PUBLIC_TOKEN`
+- Validar 1–15 participantes
+- Reenviar body completo al webhook de Airtable Automation
+
+### 3. Airtable Automation
+
+**Base:** CRM (`app1SbOC98k2OP5m1`)
+**Automation:** "Inscribir Participantes Webhook"
+
+Estructura:
+1. **Trigger** — When webhook is received
+2. **Action** — Run a script: `airtable-automation-script.js`
+
+Input variables del script (panel "Input variables"):
+
+| Variable | Origen |
+|---|---|
+| `nombre` | Trigger → participantes → nombre |
+| `apellidos` | Trigger → participantes → apellidos |
+| `email` | Trigger → participantes → email |
+| `rol` | Trigger → participantes → rol |
+| `cohorteId` | Trigger → cohorteId |
+| `cohorteNombre` | Trigger → cohorteNombre |
+| `portalPat` | (texto fijo) Personal Access Token de Airtable |
+
+El script:
+1. Hace fetch a la cohorte para leer fecha, hora y datos del coordinador
+2. Carga todas las Personas CRM una vez (lookup por email)
+3. Loop por participante:
+   - Si no existe la persona → crear con rol asignado
+   - Generar token `inv_` + 28 chars hex
+   - Crear Invitación en Portal vía REST API
+   - Llamar webhook GHL con payload
+
+### 4. Payload al webhook de GHL
+
+```json
+{
+  "email": "ana@x.com",
+  "nombre": "Ana",
+  "apellidos": "Martínez",
+  "rol": "participante",
+  "cursoNombre": "Fundamentos de Coaching - 23.05.2026",
+  "primeraSesionFecha": "Sábado, 23 de mayo de 2026",
+  "primeraSesionHora": "9:00 AM",
+  "linkInvitacion": "https://portal.sophiamx.org/?invite=inv_xxx",
+  "coordinadorNombre": "Irelda Walls Boone",
+  "coordinadorEmail": "irelda.walls@sophiamx.org",
+  "coordinadorWhatsapp": "+528180111608",
+  "coordinadorWhatsappDigits": "528180111608",
+  "coordinadorFotoUrl": "https://portal.sophiamx.org/assets/img/brand/irelda-walls.png",
+  "coordinadorMensaje": "El coaching en SOPHIA no es solo...",
+  "coordinadorIniciales": "IW"
+}
+```
+
+### 5. GHL Workflow
+
+Setup (ver `email-templates/README.md` para detalle):
+
+1. **Custom Fields** del contact (folder "Portal - SOPHIA"): 12 fields tipo `Single line`
+2. **Trigger** — Inbound Webhook
+3. **Action 1** — Create Contact con 15 mapeos `{{inboundWebhookRequest.<key>}}`
+4. **Action 2** — Send Email usando `bienvenida-ghl.html`
+
+### 6. claim-invitation (Supabase Edge)
+
+Post-login. Recibe `{ token, authUserId }`. Hace:
+
+1. Busca la invitación por token. Formato válido: `/^inv_[A-Za-z0-9_-]{4,40}$/`
+2. Verifica estatus = `pendiente` y no expirada
+3. Lee cohorte → resuelve curso link
+4. Encuentra Persona Portal por `authUserId` o `email` (con retry por sync delay)
+5. Si ya hay inscripción a esa cohorte → reutiliza, si no → crea con estatus `activa`
+6. Marca invitación como `canjeada` + fecha + persona link
+7. Devuelve `cursoSlug` para redirect
+
+### Estados de invitación
+
+| Estatus | Significado |
+|---|---|
+| `pendiente` | Recién creada, sin canjear |
+| `canjeada` | Ya se usó, inscripción creada |
+| `expirada` | Pasó la fecha de expiración (opcional) |
+| `cancelada` | Manualmente cancelada |
 
 ---
 
-## Airtable Automation: enviar el email de bienvenida
+## Agregar un curso nuevo
 
-**Trigger:** When record matches conditions
-- Tabla: Invitaciones
-- Condición: `Estatus = activa` AND `Email destinatario` is not empty AND `Origen` ≠ vacío
+1. **Crear Curso** en base Portal → tabla `Cursos`: nombre, slug, descripción, instructor
+2. **Crear Cohorte** → tabla `Cohortes`: vinculada al curso, con
+   - Fecha inicio/fin, hora primera sesión, modalidad, capacidad
+   - **Coordinador**: nombre, email, foto URL, WhatsApp, mensaje
+   - Estatus inicial: `planeada`
+3. **Crear Módulos** → tabla `Módulos`: vinculados al curso
+4. **Crear Lecciones** → tabla `Lecciones`: vinculadas a sus módulos
+5. **Subir portada** del curso a `assets/img/<slug>/portada.{jpg,png}`
+6. **Registrar slug + extensión** en `LOCAL_COVERS` de `assets/js/cursos.js` y `curso.js`
+7. **Activar cohorte** cambiando estatus a `abierta` → aparece en el dropdown del form de alta
 
-**Action:** Send email (o vía Resend si quieres branding mejor)
-- To: `{Email destinatario}`
-- Subject: `Tu lugar en {Cohorte → Curso → Título} está confirmado`
-- Body: Renderizar `email-templates/bienvenida.html` con interpolación.
-
-Variables a interpolar (ya tienes los lookups):
-- `{{nombre}}`, opcional. Si no tienes el nombre todavía, usa `Hola` solo. La automation puede dejarlo vacío.
-- `{{curso}}`, desde Cohorte → Curso → Título
-- `{{portalUrl}}`, `https://portal.sophiamx.org`
-- `{{primeraSesionFecha}}`, desde Cohorte → Fecha inicio (formatear como "12 de mayo de 2026")
-- `{{primeraSesionHora}}`, hardcoded por ahora ("7:30 P.M.")
-- `{{directora}}`, desde Cohorte → Directora
-- `{{directoraEmail}}`, la dejamos manual por ahora (`natalia.arriaga@sophiamx.org`)
-- **CTA href:** `{{portalUrl}}/?invite={{Token}}`, que es justo el campo URL de la invitación.
-
-> Recomendación: si quieres mejor deliverability + tracking, manda el email vía
-> **Resend** desde una Supabase function `send-invitation-email` que se llame desde la
-> automation con un webhook. Yo te armo esa función cuando lo decidas.
+**No se requieren cambios al script de Airtable Automation ni al template del email** — todo es dinámico.
 
 ---
 
-## Estados a monitorear (vista útil en Airtable)
+## Mantenimiento del template de email
 
-Crear vista **"Pendientes"** en Invitaciones:
-- Filtros: `Estatus = activa` AND `Fecha canje is empty`
-- Ordenar por: `Created at` desc
+Para cambiar el contenido del correo:
 
-Crear vista **"Canjeadas hoy"**:
-- Filtros: `Estatus = canjeada` AND `Fecha canje is within: today`
+1. Editar `email-templates/bienvenida-ghl.html` (para versionarlo en el repo)
+2. Copy-paste el HTML actualizado en GHL → workflow → action "Send Email"
+3. Mandar test desde GHL antes de publicar
 
-Crear vista **"Expirando pronto"**:
-- Filtros: `Estatus = activa` AND `Expira el is within next 7 days`
+Para agregar una variable nueva al correo:
+
+1. Agregarla al payload del webhook en `airtable-automation-script.js`
+2. Crear el custom field correspondiente en GHL
+3. Mapear `{{inboundWebhookRequest.<key>}}` al field en la action "Create Contact"
+4. Usar `{{contact.<field>}}` en el template
 
 ---
 
-## Cosas que NO hace este sistema (todavía)
+## Configuración del coordinador (por cohorte)
 
-- **Renvío de invitaciones.** Si el email se pierde, hay que crear una nueva invitación o dispararle al usuario el link manualmente.
-- **Refunds.** Si Pato quiere revocar una invitación canjeada, necesita: (a) marcar invitación como `revocada`, (b) marcar inscripción como `cancelada`. Manual por ahora.
-- **Recordatorios automáticos antes de la primera sesión.** Próxima fase.
-- **Multi-uso tokens.** Por diseño cada token es de un solo uso. Si necesitas 30 personas con un mismo "código" para una promo, genera 30 tokens distintos.
+Cada cohorte tiene los siguientes campos en Airtable que se inyectan al correo de bienvenida:
+
+| Field | ID | Origen del valor en el correo |
+|---|---|---|
+| Director | `fldU2xqvEFk0dHo4T` | Nombre que aparece debajo del avatar |
+| Director email | `fldfNGBjnefsgapH7` | Email + mailto link |
+| Coordinador WhatsApp | `fldcfirbPH4TmB7OW` | Botón de WhatsApp (formato `+52...`) |
+| Coordinador Foto URL | `fld4RobmNveKH3dLs` | Avatar circular |
+| Coordinador Mensaje | `fldZlEH4zEhdrekEc` | Cita entre comillas |
+
+Las iniciales del avatar (fallback si la foto no carga) se calculan automáticamente en el script desde el nombre.
+
+---
+
+## Troubleshooting
+
+| Problema | Causa probable | Solución |
+|---|---|---|
+| Cohorte no aparece en dropdown | Estatus no es `abierta` | Cambiar a `abierta` |
+| Email no llega | Falló alguno de los webhooks | Revisar Run history del Automation Airtable y logs del GHL workflow |
+| Link de invitación da 404 | Token mal formado | Verificar regex `/^inv_[A-Za-z0-9_-]{4,40}$/` |
+| Login OK pero curso no aparece | Sync delay de Persona Portal | Esperar 1–2 min, el sync de Airtable corre cada minuto |
+| Email llega sin foto del coordinador | Falta el campo `Coordinador Foto URL` en la cohorte | Llenar el campo o el avatar muestra solo iniciales |
+| Email llega con typo en mensaje | Está en el campo `Coordinador Mensaje` de la cohorte | Editar Airtable directo |

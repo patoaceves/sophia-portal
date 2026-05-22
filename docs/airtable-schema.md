@@ -1,208 +1,198 @@
-# Airtable Schema · SOPHIA Portal
+# Airtable schema
 
-Bases:
-- **`SOPHIA - Portal`** (`app0S6GrJQ8YatvCc`), contenido de cursos, inscripciones, cohortes, invitaciones
-- **`SOPHIA - CRM`** (`app1SbOC98k2OP5m1`), Personas (canónico)
+Esquema de las dos bases de Airtable usadas por el portal. Todas las llamadas API usan **field IDs**, no field names — los nombres pueden cambiar sin romper el código.
 
-> Regla de oro del codebase: **`filterByFormula` siempre con field IDs**, nunca con field names.
-> Filtrado pesado por linked records se hace en JS post-fetch porque `ARRAYJOIN({linkField})`
-> devuelve los valores del primary field, no los record IDs.
-
-## Cómo obtener field IDs
-
-```bash
-curl https://api.airtable.com/v0/meta/bases/app0S6GrJQ8YatvCc/tables \
-  -H "Authorization: Bearer $AIRTABLE_PAT" \
-  | jq '.tables[] | {id, name, fields: [.fields[] | {id, name, type}]}'
-```
+> **Base Portal:** `app0S6GrJQ8YatvCc`
+> **Base CRM:** `app1SbOC98k2OP5m1`
 
 ---
 
-## Modelo de datos · visión general
-
-```
-Cursos                ← template del contenido (módulos, lecciones)
-  │
-  └── Cohortes        ← cada generación = 1 cohorte (fecha inicio, capacidad)
-        │
-        ├── Invitaciones    ← tokens de un solo uso para inscribir gente
-        │
-        └── Inscripciones   ← persona + cohorte + estatus + progreso
-              │
-              └── ProgresoLecciones, IntentosTest, RespuestasAutoeval, ...
-```
-
-Cada vez que se abre una nueva generación (Happiness Gen 1, Gen 2, Liderazgo Gen 1, etc.):
-1. Se crea una **Cohorte** linked al **Curso** template.
-2. Por cada persona que paga / pide cortesía → se crea una **Invitación** con un token único.
-3. El email se envía automáticamente con `https://portal.sophiamx.org/?invite={token}`.
-4. La persona hace click → login con Google → la edge function `claim-invitation` crea la **Inscripción** ligada a la cohorte.
-
-Ver `docs/onboarding-flow.md` para el detalle paso a paso.
-
----
-
-## Tablas
+## Base Portal (`app0S6GrJQ8YatvCc`)
 
 ### Cursos (`tblJpUGeBsLNkk9UO`)
 
-Template del curso. Define el contenido pero no la fecha ni la cohorte específica.
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fld6Q1HVCxN9HiKsR` | singleLineText | primary |
+| Slug | `fldNcMlrxbXVgIB1m` | singleLineText | URL-friendly, ej. `happiness-workshop` |
+| Descripción | `fldDgcv8gpwxhMjsH` | multilineText | |
+| Instructor | `fldgPCAUgwx6Z2BTH` | singleLineText | |
+| Módulos | `fldwGGdGfQUjr3FdC` | multipleRecordLinks | → Módulos |
+| Cohortes | `fldDshhTpRu3jcEcg` | multipleRecordLinks | → Cohortes |
+
+### Cohortes (`tblMwkKfk6U7a75Ja`)
 
 | Field | ID | Tipo | Notas |
 |---|---|---|---|
-| Título | `fldrskH4P70JPikaS` | singleLineText | primary |
-| Slug | `fldnbvTXzNFOGxOYs` | singleLineText | único, kebab-case |
-| Descripción corta | `fldUyd2c5OJjRjPz0` | multilineText | |
-| Descripción larga | `fldxvb0leR5o2MaH1` | richText | |
-| Cover image | `fld6kHgjdRxGfswko` | multipleAttachments | |
-| Instructor | `fldja8z8xNZCz7gd6` | singleLineText | |
-| Color primario | `fldF45BjJoMU90jUP` | singleLineText | hex |
-| Modalidad | `fldwRC5bsmiwqsUlP` | singleSelect | |
-| Estatus | `fld6yNo5RZiHHWO8X` | singleSelect | |
-| Módulos | `fldAkJ8rPjrZr2llL` | multipleRecordLinks | ← Módulos.Curso |
-| Inscripciones | `fldEcnmyKO9EqQerO` | multipleRecordLinks | ← Inscripciones.Curso (legacy) |
-| **Cohortes** | `flddYCyaYUFnuSysI` | multipleRecordLinks | ← Cohortes.Curso |
-
-> Las inscripciones tienen tanto `Curso` como `Cohorte` linked durante la transición.
-> El nuevo flow usa `Cohorte` como source of truth; `Curso` se mantiene poblado para
-> backwards compatibility con `get-mis-cursos`.
-
-### Cohortes (`tblMwkKfk6U7a75Ja`), **NUEVA**
-
-Cada generación específica de un curso. Una cohorte = 1 curso template + 1 fecha de inicio + grupo definido de alumnos.
-
-| Field | ID | Tipo | Notas |
-|---|---|---|---|
-| Nombre | `fldbp3zZdJr03jCVD` | singleLineText | primary. Formato: `<Curso> - <DD.MM.YYYY>`, ej. `Happiness Workshop - 12.05.2026` |
-| Curso | `fldj0pnwgY14VNtqI` | multipleRecordLinks → Cursos | |
+| Nombre | `fldbp3zZdJr03jCVD` | singleLineText | primary. Formato: `<Curso> - <DD.MM.YYYY>` |
+| Curso | `fldj0pnwgY14VNtqI` | multipleRecordLinks | → Cursos |
 | Fecha inicio | `fldoqWrG9zEdeKWGt` | date | |
 | Fecha fin | `fldnm9B7nvIjyKZre` | date | |
 | Modalidad | `fldNJKOcwbBLs3Ozx` | singleSelect | `presencial` / `hibrido` / `online` |
-| Capacidad | `fldCAOufF8MXcTv0K` | number | cupo máximo |
+| Capacidad | `fldCAOufF8MXcTv0K` | number | |
 | Estatus | `fld87QVcZl6GvQg2k` | singleSelect | `planeada` / `abierta` / `cerrada` / `completada` |
-| Directora | `fldU2xqvEFk0dHo4T` | singleLineText | nombre completo, ej. "Natalia Arriaga" |
-| Directora email | `fldfNGBjnefsgapH7` | email | usado por el email de bienvenida |
-| Directora foto | `fldBjeY6gJJABVrFB` | url | URL pública, mostrada en el email |
-| Primera sesion hora | `fld65dDf16bS1wR25` | singleLineText | ej. "7:30 P.M." |
+| Primera sesión hora | `fld65dDf16bS1wR25` | singleLineText | Ej. `9:00 A.M.` |
+| Director | `fldU2xqvEFk0dHo4T` | singleLineText | Nombre del coordinador del programa |
+| Director email | `fldfNGBjnefsgapH7` | email | |
+| Coordinador WhatsApp | `fldcfirbPH4TmB7OW` | phoneNumber | Formato internacional con `+` |
+| Coordinador Foto URL | `fld4RobmNveKH3dLs` | url | URL pública servida desde el portal |
+| Coordinador Mensaje | `fldZlEH4zEhdrekEc` | multilineText | Cita que aparece en el email de bienvenida |
 | Notas | `fldYYDB17G3BaYRzR` | multilineText | |
 | Invitaciones | `fldmndmZrTFcEq2jl` | multipleRecordLinks | ← Invitaciones.Cohorte |
 | Inscripciones | `fldwACwKCvt6uGnQr` | multipleRecordLinks | ← Inscripciones.Cohorte |
 
-**Reglas de estatus:**
-- `planeada`, la cohorte aún no abre. `claim-invitation` permite canjear.
-- `abierta`, aceptando inscripciones. `claim-invitation` permite canjear.
-- `cerrada`, ya inició y no acepta más alumnos. `claim-invitation` rechaza.
-- `completada`, terminó. `claim-invitation` rechaza.
+**Reglas de estatus para el flujo de invitación:**
 
-### Invitaciones (`tblzNARG9ahLsKR9c`), **NUEVA**
+| Estatus | Aparece en `/embed` | `claim-invitation` permite canjear |
+|---|---|---|
+| `planeada` | No | Sí |
+| `abierta` | Sí | Sí |
+| `cerrada` | No | No |
+| `completada` | No | No |
 
-Tokens de un solo uso. Se crean cuando alguien paga / recibe cortesía. El email automático manda el link al portal.
+### Invitaciones (`tblzNARG9ahLsKR9c`)
+
+Tokens de un solo uso, creados por la Automation cuando se sube alguien al portal.
 
 | Field | ID | Tipo | Notas |
 |---|---|---|---|
-| Token | `fldn1D8JFG7n2RYfA` | singleLineText | primary. Formato: `inv_xxxxxxxx` |
-| Cohorte | `fldKDSCMDaJgHKZ60` | multipleRecordLinks → Cohortes | |
-| Email destinatario | `fldZK5s5m208cR5r6` | email | si se llena, sólo ese email puede canjear |
-| Origen | `fldw4WgogSTJamWsq` | singleSelect | `manual` / `stripe` / `transferencia` / `cortesia` / `bulk` |
-| Estatus | `fldHtt9NUtcU0795f` | singleSelect | `pendiente` (estado inicial, igual que crea el script de altas, lo cual permite reconciliación huérfana en `auth-bootstrap` y `claim-by-email`) / `activa` / `canjeada` / `expirada` / `revocada`. NOTA: para crear invitaciones nuevas usar siempre `pendiente`, no `activa` — el flujo huérfano solo recoge las que están en `pendiente`. |
-| Persona | `fldXW2phqZuQyQnFj` | multipleRecordLinks → Personas (Portal) | se llena al canjear |
-| Fecha canje | `fld5bV3P0iNSJpaBV` | dateTime | se llena al canjear |
-| Expira el | `fldQQSYSLabCd9eeP` | date | opcional |
-| Notas | `fldtrTgvBPmUiOkdh` | multilineText | "Pagó vía Stripe pi_abc123", etc. |
-| URL | `fldxkuEoHpHDZRAWu` | formula | `'https://portal.sophiamx.org/?invite=' & {Token}` |
-
-**Convención del token:** `inv_` + 8-16 chars `[A-Za-z0-9_-]`. Generar con
-`crypto.randomBytes(8).toString('base64url')` o `crypto.randomUUID().slice(0,12)`.
-Fácil de teclear si hace falta y suficientemente impredecible.
+| Token | `fldn1D8JFG7n2RYfA` | singleLineText | primary. Formato: `inv_xxxxxxxx...` (32 chars total) |
+| Cohorte | `fldKDSCMDaJgHKZ60` | multipleRecordLinks | → Cohortes |
+| Email destinatario | `fldZK5s5m208cR5r6` | email | |
+| Estatus | `fldHtt9NUtcU0795f` | singleSelect | `pendiente` / `canjeada` / `expirada` / `cancelada` |
+| Origen | `fldw4WgogSTJamWsq` | singleSelect | `alta-ventas` / `manual` / etc. |
+| Persona | `fldXW2phqZuQyQnFj` | multipleRecordLinks | → Personas Portal (se llena al canjear) |
+| Fecha canje | `fld5bV3P0iNSJpaBV` | dateTime | |
+| Expira el | `fldQQSYSLabCd9eeP` | dateTime | (opcional) |
+| Notas | `fldtrTgvBPmUiOkdh` | multilineText | |
 
 ### Inscripciones (`tblIT40GILMUHhLKK`)
 
 | Field | ID | Tipo | Notas |
 |---|---|---|---|
-| ID Inscripción | `fldJ2bjSM3L5EclHC` | autoNumber | primary |
-| Persona | `fldsgcanUDaXzX20x` | multipleRecordLinks → Personas (Portal synced) | |
-| Curso | `fldTjcS2GiOe3Q9N0` | multipleRecordLinks → Cursos | legacy, mantener |
-| **Cohorte** | `fldeML5okrUfcNBM3` | multipleRecordLinks → Cohortes | **fuente de verdad** |
-| Organización | `fldPXcOiJEuaF2MHl` | multipleRecordLinks | opcional B2B |
-| Estatus | `flduEWS1l327elsD6` | singleSelect | `activa` / `finalizada` / `cancelada` / `pendiente` |
+| ID | `fldJ2bjSM3L5EclHC` | autoNumber | primary, numérico |
+| Persona | `fldsgcanUDaXzX20x` | multipleRecordLinks | → Personas Portal |
+| Curso | `fldTjcS2GiOe3Q9N0` | multipleRecordLinks | → Cursos (backwards compat) |
+| Cohorte | `fldeML5okrUfcNBM3` | multipleRecordLinks | → Cohortes |
+| Estatus | `flduEWS1l327elsD6` | singleSelect | `activa` / `pendiente` / `finalizada` / `cancelada` |
 | Fecha inscripción | `fldrfWGCdo6KZZhQz` | date | |
-| Progreso % | `fldLoqPH7FVUgBm4T` | number | computed |
+| Created | `fld2L1GyIb6FPAJml` | createdTime | |
+| Last modified | `fldp99SpctG35RMHr` | lastModifiedTime | |
 
-> El campo `Curso` se sigue poblando por `claim-invitation` por compatibilidad con
-> `get-mis-cursos`. Eventualmente migrar a leer Curso vía Cohorte.Curso.
+### Personas Portal (`tblwo4xOFhmx2TznJ`)
 
-### Personas (Portal) (`tblwo4xOFhmx2TznJ`)
+Tabla **synced** desde Personas CRM. NO se edita aquí — los cambios se hacen en CRM y se reflejan tras el sync.
 
-Tabla en el base PORTAL que mantiene una copia (mantenida por automation) de Personas-CRM.
-Las inscripciones e invitaciones linkean acá, no a Personas-CRM directamente.
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fldhTiwmmXtIIS8dD` | singleLineText | primary |
+| Email | `fldnRbi4mJRtfuAmV` | email | |
+| Apellidos | `fldX8nE9wRJ5hpaij` | singleLineText | |
+| Auth User ID | `fldExWxQzZBJSZk3v` | singleLineText | UUID de Supabase Auth |
+| Rol | `fldZeOTpEcrXnyrgi` | singleSelect | sincronizado desde CRM |
+| Inscripciones | `fldwXKCgOgWHLDxwe` | multipleRecordLinks | ← Inscripciones.Persona |
+| Invitaciones | `fldXxhRtb5OPaayKv` | multipleRecordLinks | ← Invitaciones.Persona |
 
-| Field | ID | Tipo |
-|---|---|---|
-| Nombre | `fldhTiwmmXtIIS8dD` | singleLineText |
-| Apellidos | `fldvZE8Y5Y4rVCOKa` | singleLineText |
-| Email | `fldnRbi4mJRtfuAmV` | email |
-| Auth User ID | `fldSKACBNXloxYRBc` | singleLineText |
-| Inscripciones | `fldwXKCgOgWHLDxwe` | multipleRecordLinks |
-| **Invitaciones** | `fld6Rl8lQSO3ndBDQ` | multipleRecordLinks |
-| Rol | `fldRcBDK58Mu2tkWj` | singleSelect |
-| Estatus | `fldcDzrpuL0dwZ4TA` | singleSelect |
+### Módulos (`tblFHDXmg47igVihD`)
 
-> ⚠️ Importante: el sync CRM→Portal puede tardar segundos/minutos. La función
-> `claim-invitation` reintenta hasta 4.5s antes de devolver `425 sync_pending`,
-> y el frontend reintenta automáticamente cuando el usuario llega a `/app/cursos`.
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fldgEUL8YBkkSMjPp` | singleLineText | primary |
+| Orden | `fldB7gqJkXSdtdAQS` | number | |
+| Descripción | `fldEUf3sKbXLwwhYW` | multilineText | |
+| Curso | `fldZX9eaifBuC6Lb3` | multipleRecordLinks | → Cursos |
+| Lecciones | `fld7Sp7hLfvjKZbKw` | multipleRecordLinks | ← Lecciones.Módulo |
 
-### Personas (CRM) (`tbl5XKtg0mRfLeFYH`)
+### Lecciones (`tblBjfch6rc5ey7nn`)
 
-Tabla canónica. `auth-bootstrap` crea/actualiza acá. La sync propaga a Portal.
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fld6sZRP6Xj4zZkX2` | singleLineText | primary |
+| Orden | `fldbiQuyN2MOTbBjk` | number | |
+| Tipo | `fldDjLn2QnRPGT6xb` | singleSelect | `texto` / `video` / `pdf` / `quiz` / `tarea` / `autoeval` / `test` / `evaluacion-sesion` |
+| Módulo | `fld4tWXMrETZ4VC1d` | multipleRecordLinks | → Módulos |
+| Contenido | `fldRfDmIBefnLpwUO` | richText / multilineText | HTML para `texto` |
+| URL externa | `fldtBV3GepkpC0YEf` | url / singleLineText | Para `video`, `pdf`, o key de autoeval |
+| Tag | `fldYJpHzMQXMc2k7n` | singleSelect | `Actividad Previa a la Clase` / `Actividad Posterior a la Clase` / `Actividad` / `Evaluación` / `Grabaciones` |
+| Quiz key | `fldQ23JLDbR1mEoDF` | singleLineText | Identificador del quiz def en `quiz-defs.js` |
+| Autoeval tipo | `fldoXxxoyrBSWtcLs` | singleSelect | `pilar` / `felicidad` / `autoconocimiento` |
 
-| Field | ID | Tipo |
-|---|---|---|
-| Nombre | `fldEbEI3pLEAmlYAe` | singleLineText |
-| Apellidos | `fldCnRa0XFvH1FtfQ` | singleLineText |
-| Email | `fldJlxMp6NKCpvAuv` | email |
-| Auth User ID | `fldg3kYs6c4xOoYkq` | singleLineText |
-| Rol | `fldOF0bnjfErxEOCO` | singleSelect |
-| Avatar URL | `fldVctJnKuTRUGcIn` | url |
-| Productos | `fldzj1HkWzIHZwdyn` | multipleSelects |
-| Origen | `fldR2ZD5Pi8Qsnm3i` | singleSelect |
-| Estatus | `fld8Ig1z8qSAzVo3M` | singleSelect |
+### Progreso Lecciones (`tbllSrA7i4RxR6rqD`)
 
-### Resto de tablas
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fldoTk9NlReRRDH4j` | formula | primary, autocompuesto |
+| Inscripción | `fld5osGXDLBrvgW63` | multipleRecordLinks | → Inscripciones |
+| Lección | `fldftZaLhQcHyKrBo` | multipleRecordLinks | → Lecciones |
+| Completado | `fldtGaRMNd69jcK3D` | checkbox | |
+| Completado en | `fldEImFE2Osckh2wZ` | dateTime | |
 
-Sin cambios respecto a v8: Módulos, Lecciones, ProgresoLecciones, Tests, Tareas, Autoevaluaciones, Sesiones, Anuncios, Certificados, Organizaciones.
+### Actividades (`tbllM76FnC50EHRCx`)
 
-> **v17 · Módulo 2 · Autoconocimiento.** La tabla `Autoevaluaciones` debe tener
-> dos registros conocidos por las edge functions:
->
-> | Título | Tipo | Record ID | Edge functions que lo usan |
-> |---|---|---|---|
-> | Test de Felicidad | evalfelicidad | `recjMR4P4TFLvFQ4A` | submit-test-felicidad, get-resultados-test, get-leccion |
-> | Autoevaluación VIA: Fortalezas de carácter | custom | `recDLCMOgTZChS6Yf` | submit-test-autoconocimiento, get-resultados-autoconocimiento, get-leccion |
->
-> El portal usa estos record IDs como discriminadores en `get-leccion.KNOWN_AUTOEVAL_IDS`
-> para decidir qué wizard montar (felicidad vs autoconocimiento). Si añades un
-> nuevo Autoeval, hay que registrarlo también en ese mapa (y crear las
-> edge functions correspondientes).
+Respuestas a quizzes, tareas y autoevals.
+
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fld2KuJYNFGdKnZxR` | formula | primary, autocompuesto |
+| Inscripción | `fldoZwq6JeRdjm3gj` | multipleRecordLinks | → Inscripciones |
+| Tipo actividad | `fldumUkw9GPp8gF9A` | singleLineText | Key del quiz / autoeval / etc. |
+| Respuestas JSON | `fldCt8h2tJZjVKnK5` | multilineText | Payload completo |
+| Score | `fldKKHQOPdU6FbU2J` | number | (solo quizzes scored) |
+| Aprobado | `fldXrtjBkqgZxJrUf` | checkbox | |
 
 ---
 
-## Patrones de filterByFormula
+## Base CRM (`app1SbOC98k2OP5m1`)
 
-Para buscar inscripciones de una persona:
-```
-FIND('recPersonaPortalId', ARRAYJOIN({fldsgcanUDaXzX20x}))
-```
-NO usar `{Persona}=...`, rompe con linked fields multivalor.
+### Personas CRM (`tbl5XKtg0mRfLeFYH`)
 
-Para filtrar cohortes activas dado un curso:
-```
-AND(
-  FIND('recCursoId', ARRAYJOIN({fldj0pnwgY14VNtqI})),
-  OR({fld87QVcZl6GvQg2k}='abierta', {fld87QVcZl6GvQg2k}='planeada')
-)
+Fuente de verdad de personas. La tabla Personas Portal en la base Portal se sincroniza desde aquí.
+
+| Field | ID | Tipo | Notas |
+|---|---|---|---|
+| Nombre | `fldEbEI3pLEAmlYAe` | singleLineText | primary |
+| Apellidos | `fldCnRa0XFvH1FtfQ` | singleLineText | |
+| Email | `fldJlxMp6NKCpvAuv` | email | |
+| Teléfono país | `fld0psZVirGYHs2AQ` | singleLineText | Ej. `+52` |
+| Teléfono número | `fld3fDQA1tfiNPXN5` | singleLineText | |
+| Estatus | `fld8Ig1z8qSAzVo3M` | singleSelect | `activo` / `inactivo` |
+| Rol | `fldOF0bnjfErxEOCO` | singleSelect | `participante` / `admin` / `instructor` / `profesor` / `facilitador` / `coordinador` |
+| Auth User ID | `fldg3kYs6c4xOoYkq` | singleLineText | UUID de Supabase Auth, llenado al signup |
+| Origen | `fldR2ZD5Pi8Qsnm3i` | singleSelect | `signup` / `manual` / `alta-ventas` |
+| Versión | `fld7RdS5XJump9Evw` | singleLineText | |
+| Productos | `fldzj1HkWzIHZwdyn` | multipleSelects | `portal` / etc. |
+
+Otras tablas en CRM (no usadas activamente por el portal): leads, deals, etc.
+
+---
+
+## Patrones de uso
+
+### filterByFormula con linked records
+
+El campo "name" de un linked record devuelve **el nombre del primary del registro vinculado, no su ID**. Para filtrar por ID hay que hacerlo en JS después del fetch.
+
+```ts
+// ❌ Esto NO funciona como esperarías
+filterByFormula: `FIND('${recordId}', ARRAYJOIN({Persona}))`
+
+// ✅ Mejor: traer y filtrar en JS
+const records = await listRecords(...);
+const filtered = records.filter(r =>
+  (r.fields[FIELDS.PERSONA] as string[])?.includes(recordId)
+);
 ```
 
-Para buscar invitación por token (usado en `claim-invitation`):
+### Idempotency-Key con caracteres no ASCII
+
+La API de Airtable rechaza `Idempotency-Key` con caracteres no ASCII (acentos, ñ, etc.). Sanitizar antes:
+
+```ts
+function sanitizeIdempotencyKey(key: string): string {
+  return key.replace(/[^\x20-\x7E]/g, '_');
+}
 ```
-{fldn1D8JFG7n2RYfA} = 'inv_xxxxxxxx'
-```
+
+### Sync delay Personas Portal
+
+La tabla `Personas Portal` se sincroniza desde Personas CRM cada minuto aprox. Después de crear una Persona CRM nueva, hay un delay antes de que aparezca en Personas Portal. `claim-invitation` implementa retry con backoff exponencial (hasta 5 intentos) para manejar esto.

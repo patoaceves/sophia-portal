@@ -1,7 +1,5 @@
 # Foro · Schema de tabla en Airtable
 
-> Estado: **Tabla creada y conectada al código en v14**. Este doc es referencia.
-
 Base: **SOPHIA - Portal** (`app0S6GrJQ8YatvCc`)
 
 ---

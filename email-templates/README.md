@@ -1,77 +1,118 @@
-# Email templates · Supabase Auth
+# Email templates
 
-Estos templates van directamente al **Supabase Dashboard**, NO al repo del portal. Vercel no los lee. Cada template es un archivo HTML standalone que pegas en el panel de Supabase.
+Plantillas de email, versionadas en el repo para trazabilidad. Las plantillas reales viven en sus respectivos servicios (GHL o Supabase Auth).
+
+---
 
 ## Archivos
 
-| Archivo                              | Template Supabase     | Cuándo se dispara                                      |
-|--------------------------------------|------------------------|--------------------------------------------------------|
-| `supabase-magic-link.html`           | **Magic Link**         | Cada vez que un usuario pide entrar por email          |
-| `supabase-confirm-signup.html`       | **Confirm signup**     | Primera vez que un email se registra (si está activado)|
-| `bienvenida.html`                    | (Resend, no Supabase)  | Al crear una Invitación nueva en Airtable               |
+| Archivo | Servicio | Para qué |
+|---|---|---|
+| `bienvenida-ghl.html` | GHL | Email de bienvenida al inscribirse en un curso |
+| `supabase-confirm-signup.html` | Supabase Auth | Confirmación de cuenta nueva (signup) |
+| `supabase-magic-link.html` | Supabase Auth | Magic link de login |
+| `bienvenida.html` | (legacy) | Versión vieja, mantenida como referencia histórica |
 
-> El **magic link** es el que más se va a disparar (cada login por email). El **confirm signup** solo se dispara si tienes "Confirm email" activado en Supabase Auth → Email provider, y solo la primera vez que ese email se registra.
+---
 
-## Cómo aplicarlos (5 min cada uno)
+## bienvenida-ghl.html — Setup en GHL
 
-1. Entra a [Supabase Dashboard](https://supabase.com/dashboard) → tu proyecto
-2. **Authentication** → **Email Templates**
-3. Click el template (ej. "Magic Link")
-4. **Subject** sugerido:
-   - Magic Link → `Tu acceso al Portal SOPHIA`
-   - Confirm signup → `Confirma tu cuenta del Portal SOPHIA`
-5. **Message body (HTML)** → borra el HTML default, abre el archivo `.html` correspondiente, copia todo el contenido, pégalo
-6. Click **Save**
-7. Repite para el otro template
+### Paso 1 — Crear custom fields
 
-## Test rápido
+Settings → Custom Fields → Add Field. Todos tipo **Single line**, en folder "Portal - SOPHIA":
 
-Después de guardar, en otra ventana incógnita:
-1. Ve a `portal.sophiamx.org`
-2. Ingresa un email cualquiera (puedes usar `+test` para no contaminar tu inbox: `tu+test@gmail.com`)
-3. Click "Enviar enlace"
-4. Revisa el correo. Debe llegar con el branding rojo SOPHIA, logo, botón "Entrar al portal"
+| Field name | Key (auto-generada) |
+|---|---|
+| Curso | `{{contact.curso}}` |
+| Link Invitacion | `{{contact.link_invitacion}}` |
+| Primera Sesion Fecha | `{{contact.primera_sesion_fecha}}` |
+| Primera Sesion Hora | `{{contact.primera_sesion_hora}}` |
+| Coordinador Nombre | `{{contact.coordinador_nombre}}` |
+| Coordinador Email | `{{contact.coordinador_email}}` |
+| Coordinador WhatsApp | `{{contact.coordinador_whatsapp}}` |
+| Coordinador WhatsApp Digits | `{{contact.coordinador_whatsapp_digits}}` |
+| Coordinador Foto URL | `{{contact.coordinador_foto_url}}` |
+| Coordinador Mensaje | `{{contact.coordinador_mensaje}}` |
+| Coordinador Iniciales | `{{contact.coordinador_iniciales}}` |
+| Rol | `{{contact.rol}}` |
 
-Si el correo aún llega con texto plano "Confirm your mail":
-- Verifica que guardaste en el template correcto (Magic Link, no otro)
-- Espera 1 min y reintenta (Supabase puede cachear)
-- Revisa que el subject que pusiste no sea el default de Supabase
+### Paso 2 — Workflow → Trigger → Inbound Webhook
 
-## Variables Supabase
+URL del webhook: la que está configurada en el `GHL_WEBHOOK` constante del `airtable-automation-script.js`.
 
-Los templates usan estas variables que Supabase reemplaza al enviar:
+### Paso 3 — Workflow → Action 1 → Create Contact
 
-| Variable                  | Qué contiene                                          |
-|---------------------------|-------------------------------------------------------|
-| `{{ .ConfirmationURL }}`  | Link único al portal (válido 60 min para magic link)  |
-| `{{ .Email }}`            | Email del destinatario                                 |
-| `{{ .Token }}`            | Código de 6 dígitos (alternativa al link)             |
-| `{{ .SiteURL }}`          | Site URL configurado en Auth → URL Configuration      |
+Mapeos (15 fields):
 
-## Sobre el remitente (de quién aparece el correo)
+| Field GHL | Value |
+|---|---|
+| First Name | `{{inboundWebhookRequest.nombre}}` |
+| Last Name | `{{inboundWebhookRequest.apellidos}}` |
+| Email | `{{inboundWebhookRequest.email}}` |
+| Curso | `{{inboundWebhookRequest.cursoNombre}}` |
+| Link Invitacion | `{{inboundWebhookRequest.linkInvitacion}}` |
+| Primera Sesion Fecha | `{{inboundWebhookRequest.primeraSesionFecha}}` |
+| Primera Sesion Hora | `{{inboundWebhookRequest.primeraSesionHora}}` |
+| Coordinador Nombre | `{{inboundWebhookRequest.coordinadorNombre}}` |
+| Coordinador Email | `{{inboundWebhookRequest.coordinadorEmail}}` |
+| Coordinador WhatsApp | `{{inboundWebhookRequest.coordinadorWhatsapp}}` |
+| Coordinador WhatsApp Digits | `{{inboundWebhookRequest.coordinadorWhatsappDigits}}` |
+| Coordinador Foto URL | `{{inboundWebhookRequest.coordinadorFotoUrl}}` |
+| Coordinador Mensaje | `{{inboundWebhookRequest.coordinadorMensaje}}` |
+| Coordinador Iniciales | `{{inboundWebhookRequest.coordinadorIniciales}}` |
+| Rol | `{{inboundWebhookRequest.rol}}` |
 
-Por default Supabase manda los correos desde su dominio `noreply@mail.supabase.com` o similar. Si quieres que digan `noreply@sophiamx.org`:
+### Paso 4 — Workflow → Action 2 → Send Email
 
-1. Configura **SMTP custom** en Supabase: Auth → SMTP Settings
-2. Usa Resend (que ya tienes pensado para `bienvenida.html`):
-   - Host: `smtp.resend.com`
-   - Port: `465` (SSL) o `587` (TLS)
-   - Username: `resend`
-   - Password: tu API key de Resend
-   - Sender email: `noreply@sophiamx.org` (debe estar verificado en Resend)
-   - Sender name: `SOPHIA`
+- **Subject:** `Tu acceso a SOPHIA ya está listo`
+- **From:** la dirección de bienvenida que estés usando (típicamente algo como `coordinacion@sophiamx.org`)
+- **Body:** copy-paste el contenido completo de `bienvenida-ghl.html`
 
-Esto requiere que el dominio `sophiamx.org` tenga DNS configurado (SPF, DKIM) — bloqueado actualmente por acceso a Wix DNS según `docs/resend-cloudflare-setup.md`.
+### Paso 5 — Publicar
 
-**Mientras tanto**: deja Supabase con su SMTP default. Los correos llegan, solo el "from" no es de SOPHIA. El branding visual del cuerpo sí lo es, que es lo que importa.
+Guardar y publicar el workflow.
 
-## Cómo es el correo actual (default Supabase)
+---
 
-> Confirm your signup
->
-> Follow this link to confirm your user:
-> Confirm your mail
->
-> You're receiving this email because you signed up for an application powered by Supabase ⚡️
+## Variables disponibles en el template
 
-Brutal. Lo cambias y queda como el `bienvenida.html` que ya mandas con Resend.
+Todas se llenan dinámicamente desde la cohorte en Airtable:
+
+| Placeholder | Origen | Ejemplo |
+|---|---|---|
+| `{{contact.first_name}}` | Webhook → `nombre` | Ana |
+| `{{contact.email}}` | Webhook → `email` | ana@example.com |
+| `{{contact.curso}}` | Cohorte nombre | Fundamentos de Coaching - 23.05.2026 |
+| `{{contact.link_invitacion}}` | Generado por script | https://portal.sophiamx.org/?invite=inv_xxx |
+| `{{contact.primera_sesion_fecha}}` | Cohorte fecha_inicio | Sábado, 23 de mayo de 2026 |
+| `{{contact.primera_sesion_hora}}` | Cohorte hora_inicio | 9:00 AM |
+| `{{contact.coordinador_nombre}}` | Cohorte Director | Irelda Walls Boone |
+| `{{contact.coordinador_email}}` | Cohorte Director email | irelda.walls@sophiamx.org |
+| `{{contact.coordinador_whatsapp}}` | Cohorte Coordinador WhatsApp | +528180111608 |
+| `{{contact.coordinador_whatsapp_digits}}` | Calculado (sin "+") | 528180111608 |
+| `{{contact.coordinador_foto_url}}` | Cohorte Coordinador Foto URL | https://portal.sophiamx.org/assets/img/brand/irelda-walls.png |
+| `{{contact.coordinador_mensaje}}` | Cohorte Coordinador Mensaje | "El coaching en SOPHIA es..." |
+| `{{contact.coordinador_iniciales}}` | Calculado del nombre | IW |
+
+---
+
+## Editar el template
+
+1. Modificar `email-templates/bienvenida-ghl.html` en el repo (para versionarlo)
+2. Copy-paste el HTML actualizado a GHL → workflow → action "Send Email"
+3. Mandar test desde GHL antes de publicar
+4. Publish
+
+---
+
+## supabase-confirm-signup.html y supabase-magic-link.html
+
+Plantillas de Supabase Auth. Editar en:
+
+Supabase Dashboard → Authentication → Email Templates
+
+Variables disponibles (sintaxis Go template):
+- `{{ .Email }}`
+- `{{ .ConfirmationURL }}`
+- `{{ .Token }}`
+- `{{ .RedirectTo }}`
