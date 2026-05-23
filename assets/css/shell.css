@@ -3,6 +3,15 @@
  * cohesive with login page.
  */
 
+/* Global override for the HTML `hidden` attribute.
+   Without this, components that set `display: inline-flex` or `flex` on
+   themselves (e.g. `.leccion-cta`) override the default `display: none`
+   that browsers apply to `[hidden]` elements. This caused the Avanzar
+   button to show through even when its element had the `hidden` attribute.
+   `!important` is appropriate here because it's the universally-expected
+   semantic of `hidden`. */
+[hidden] { display: none !important; }
+
 .shell {
   min-height: 100vh;
   display: grid;
