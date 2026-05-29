@@ -1028,6 +1028,48 @@
 
 .leccion-pdf__alt svg { width: 14px; height: 14px; }
 
+/* Reproductor de audio (lecciones tipo `audio`, ej. prácticas guiadas). */
+.leccion-audio {
+  width: 100%;
+  margin-top: var(--s-4);
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-bg-subtle);
+}
+
+.leccion-audio__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent-faint);
+  color: var(--color-accent);
+}
+
+.leccion-audio__icon svg { width: 24px; height: 24px; }
+
+.leccion-audio__player {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+}
+
+@media (max-width: 640px) {
+  .leccion-audio {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+  }
+  .leccion-audio__player { width: 100%; }
+}
+
 /* ──────────────────────────────────────────────────────────────────
  * Quiz (actividades en clase) — wizard reflexivo
  * Reutiliza .test-progress, .test-wizard, .test-intro, .test-question,

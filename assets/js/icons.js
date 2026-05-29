@@ -41,6 +41,7 @@ export const ICONS = {
   lessonLive: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M9 22h6" stroke-linecap="round"/></svg>`,
   lessonTest: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>`,
   lessonTarea: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h12l4 4v12H4z" stroke-linejoin="round"/><path d="M16 4v4h4M9 14l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  lessonAudio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14v-2a8 8 0 0 1 16 0v2" stroke-linecap="round"/><rect x="2.5" y="14" width="5" height="7" rx="1.5"/><rect x="16.5" y="14" width="5" height="7" rx="1.5"/></svg>`,
 
   // Navigation
   arrowLeft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -76,6 +77,7 @@ export function lessonIcon(tipo) {
     case "autoeval": return "lessonTest";
     case "quiz": return "lessonTest";
     case "pdf": return "lessonDocumento";
+    case "audio": return "lessonAudio";
     case "tarea": return "lessonTarea";
     default: return "lessonTexto";
   }
@@ -96,6 +98,7 @@ export function lessonTipoLabel(tipo) {
     case "autoeval": return "Autoevaluación";
     case "quiz": return "Actividad";
     case "pdf": return "Documento";
+    case "audio": return "Audio";
     case "tarea": return "Tarea";
     default: return tipo || "Lección";
   }

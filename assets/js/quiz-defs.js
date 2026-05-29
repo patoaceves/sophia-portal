@@ -355,6 +355,230 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión 2: El arte de preguntar las preguntas correctas
+  // Quiz CON SCORE — 5 preguntas, basado en el video de trabajo previo.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-arte-preguntar-s2": {
+    titulo: "Quiz: El arte de preguntar las preguntas correctas",
+    introEyebrow: "Pre-sesión · Sesión 2",
+    introTitle: "El arte de preguntar las preguntas correctas",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple basadas en el video de trabajo previo sobre el arte de preguntar.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "berger_valor_preguntas",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cuál es, según Warren Berger, la razón principal por la que las preguntas se vuelven más valiosas que las respuestas en entornos como Silicon Valley?",
+        opciones: [
+          "Porque las respuestas ya no son confiables.",
+          "Porque las preguntas ayudan a organizar nuestro pensamiento sobre lo que no sabemos.",
+          "Porque las empresas buscan reducir costos eliminando respuestas.",
+          "Porque las respuestas están protegidas por derechos de autor.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "jahren_curiosidad",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cómo describe Hope Jahren el inicio de la investigación guiada por la curiosidad?",
+        opciones: [
+          "Como una búsqueda inmediata de aplicaciones comerciales.",
+          "Como preguntas de niños sobre por qué ocurren fenómenos naturales.",
+          "Como un proceso que evita cualquier colaboración con expertos.",
+          "Como un método para acelerar la producción en masa.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "declive_preguntas",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Según el video, ¿qué sucede con la tendencia a hacer preguntas desde la infancia hasta la secundaria?",
+        opciones: [
+          "Aumenta constante y significativamente.",
+          "Se mantiene igual durante toda la escolaridad.",
+          "Declina notablemente hasta casi desaparecer en la secundaria.",
+          "Solo cambia en función del nivel socioeconómico.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "preguntas_absurdas",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Tim Ferriss y los entrevistados hablan del valor de las \"preguntas absurdas\" o \"dumb questions\". ¿Cuál es un efecto clave de formular ese tipo de preguntas?",
+        opciones: [
+          "Reforzar los marcos mentales y las suposiciones actuales.",
+          "Forzar pensamiento lateral y romper límites de confort.",
+          "Aumentar la probabilidad de rechazo social sin beneficio intelectual.",
+          "Evitar la reflexión profunda sobre problemas complejos.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "pregunta_obvia_periodismo",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué ejemplo concreto se menciona sobre una \"pregunta obvia pero no formulada\" que llevó a una gran investigación o producto periodístico?",
+        opciones: [
+          "¿Cómo fabricar un coche volador en 24 horas?",
+          "¿Por qué los bancos prestaron a personas con escasas posibilidades de pagar?",
+          "¿Cuál es la fórmula secreta para mejorar la memoria?",
+          "¿Cómo invertir todo el patrimonio en criptomonedas sin riesgo?",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 2: Identidad y Ética Profesional
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s2": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 2 · El Pilar de la Confianza SOPHIA",
+    introTitle: "Reflexión personal: Identidad y Ética Profesional",
+    introLead: [
+      "Objetivo de la sesión: integrar las competencias ICF con la metodología SOPHIA para cultivar un espacio de seguridad y llevar a cabo una sesión inicial.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 2.",
+    preguntas: [
+      {
+        id: "reflexion_confianza",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿De qué manera mi capacidad para generar confianza determina la profundidad de la vulnerabilidad que el cliente se permite explorar en el modelo SOPHIA?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 2: El Corazón de la Metodología SOPHIA
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s2": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 2 · El Corazón de la Metodología SOPHIA",
+    introTitle: "Journaling: Identidad y Ética Profesional",
+    introLead: [
+      "Objetivo: comprender los pilares de la metodología SOPHIA y cultivar un entorno de seguridad psicológica.",
+      "Desafío de la semana: realiza una práctica breve aplicando el primer pilar de SOPHIA y autoevalúa tu nivel de presencia.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_no_verbal",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo se manifiesta la \"confianza y seguridad\" en mi lenguaje no verbal cuando inicio una sesión?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 2: Introducción a la metodología SOPHIA
+  // Quiz CON SCORE — 5 preguntas, todas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s2": {
+    titulo: "Evaluación · Sesión 2",
+    introEyebrow: "Evaluación · Sesión 2",
+    introTitle: "Introducción a la metodología SOPHIA",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre la metodología SOPHIA y lo revisado en la sesión 2.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "pilar_existencial",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Dentro de los pilares de la metodología SOPHIA, ¿qué autor y concepto sustentan el supuesto de la \"E: Existencial\"?",
+        opciones: [
+          "Kant – El estudio de la experiencia consciente.",
+          "Heráclito – El cambio en el nivel del \"Ser\".",
+          "Ortega y Gasset – La libertad, la elección y la responsabilidad personal.",
+          "Sócrates – La evolución a través de la tensión y el diálogo.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "mentalidad_coach",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "Antes de iniciar una sesión, el coach debe entrar en una \"mentalidad de coach\". ¿Cuál de estas preguntas forma parte de esa preparación interna?",
+        opciones: [
+          "¿Qué consejos le voy a dar hoy al coachee?",
+          "¿Qué ruido mental debo ignorar para escuchar plenamente?",
+          "¿Cuánto tiempo falta para que termine la sesión?",
+          "¿Qué solución es la más rápida para este problema?",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "contrato_acuerdo",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Al generar el \"Contrato y acuerdo de la sesión\", ¿cuál es el objetivo principal de preguntas como \"¿Qué te gustaría lograr en estos minutos?\"?",
+        opciones: [
+          "Evaluar el pasado del coachee.",
+          "Establecer el mejor uso del tiempo y el objetivo de la conversación actual.",
+          "Decidir por el coachee qué competencia debe trabajar.",
+          "Finalizar la relación profesional de inmediato.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "rueda_felicidad",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "En el modelo SOPHIA, la \"Rueda de la Felicidad\" se utiliza para que el coachee seleccione una competencia a mejorar. ¿Qué dimensiones incluye esta rueda?",
+        opciones: [
+          "Solo dimensión económica y profesional.",
+          "Espiritual, Mental, Física y Afectiva.",
+          "Terapia, Mentoría y Consultoría.",
+          "Pasado, Presente y Futuro únicamente.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "etapa_mediacion",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué sucede en la etapa de \"Mediación\" al finalizar la sesión de coaching?",
+        opciones: [
+          "El coach le dice al coachee qué nota le pone a su desempeño.",
+          "Se ignora lo ocurrido en sesiones anteriores para no sesgar.",
+          "Se compara la sesión actual con la pasada para identificar avances y el coachee elige cómo medir su progreso.",
+          "El coach contacta a la familia del coachee para reportar avances.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene

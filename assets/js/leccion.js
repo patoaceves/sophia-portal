@@ -648,6 +648,11 @@ function renderContent(l) {
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
         ${l.urlExterna ? renderPdfViewer(l.urlExterna) : `<p style="color:var(--color-text-muted);">El PDF aparecerá aquí cuando se publique.</p>`}
       `;
+    case "audio":
+      return `
+        ${l.urlExterna ? renderAudioPlayer(l.urlExterna) : `<p style="color:var(--color-text-muted);">El audio aparecerá aquí cuando se publique.</p>`}
+        ${html ? `<div class="leccion-html">${html}</div>` : ""}
+      `;
     case "documento":
       return `
         ${html ? `<div class="leccion-html">${html}</div>` : ""}
@@ -673,6 +678,26 @@ function renderVideoEmbed(url) {
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
+}
+
+/**
+ * Reproductor de audio · player nativo con icono, para lecciones tipo `audio`
+ * (ej. prácticas guiadas de mindfulness). El src apunta a un archivo servido
+ * same-origin desde /assets/audio/ (ver urlExterna de la lección en Airtable).
+ */
+function renderAudioPlayer(url) {
+  const safe = escapeHtml(url);
+  return `
+    <div class="leccion-audio">
+      <div class="leccion-audio__icon" aria-hidden="true">${icon("lessonAudio")}</div>
+      <audio class="leccion-audio__player" controls preload="metadata">
+        <source src="${safe}" type="audio/mp4">
+        <source src="${safe}" type="audio/mpeg">
+        Tu navegador no puede reproducir este audio.
+        <a href="${safe}" target="_blank" rel="noopener">Descárgalo aquí</a>.
+      </audio>
+    </div>
+  `;
 }
 
 /**
