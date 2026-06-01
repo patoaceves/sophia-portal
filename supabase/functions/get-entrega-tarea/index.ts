@@ -1,11 +1,15 @@
-// SOPHIA Portal · delete-entrega-archivo (Postgres, inlined)
+// SOPHIA Portal · get-entrega-tarea (Postgres, inlined)
 //
-// Quita un archivo del array `archivos` de una entrega. No borra del Storage
-// (cleanup-orphan-uploads se encarga después).
+// Devuelve la entrega del usuario autenticado para una leccion tipo `tarea`
+// (archivos + comentario). Lee de `entregas_tarea` (NO de respuestas_quiz).
+// Si no hay entrega, devuelve { tieneResultados: false }.
 //
-// POST /delete-entrega-archivo
-// Body JSON: { leccionId, inscripcionId, attachmentId }
-// Response 200: { ok: true, archivos: [...] }
+// GET /get-entrega-tarea?leccionId=<UUID>
+// Response: { tieneResultados, respuestaId?, archivos?, comentario?, comentariosHistorial?, fechaEntrega? }
+//
+// Nota: el esquema actual de entregas_tarea guarda un solo `comentario` (la
+// ultima nota), no un historial. comentariosHistorial se deriva de ese
+// comentario como entrada unica para que tarea.js lo muestre.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -45,6 +49,15 @@ function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
+}
+
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
 let _db: SupabaseClient | null = null;
@@ -112,85 +125,75 @@ async function requireUser(req: Request): Promise<Persona> {
   return persona as Persona;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
+  return {
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
+  };
+}
 
-interface ArchivoEntry { id: string; url: string; filename: string; size?: number; }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
   if (cors) return cors;
-  if (req.method !== "POST") {
-    return jsonResponse(req, { ok: false, error: "Use POST", code: "method_not_allowed" }, 405);
+  if (req.method !== "GET") {
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use GET"));
   }
+  const span = startSpan("get-entrega-tarea");
 
   try {
-    const body = await req.json().catch(() => ({})) as {
-      leccionId?: string; inscripcionId?: string; attachmentId?: string;
-    };
-    const { leccionId, inscripcionId, attachmentId } = body;
+    const url = new URL(req.url);
+    const leccionId = url.searchParams.get("leccionId")?.trim() || "";
     if (!leccionId || !UUID_RE.test(leccionId)) {
-      return jsonResponse(req, { ok: false, error: "leccionId inválido", code: "bad_leccion" }, 400);
-    }
-    if (!inscripcionId || !UUID_RE.test(inscripcionId)) {
-      return jsonResponse(req, { ok: false, error: "inscripcionId inválido", code: "bad_inscripcion" }, 400);
-    }
-    if (!attachmentId || typeof attachmentId !== "string") {
-      return jsonResponse(req, { ok: false, error: "attachmentId requerido", code: "bad_attachment" }, 400);
+      throw new ApiError(400, "invalid_leccion_id", "leccionId inválido");
     }
 
     const persona = await requireUser(req);
     const db = getDb();
 
-    const { data: insc, error: iErr } = await db
-      .from("inscripciones").select("id, persona_id")
-      .eq("id", inscripcionId).maybeSingle();
-    if (iErr) return jsonResponse(req, { ok: false, error: iErr.message, code: "db_error" }, 500);
-    if (!insc || insc.persona_id !== persona.id) {
-      return jsonResponse(req, { ok: false, error: "No autorizado", code: "not_owner" }, 403);
-    }
-
-    const { data: entrega, error: eErr } = await db
+    // Entrega del usuario para esta lección. Join a inscripciones!inner para
+    // garantizar ownership (solo devuelve entregas del usuario autenticado).
+    const { data: row, error } = await db
       .from("entregas_tarea")
-      .select("id, archivos, comentario")
+      .select("id, archivos, comentario, fecha_entrega, inscripciones!inner(persona_id)")
       .eq("leccion_id", leccionId)
-      .eq("inscripcion_id", inscripcionId)
-      .maybeSingle();
-    if (eErr) return jsonResponse(req, { ok: false, error: eErr.message, code: "db_error" }, 500);
-    if (!entrega) {
-      return jsonResponse(req, { ok: false, error: "Entrega no encontrada", code: "no_entrega" }, 404);
+      .eq("inscripciones.persona_id", persona.id)
+      .order("fecha_entrega", { ascending: false })
+      .limit(1).maybeSingle();
+    if (error) throw new ApiError(500, "db_error", error.message);
+
+    if (!row) {
+      span.end({ persona: persona.id, leccion: leccionId, no_results: true });
+      return jsonResponse(req, { tieneResultados: false });
     }
 
-    const archivosPrev: ArchivoEntry[] = Array.isArray(entrega.archivos) ? entrega.archivos : [];
-    const archivos = archivosPrev.filter((a) => a.id !== attachmentId);
+    const archivos = Array.isArray(row.archivos) ? row.archivos : [];
+    const comentario = row.comentario ?? "";
+    const comentariosHistorial = comentario.trim()
+      ? [{ texto: comentario, ts: row.fecha_entrega ?? null }]
+      : [];
 
-    if (archivos.length === archivosPrev.length) {
-      return jsonResponse(req, { ok: false, error: "Archivo no encontrado en la entrega", code: "attachment_not_found" }, 404);
-    }
-
-    const comentarioTrim = (entrega.comentario ?? "").trim();
-    if (archivos.length === 0 && comentarioTrim === "") {
-      const { error: dErr } = await db.from("entregas_tarea").delete().eq("id", entrega.id);
-      if (dErr) return jsonResponse(req, { ok: false, error: dErr.message, code: "db_error" }, 500);
-      await db.from("progreso_lecciones")
-        .update({ completado: false, completado_en: null })
-        .eq("inscripcion_id", inscripcionId)
-        .eq("leccion_id", leccionId);
-      return jsonResponse(req, { ok: true, archivos: [] });
-    }
-
-    const { error: uErr } = await db
-      .from("entregas_tarea")
-      .update({ archivos })
-      .eq("id", entrega.id);
-    if (uErr) return jsonResponse(req, { ok: false, error: uErr.message, code: "db_error" }, 500);
-
-    return jsonResponse(req, { ok: true, archivos });
+    span.end({ persona: persona.id, leccion: leccionId, archivos: archivos.length });
+    return jsonResponse(req, {
+      tieneResultados: true,
+      respuestaId: row.id,
+      archivos,
+      comentario,
+      comentariosHistorial,
+      fechaEntrega: row.fecha_entrega ?? null,
+    });
   } catch (err) {
-    if (err instanceof ApiError) {
-      return jsonResponse(req, { ok: false, error: err.message, code: err.code }, err.status);
-    }
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[delete-entrega-archivo] unhandled:", msg);
-    return jsonResponse(req, { ok: false, error: msg, code: "internal_error" }, 500);
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

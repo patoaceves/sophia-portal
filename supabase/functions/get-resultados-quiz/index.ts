@@ -1,160 +1,33 @@
-// SOPHIA Portal · get-resultados-quiz (inlined for dashboard deploy)
+// SOPHIA Portal · get-resultados-quiz (Postgres, inlined)
 //
-// Devuelve la última respuesta del usuario autenticado a una actividad en
-// clase (quiz), dada la lección. Si el alumno aún no la completó, devuelve
-// { tieneResultados: false }.
+// Devuelve la última respuesta del user autenticado a un quiz, dada la lección.
+// Si no completó, devuelve { tieneResultados: false }.
 //
-// GET /get-resultados-quiz?leccionId=...
-// Headers: Authorization: Bearer <supabase_jwt>
+// GET /get-resultados-quiz?leccionId=<UUID>
+// Response: { tieneResultados, respuestaId?, actividad?, respuestas?, completedAt? }
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// ════════════════════════════════════════════════════════════════════
 
-// ============================================================================
-// AIRTABLE CONSTANTS & HELPERS
-// ============================================================================
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-  CRM: "app1SbOC98k2OP5m1",
-} as const;
-
-const TABLES = {
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  ACTIVIDADES: "tbllM76FnC50EHRCx",
-  PERSONAS: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-} as const;
-
-const FIELDS = {
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-  },
-  ACTIVIDADES: {
-    ACTIVIDAD: "fldumUkw9GPp8gF9A",
-    LECCION: "fldD7y3DXBGUnKOpa",
-    INSCRIPCION: "fldoZwq6JeRdjm3gj",
-    RESPUESTAS_JSON: "flduVXSkzzUCjB6ks",
-    FECHA: "fldE610Bqq0mMOLnz",
-    ARCHIVOS: "fldbUYXX6v8m4oLIv",      // multipleAttachments (tareas)
-    COMENTARIO: "fldLLBYOl8SPkCDmA",    // multilineText (tareas)
-  },
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-    NOMBRE: "fldEbEI3pLEAmlYAe",
-    APELLIDOS: "fldCnRa0XFvH1FtfQ",
-    ROL: "fldOF0bnjfErxEOCO",
-  },
-  PERSONAS_PORTAL: {
-    NOMBRE: "fldhTiwmmXtIIS8dD",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
-}
-
-interface AirtableListResponse {
-  records: AirtableRecord[];
-  offset?: string;
-}
-
-function getAirtablePAT(): string {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT not configured");
-  return pat;
-}
-
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  options: {
-    filterByFormula?: string;
-    fields?: string[];
-    maxRecords?: number;
-    pageSize?: number;
-  } = {},
-): Promise<AirtableRecord[]> {
-  const pat = getAirtablePAT();
-  const all: AirtableRecord[] = [];
-  let offset: string | undefined;
-
-  do {
-    const params = new URLSearchParams();
-    params.set("returnFieldsByFieldId", "true");
-    if (options.filterByFormula) params.set("filterByFormula", options.filterByFormula);
-    if (options.maxRecords) params.set("maxRecords", String(options.maxRecords));
-    if (options.pageSize) params.set("pageSize", String(options.pageSize));
-    if (offset) params.set("offset", offset);
-    options.fields?.forEach((f) => params.append("fields[]", f));
-
-    const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}?${params}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Airtable list failed: ${res.status} ${await res.text()}`);
-    }
-    const data = (await res.json()) as AirtableListResponse;
-    all.push(...data.records);
-    offset = data.offset;
-    if (options.maxRecords && all.length >= options.maxRecords) break;
-  } while (offset);
-
-  return all;
-}
-
-async function updateRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable update failed: ${res.status} ${await res.text()}`);
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
   }
-  return await res.json();
 }
-
-function eqFormula(fieldId: string, value: string): string {
-  const escaped = value.replace(/'/g, "\\'");
-  return `{${fieldId}} = '${escaped}'`;
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-// ============================================================================
-// CORS
-// ============================================================================
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5500",
+  "http://localhost:3000", "http://localhost:5173",
+  "http://127.0.0.1:3000", "http://127.0.0.1:5500",
 ];
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -173,243 +46,147 @@ function handleOptions(req: Request): Response | null {
 
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-    },
+    status, headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400): Response {
-  return jsonResponse(req, { error: message }, status);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-// ============================================================================
-// AUTH HELPER
-// ============================================================================
-
-interface AuthedUser {
-  authUserId: string;
-  email: string;
-  personaId: string;
-  personaPortalId: string;
-  rol: string;
-  nombre: string;
-  apellidos: string;
-}
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = "HttpError";
-  }
-}
-
-async function requireAuth(req: Request): Promise<AuthedUser> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing Authorization header");
-  }
-  const jwt = authHeader.slice("Bearer ".length);
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
-    Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseKey) {
-    throw new HttpError(500, "Supabase env not configured");
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
   });
+  return _db;
+}
 
-  const { data: userData, error } = await supabase.auth.getUser(jwt);
-  if (error || !userData.user) {
-    throw new HttpError(401, "Invalid JWT");
-  }
+type Persona = {
+  id: string; auth_user_id: string; email: string;
+  nombre: string; apellidos: string; rol: string; avatar_url: string | null;
+};
 
-  const authUserId = userData.user.id;
-  const email = normalizeEmail(userData.user.email ?? "");
-  if (!email) throw new HttpError(401, "User has no email");
+function normalizeEmail(email: string): string { return email.trim().toLowerCase(); }
 
-  let personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
+
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
 
-  if (personas.length === 0) {
-    personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
 
-    if (personas.length > 0 && !personas[0].fields[FIELDS.PERSONAS_CRM.AUTH_USER_ID]) {
-      await updateRecord(BASES.CRM, TABLES.PERSONAS, personas[0].id, {
-        [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
-      });
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", user.id).maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: user.id }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = user.id;
+    } else if (byEmail.auth_user_id !== user.id) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
     }
+    persona = byEmail;
   }
+  return persona as Persona;
+}
 
-  if (personas.length === 0) {
-    throw new HttpError(403, "No Persona record found. Run auth-bootstrap first.");
-  }
-
-  const p = personas[0];
-  const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
-
-  const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  let personaPortalId = personasPortal[0]?.id;
-  if (!personaPortalId) {
-    const byEmail = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-    personaPortalId = byEmail[0]?.id;
-  }
-  if (!personaPortalId) {
-    throw new HttpError(
-      403,
-      "Persona no encontrada en sync de Portal. Espera unos minutos a que Airtable sincronice CRM→Portal o contacta a soporte.",
-    );
-  }
-
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
   return {
-    authUserId,
-    email,
-    personaId: p.id,
-    personaPortalId,
-    rol,
-    nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] as string) ?? "",
-    apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] as string) ?? "",
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
   };
 }
 
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
-
+  const cors = handleOptions(req);
+  if (cors) return cors;
   if (req.method !== "GET") {
-    return errorResponse(req, "Method not allowed", 405);
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use GET"));
   }
+  const span = startSpan("get-resultados-quiz");
 
   try {
-    const user = await requireAuth(req);
-
     const url = new URL(req.url);
-    const leccionId = url.searchParams.get("leccionId") ?? "";
-    if (!leccionId) return errorResponse(req, "leccionId is required", 400);
+    const leccionId = url.searchParams.get("leccionId")?.trim() || "";
+    if (!leccionId || !UUID_RE.test(leccionId)) {
+      throw new ApiError(400, "invalid_leccion_id", "leccionId inválido");
+    }
 
-    // Inscripciones del usuario
-    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      fields: [FIELDS.INSCRIPCIONES.PERSONA],
-    });
-    const myInscripcionIds = new Set(
-      allInscripciones
-        .filter((ins) => {
-          const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-          return ps.includes(user.personaPortalId);
-        })
-        .map((i) => i.id),
-    );
+    const persona = await requireUser(req);
+    const db = getDb();
 
-    if (myInscripcionIds.size === 0) {
+    // Buscar la respuesta del user a esta lección.
+    // Filtramos por leccion_id + inscripciones del user.
+    const { data: row, error } = await db
+      .from("respuestas_quiz")
+      .select("id, leccion_id, respuestas, completado_en, inscripciones!inner(persona_id)")
+      .eq("leccion_id", leccionId)
+      .eq("inscripciones.persona_id", persona.id)
+      .order("completado_en", { ascending: false })
+      .limit(1).maybeSingle();
+    if (error) throw new ApiError(500, "db_error", error.message);
+
+    if (!row) {
+      span.end({ persona: persona.id, no_results: true });
       return jsonResponse(req, { tieneResultados: false });
     }
 
-    // Respuestas de actividades en clase ligadas a esta lección.
-    //
-    // IMPORTANTE: filterByFormula con ARRAYJOIN sobre linked fields devuelve
-    // los NOMBRES (primary field), no los IDs. Por eso no podemos filtrar
-    // por leccionId en la formula. En su lugar listamos todas las actividades
-    // (de cualquier lección y usuario) y filtramos en JS. Es una tabla
-    // pequeña relativa al uso, no hay riesgo de timeout.
-    const all = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {});
-    const mine = all.filter((r) => {
-      const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
-      const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];
-      return (
-        leccionLinks.includes(leccionId) &&
-        inscLinks.some((id) => myInscripcionIds.has(id))
-      );
-    });
-
-    if (mine.length === 0) {
-      return jsonResponse(req, { tieneResultados: false });
-    }
-
-    // Más reciente primero
-    mine.sort((a, b) => {
-      const da = (a.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
-      const db = (b.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
-      return db.localeCompare(da);
-    });
-    const rec = mine[0];
-
-    let payload: {
-      version?: number;
-      actividad?: string;
-      respuestas?: Record<string, string>;
-      completedAt?: string;
-      comentarios?: Array<{ texto: string; ts: string }>;
-    } = {};
-    try {
-      const raw = rec.fields[FIELDS.ACTIVIDADES.RESPUESTAS_JSON] as string | undefined;
-      if (raw) payload = JSON.parse(raw);
-    } catch {
-      payload = {};
-    }
-
-    // Para tareas: archivos (multipleAttachments) y comentario + historial.
-    interface Attachment {
-      id?: string;
-      url: string;
-      filename: string;
-      size?: number;
-      type?: string;
-    }
-    const rawArchivos = (rec.fields[FIELDS.ACTIVIDADES.ARCHIVOS] as Attachment[]) ?? [];
-    const archivos = rawArchivos.map((a) => ({
-      id: a.id,
-      url: a.url,
-      filename: a.filename,
-      size: a.size,
-      type: a.type,
-    }));
-    const comentario = (rec.fields[FIELDS.ACTIVIDADES.COMENTARIO] as string) ?? null;
-    const comentariosHistorial = Array.isArray(payload.comentarios)
-      ? payload.comentarios
-      : [];
-
+    const p = row.respuestas ?? {};
+    span.end({ persona: persona.id, respuesta: row.id });
     return jsonResponse(req, {
       tieneResultados: true,
-      respuestaId: rec.id,
-      actividad:
-        payload.actividad ??
-        (rec.fields[FIELDS.ACTIVIDADES.ACTIVIDAD] as string) ??
-        "",
-      respuestas: payload.respuestas ?? {},
-      completedAt:
-        payload.completedAt ??
-        (rec.fields[FIELDS.ACTIVIDADES.FECHA] as string) ??
-        null,
-      archivos,
-      comentario,
-      comentariosHistorial,
+      respuestaId: row.id,
+      actividad: p.actividad ?? null,
+      respuestas: p.respuestas ?? null,
+      completedAt: p.completedAt ?? row.completado_en ?? null,
     });
-  } catch (e) {
-    if (e instanceof HttpError) {
-      return errorResponse(req, e.message, e.status);
-    }
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-resultados-quiz error:", msg);
-    return errorResponse(req, msg, 500);
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

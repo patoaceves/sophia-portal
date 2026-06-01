@@ -1,277 +1,199 @@
-// SOPHIA Portal · claim-by-email
+// SOPHIA Portal · claim-by-email (Postgres, inlined)
 //
-// Para usuarios que se registran SIN haber hecho click en el invite link
-// (entraron directo via magic link o Google a la página principal). El
-// flujo de claim-invitation requiere un token en sessionStorage; si la
-// persona perdió ese link o entró por otra ruta, su invitación queda
-// pendiente para siempre y nunca aparece inscrita al curso.
-//
-// Este endpoint resuelve eso: dado el JWT del usuario, busca todas las
-// Invitaciones con email = user.email AND estatus = "pendiente", y para
-// cada una crea la Inscripción correspondiente. Procesa N invitaciones
-// (puede tener varios cursos pendientes a la vez).
+// Para usuarios que entraron sin click en el invite link. Busca invitaciones
+// pendientes/activas con email = user.email y para cada una crea/verifica
+// la inscripción.
 //
 // POST /claim-by-email
-// Headers: Authorization: Bearer <jwt>
-//
-// Response:
-//   { ok: true, claimed: N, alreadyEnrolled: M, errors: [], invites: [...] }
-//
-// Se llama desde el frontend después del login (en callback.html y cursos.js)
-// SIEMPRE, sin depender de si hay token en sessionStorage.
+// Response: { ok: true, claimed: N, alreadyEnrolled: M, errors: [], invites: [...] }
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
-const BASES = { CRM: "app1SbOC98k2OP5m1", PORTAL: "app0S6GrJQ8YatvCc" } as const;
-const TABLES = {
-  PERSONAS_CRM: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-  INVITACIONES: "tblzNARG9ahLsKR9c",
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  COHORTES: "tblMwkKfk6U7a75Ja",
-} as const;
-const FIELDS = {
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-  },
-  PERSONAS_PORTAL: {
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-  },
-  INVITACIONES: {
-    TOKEN: "fldn1D8JFG7n2RYfA",
-    COHORTE: "fldKDSCMDaJgHKZ60",
-    EMAIL_DESTINATARIO: "fldZK5s5m208cR5r6",
-    ESTATUS: "fldHtt9NUtcU0795f",
-    PERSONA: "fldXW2phqZuQyQnFj",
-    FECHA_CANJE: "fld5bV3P0iNSJpaBV",
-  },
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-    COHORTE: "fldeML5okrUfcNBM3",
-    ESTATUS: "flduEWS1l327elsD6",
-    FECHA_INSCRIPCION: "fldrfWGCdo6KZZhQz",
-  },
-  COHORTES: {
-    CURSO: "fldj0pnwgY14VNtqI", // link a Cursos
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-// ============================================================================
-// CORS
-// ============================================================================
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
-  "http://localhost:3000", "http://localhost:5173", "http://localhost:5500",
+  "http://localhost:3000", "http://localhost:5173",
+  "http://127.0.0.1:3000", "http://127.0.0.1:5500",
 ];
+
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const isVercelPreview = /^https:\/\/sophia-portal-[a-z0-9-]+\.vercel\.app$/.test(origin);
-  const allowed = ALLOWED_ORIGINS.includes(origin) || isVercelPreview ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
+    Vary: "Origin",
   };
 }
+
+function handleOptions(req: Request): Response | null {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(req) });
+  return null;
+}
+
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status, headers: { ...corsHeaders(req), "Content-Type": "application/json" },
-  });
-}
-function errorResponse(req: Request, msg: string, status = 400, code?: string): Response {
-  return jsonResponse(req, { ok: false, error: msg, code }, status);
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(req), "Content-Type": "application/json" } });
 }
 
-// ============================================================================
-// AIRTABLE
-// ============================================================================
-interface AirtableRecord { id: string; createdTime?: string; fields: Record<string, unknown> }
-async function airtableFetch(path: string, init?: RequestInit) {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT env var missing");
-  const res = await fetch(`${AIRTABLE_API}${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json", ...(init?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`Airtable ${res.status}: ${await res.text()}`);
-  return res.json();
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled:", msg);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
-async function listRecords(
-  baseId: string, tableId: string,
-  opts: { filterByFormula?: string; pageSize?: number; fields?: string[] } = {},
-): Promise<AirtableRecord[]> {
-  const params = new URLSearchParams();
-  params.set("returnFieldsByFieldId", "true");
-  if (opts.filterByFormula) params.set("filterByFormula", opts.filterByFormula);
-  if (opts.pageSize) params.set("pageSize", String(opts.pageSize));
-  if (opts.fields) opts.fields.forEach(f => params.append("fields[]", f));
-  const all: AirtableRecord[] = [];
-  let offset: string | undefined = undefined;
-  do {
-    const url = `/${baseId}/${tableId}?${params}${offset ? `&offset=${offset}` : ""}`;
-    const data = await airtableFetch(url);
-    all.push(...(data.records as AirtableRecord[]));
-    offset = data.offset;
-  } while (offset);
-  return all;
-}
-async function createRecord(baseId: string, tableId: string, fields: Record<string, unknown>) {
-  const data = await airtableFetch(`/${baseId}/${tableId}`, {
-    method: "POST",
-    body: JSON.stringify({ records: [{ fields }], returnFieldsByFieldId: true, typecast: true }),
-  });
-  return data.records[0] as AirtableRecord;
-}
-async function updateRecord(baseId: string, tableId: string, recordId: string, fields: Record<string, unknown>) {
-  await airtableFetch(`/${baseId}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true, typecast: true }),
-  });
-}
-function escapeAt(s: string): string { return s.replace(/'/g, "\\'"); }
-function todayISO(): string { return new Date().toISOString().slice(0, 10); }
-function nowISOZ(): string { return new Date().toISOString(); }
 
-// ============================================================================
-// MAIN
-// ============================================================================
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE env");
+  _db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "public" } });
+  return _db;
+}
+
+type Persona = { id: string; auth_user_id: string; email: string; nombre: string; apellidos: string; rol: string; avatar_url: string | null; };
+
+function normalizeEmail(email: string): string { return email.trim().toLowerCase(); }
+
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env");
+
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido");
+
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "Usuario sin email");
+
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas").select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", user.id).maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas").select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: user.id }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = user.id;
+    } else if (byEmail.auth_user_id !== user.id) {
+      throw new ApiError(409, "email_conflict", "Email vinculado a otra cuenta");
+    }
+    persona = byEmail;
+  }
+  return persona as Persona;
+}
+
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
+  return {
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      console.log(JSON.stringify({ span: name, ms, ts: new Date().toISOString(), ...extra, ...more }));
+      return ms;
+    },
+  };
+}
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(req) });
-  if (req.method !== "POST") return errorResponse(req, "Method not allowed", 405);
+  const cors = handleOptions(req);
+  if (cors) return cors;
+  if (req.method !== "POST") {
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use POST"));
+  }
+  const span = startSpan("claim-by-email");
 
   try {
-    // Auth
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return errorResponse(req, "Missing Authorization", 401, "no_auth");
-    const jwt = authHeader.slice("Bearer ".length);
+    const persona = await requireUser(req);
+    const email = persona.email.toLowerCase();
+    const db = getDb();
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseAuth = createClient(supabaseUrl, anonKey);
-    const { data: userData, error: authErr } = await supabaseAuth.auth.getUser(jwt);
-    if (authErr || !userData.user) return errorResponse(req, "Invalid JWT", 401, "invalid_jwt");
+    const { data: invitaciones, error: iErr } = await db
+      .from("invitaciones")
+      .select("id, token, cohorte_id, expira_el, estatus")
+      .eq("email_destinatario", email)
+      .in("estatus", ["activa", "pendiente"])
+      .order("created_at", { ascending: true });
+    if (iErr) return jsonResponse(req, { error: iErr.message, code: "db_error" }, 500);
 
-    const email = (userData.user.email ?? "").toLowerCase().trim();
-    if (!email) return errorResponse(req, "User has no email", 400, "no_email");
-
-    // 1) Buscar Invitaciones pendientes para este email
-    const pendingInvites = await listRecords(BASES.PORTAL, TABLES.INVITACIONES, {
-      filterByFormula: `AND(LOWER(TRIM({${FIELDS.INVITACIONES.EMAIL_DESTINATARIO}})) = '${escapeAt(email)}', {${FIELDS.INVITACIONES.ESTATUS}} = 'pendiente')`,
-    });
-
-    if (pendingInvites.length === 0) {
-      return jsonResponse(req, { ok: true, claimed: 0, alreadyEnrolled: 0, invites: [], message: "No hay invitaciones pendientes" });
-    }
-
-    // 2) Buscar Persona Portal por email (necesaria para crear Inscripción)
-    const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${escapeAt(email)}'`,
-      pageSize: 1,
-    });
-
-    if (personasPortal.length === 0) {
-      // Sync de CRM→Portal aún no completó. El cliente debe retry más tarde.
-      return jsonResponse(req, {
-        ok: true,
-        claimed: 0,
-        alreadyEnrolled: 0,
-        invites: pendingInvites.length,
-        retry: true,
-        message: "Persona Portal aún no sincroniza desde CRM. Retry en 30s.",
-      }, 200);
-    }
-    const personaPortalId = personasPortal[0].id;
-
-    // 3) Cargar todas las inscripciones existentes de esta persona (para no duplicar)
-    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      fields: [FIELDS.INSCRIPCIONES.PERSONA, FIELDS.INSCRIPCIONES.COHORTE],
-    });
-    const enrolledCohorteIds = new Set<string>();
-    for (const ins of allInscripciones) {
-      const personas = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-      if (personas.includes(personaPortalId)) {
-        const cohortes = (ins.fields[FIELDS.INSCRIPCIONES.COHORTE] as string[]) ?? [];
-        cohortes.forEach(c => enrolledCohorteIds.add(c));
-      }
-    }
-
-    // 4) Procesar cada invitación pendiente
     let claimed = 0;
     let alreadyEnrolled = 0;
-    const errors: { invitationId: string; reason: string }[] = [];
-    const processed: { invitationId: string; cohorteId: string; created: boolean }[] = [];
+    const errors: string[] = [];
+    const invites: any[] = [];
+    const now = new Date();
 
-    for (const inv of pendingInvites) {
-      try {
-        const cohorteLinks = (inv.fields[FIELDS.INVITACIONES.COHORTE] as string[]) ?? [];
-        const cohorteId = cohorteLinks[0];
-        if (!cohorteId) {
-          errors.push({ invitationId: inv.id, reason: "Invitación sin cohorte" });
+    for (const inv of invitaciones ?? []) {
+      if (inv.expira_el && new Date(inv.expira_el) < now) {
+        await db.from("invitaciones").update({ estatus: "expirada" }).eq("id", inv.id);
+        errors.push(`Invitación ${inv.id} expirada`);
+        continue;
+      }
+      const { data: cohorte } = await db
+        .from("cohortes").select("id, curso_id, cursos!inner(id, slug)")
+        .eq("id", inv.cohorte_id).maybeSingle();
+      if (!cohorte) {
+        errors.push(`Cohorte ${inv.cohorte_id} no encontrada`);
+        continue;
+      }
+      const cursoId = cohorte.curso_id;
+      const cursoSlug = (cohorte as any).cursos?.slug ?? "";
+
+      const { data: existing } = await db
+        .from("inscripciones").select("id")
+        .eq("persona_id", persona.id).eq("curso_id", cursoId).eq("cohorte_id", inv.cohorte_id)
+        .maybeSingle();
+      let inscripcionId: string;
+      if (existing) {
+        inscripcionId = existing.id;
+        alreadyEnrolled++;
+      } else {
+        const { data: created, error: cErr } = await db
+          .from("inscripciones").insert({
+            persona_id: persona.id, curso_id: cursoId, cohorte_id: inv.cohorte_id,
+            estatus: "activa", fecha_inscripcion: now.toISOString().slice(0, 10),
+          }).select("id").single();
+        if (cErr) {
+          errors.push(`No se pudo inscribir a ${cursoSlug}: ${cErr.message}`);
           continue;
         }
-
-        let created = false;
-        if (!enrolledCohorteIds.has(cohorteId)) {
-          // Buscar curso de la cohorte (para llenar Inscripciones.CURSO por backwards compat)
-          const cohorteRes = await airtableFetch(`/${BASES.PORTAL}/${TABLES.COHORTES}/${cohorteId}?returnFieldsByFieldId=true`);
-          const cursoLinks = (cohorteRes.fields[FIELDS.COHORTES.CURSO] as string[]) ?? [];
-          const cursoId = cursoLinks[0];
-
-          const fields: Record<string, unknown> = {
-            [FIELDS.INSCRIPCIONES.PERSONA]: [personaPortalId],
-            [FIELDS.INSCRIPCIONES.COHORTE]: [cohorteId],
-            [FIELDS.INSCRIPCIONES.ESTATUS]: "activa",
-            [FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION]: todayISO(),
-          };
-          if (cursoId) fields[FIELDS.INSCRIPCIONES.CURSO] = [cursoId];
-
-          await createRecord(BASES.PORTAL, TABLES.INSCRIPCIONES, fields);
-          enrolledCohorteIds.add(cohorteId); // evita duplicar en mismo loop
-          created = true;
-          claimed++;
-        } else {
-          alreadyEnrolled++;
-        }
-
-        // Marcar invitación como canjeada (incluso si ya estaba inscrito por otro medio)
-        await updateRecord(BASES.PORTAL, TABLES.INVITACIONES, inv.id, {
-          [FIELDS.INVITACIONES.ESTATUS]: "canjeada",
-          [FIELDS.INVITACIONES.PERSONA]: [personaPortalId],
-          [FIELDS.INVITACIONES.FECHA_CANJE]: nowISOZ(),
-        });
-
-        processed.push({ invitationId: inv.id, cohorteId, created });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error(`claim-by-email error on invite ${inv.id}:`, msg);
-        errors.push({ invitationId: inv.id, reason: msg });
+        inscripcionId = created.id;
+        claimed++;
       }
+      await db.from("invitaciones").update({
+        estatus: "canjeada", persona_id: persona.id, fecha_canje: now.toISOString(),
+      }).eq("id", inv.id);
+      invites.push({ inscripcionId, cohorteId: inv.cohorte_id, cursoSlug });
     }
 
-    return jsonResponse(req, {
-      ok: true,
-      claimed,
-      alreadyEnrolled,
-      total: pendingInvites.length,
-      errors,
-      invites: processed,
-    });
-
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("claim-by-email fatal:", msg);
-    return errorResponse(req, "Error interno al canjear invitaciones", 500, "fatal");
+    span.end({ persona: persona.id, claimed, alreadyEnrolled, errors: errors.length });
+    return jsonResponse(req, { ok: true, claimed, alreadyEnrolled, errors, invites });
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

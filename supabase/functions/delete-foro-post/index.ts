@@ -1,139 +1,17 @@
-// SOPHIA Portal · delete-foro-post
-// Soft-delete de un post del foro. Solo el autor o un admin pueden borrar.
-// El campo Estatus pasa a "eliminado"; el record persiste para auditoría.
-//
-// POST /delete-foro-post
-// Headers: Authorization: Bearer <supabase_jwt>
-// Body: { postId: "recXXX" }
-//
-// Returns 200: { ok: true, postId }
-// Errors:
-//   400 validación
-//   401 invalid/missing JWT
-//   403 no autor / no admin
-//   404 post not found
-//   500 unexpected
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// Mantener sincronizado con _shared/ si en algún momento se usa CLI deploy.
+// ════════════════════════════════════════════════════════════════════
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// ============================================================================
-// AIRTABLE CONSTANTS
-// Ver docs/foro-airtable-schema.md
-// ============================================================================
-
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-  CRM: "app1SbOC98k2OP5m1",
-} as const;
-
-const TABLES = {
-  PERSONAS_CRM: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-  POSTS: "tblmLVl9ySzTXb2OK",
-} as const;
-
-const FIELDS = {
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-    ROL: "fldOF0bnjfErxEOCO",
-  },
-  PERSONAS_PORTAL: {
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-  },
-  POSTS: {
-    AUTOR: "fldjOVXCAkwoNENnX",
-    ESTATUS: "fldy88bnFeG7QEIQN",
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
-}
-
-// ============================================================================
-// AIRTABLE HELPERS
-// ============================================================================
-
-function getAirtablePAT(): string {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT not configured");
-  return pat;
-}
-
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  options: { filterByFormula?: string; fields?: string[]; maxRecords?: number } = {},
-): Promise<AirtableRecord[]> {
-  const pat = getAirtablePAT();
-  const params = new URLSearchParams();
-  params.set("returnFieldsByFieldId", "true");
-  if (options.filterByFormula) params.set("filterByFormula", options.filterByFormula);
-  if (options.maxRecords) params.set("maxRecords", String(options.maxRecords));
-  options.fields?.forEach((f) => params.append("fields[]", f));
-
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}?${params}`, {
-    headers: { Authorization: `Bearer ${pat}` },
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable list failed (${res.status}): ${await res.text()}`);
+// ── ApiError + CORS + responses ─────────────────────────────────────
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
   }
-  const data = await res.json();
-  return data.records;
 }
-
-async function getRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(
-    `${AIRTABLE_API}/${baseId}/${tableId}/${recordId}?returnFieldsByFieldId=true`,
-    { headers: { Authorization: `Bearer ${pat}` } },
-  );
-  if (!res.ok) {
-    throw new Error(`Airtable get failed (${res.status}): ${await res.text()}`);
-  }
-  return await res.json();
-}
-
-async function updateRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable update failed (${res.status}): ${await res.text()}`);
-  }
-  return await res.json();
-}
-
-function eqFormula(fieldId: string, value: string): string {
-  const escaped = value.replace(/'/g, "\\'");
-  return `{${fieldId}} = '${escaped}'`;
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-// ============================================================================
-// CORS
-// ============================================================================
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
@@ -145,8 +23,7 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -170,131 +47,183 @@ function jsonResponse(req: Request, body: unknown, status = 200): Response {
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400, code?: string): Response {
-  return jsonResponse(req, { error: message, code }, status);
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-class HttpError extends Error {
-  constructor(public status: number, message: string, public code?: string) {
-    super(message);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
   }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-function isValidRecordId(s: unknown): s is string {
-  return typeof s === "string" && /^rec[A-Za-z0-9]{14,}$/.test(s);
+// ── DB singleton (service_role, bypassa RLS) ────────────────────────
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
+  });
+  return _db;
 }
 
-interface AuthedUser {
-  authUserId: string;
+// ── Persona + JWT validation ─────────────────────────────────────────
+type Persona = {
+  id: string;
+  auth_user_id: string;
   email: string;
-  personaPortalId: string;
+  nombre: string;
+  apellidos: string;
   rol: string;
+  avatar_url: string | null;
+};
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
-async function authenticate(req: Request): Promise<AuthedUser> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing Authorization header");
-  }
-  const jwt = authHeader.slice("Bearer ".length);
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey =
-    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
 
-  const { data: userData, error } = await supabase.auth.getUser(jwt);
-  if (error || !userData.user) throw new HttpError(401, "Invalid JWT");
-
-  const authUserId = userData.user.id;
-  const email = normalizeEmail(userData.user.email ?? "");
-  if (!email) throw new HttpError(401, "User has no email");
-
-  let personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
-  if (personasPortal.length === 0) {
-    personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-  }
-  if (personasPortal.length === 0) {
-    throw new HttpError(403, "Persona no encontrada en sync de Portal");
-  }
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
 
-  const personasCRM = await listRecords(BASES.CRM, TABLES.PERSONAS_CRM, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  const rol = (personasCRM[0]?.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
+  const authUserId = user.id;
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
 
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email)
+      .maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: authUserId }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = authUserId;
+    } else if (byEmail.auth_user_id !== authUserId) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
+    }
+    persona = byEmail;
+  }
+  return persona as Persona;
+}
+
+// ── Observability ────────────────────────────────────────────────────
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
   return {
-    authUserId,
-    email,
-    personaPortalId: personasPortal[0].id,
-    rol,
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
   };
 }
 
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
+// ════════════════════════════════════════════════════════════════════
+// END OF SHARED HELPERS — handler de la función comienza abajo
+// ════════════════════════════════════════════════════════════════════
 
-interface Body { postId?: string }
+// SOPHIA Portal · delete-foro-post (Postgres)
+// Soft-delete de un post del foro. Solo el autor o un admin pueden borrar.
+// Estatus pasa a "eliminado"; el record persiste para auditoría y para
+// preservar el thread si tiene comentarios.
+//
+// POST /delete-foro-post
+// Headers: Authorization: Bearer <supabase_jwt>
+// Body: { postId: <UUID> }
+//
+// Returns 200: { ok: true, postId, alreadyDeleted? }
+// Errors: 400 validación · 401 auth · 403 forbidden · 404 not_found · 500
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
+  const cors = handleOptions(req);
+  if (cors) return cors;
 
   if (req.method !== "POST") {
-    return errorResponse(req, "Method not allowed", 405);
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use POST"));
   }
 
+  const span = startSpan("delete-foro-post");
+
   try {
-    const me = await authenticate(req);
-    const body: Body = await req.json().catch(() => ({}));
-    const postId = body.postId;
-    if (!isValidRecordId(postId)) {
-      return errorResponse(req, "postId inválido", 400, "invalid_post_id");
+    const body = await req.json().catch(() => ({})) as { postId?: string };
+    const postId = body.postId?.trim();
+
+    if (!postId || !UUID_RE.test(postId)) {
+      throw new ApiError(400, "invalid_post_id", "postId inválido");
     }
 
-    const post = await getRecord(BASES.PORTAL, TABLES.POSTS, postId).catch(() => null);
+    const persona = await requireUser(req);
+    const db = getDb();
+
+    // Lookup post
+    const { data: post, error: pErr } = await db
+      .from("posts")
+      .select("id, autor_id, estatus")
+      .eq("id", postId)
+      .maybeSingle();
+    if (pErr) throw new ApiError(500, "db_error", pErr.message);
     if (!post) {
-      return errorResponse(req, "Post no encontrado", 404, "not_found");
+      throw new ApiError(404, "not_found", "Post no encontrado");
     }
 
-    // Permisos: autor o admin
-    const autorLinks = (post.fields[FIELDS.POSTS.AUTOR] as string[]) ?? [];
-    const esAutor = autorLinks.includes(me.personaPortalId);
-    const esAdmin = me.rol === "admin";
+    // Autorización: autor o admin
+    const esAutor = post.autor_id === persona.id;
+    const esAdmin = persona.rol === "admin";
     if (!esAutor && !esAdmin) {
-      return errorResponse(req, "No tienes permiso para borrar este post", 403, "forbidden");
+      throw new ApiError(403, "forbidden", "No tienes permiso para borrar este post");
     }
 
-    // Si ya está marcado como eliminado, idempotent OK
-    const estatus = post.fields[FIELDS.POSTS.ESTATUS] as string | { name?: string } | undefined;
-    const estatusName = typeof estatus === "string" ? estatus : estatus?.name;
-    if (estatusName === "eliminado") {
+    // Idempotente: si ya está eliminado, OK
+    if (post.estatus === "eliminado") {
+      span.end({ persona: persona.id, post: postId, already_deleted: true });
       return jsonResponse(req, { ok: true, postId, alreadyDeleted: true });
     }
 
-    await updateRecord(BASES.PORTAL, TABLES.POSTS, postId, {
-      [FIELDS.POSTS.ESTATUS]: "eliminado",
-    });
+    // Soft-delete
+    const { error: uErr } = await db
+      .from("posts")
+      .update({ estatus: "eliminado" })
+      .eq("id", postId);
+    if (uErr) throw new ApiError(500, "db_error", uErr.message);
 
+    span.end({ persona: persona.id, post: postId, deleted_by: esAdmin ? "admin" : "autor" });
     return jsonResponse(req, { ok: true, postId });
-  } catch (e) {
-    if (e instanceof HttpError) {
-      return errorResponse(req, e.message, e.status, e.code);
-    }
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("delete-foro-post fatal:", msg);
-    return errorResponse(req, msg, 500);
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

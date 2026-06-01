@@ -428,6 +428,20 @@ export const api = {
   },
 
   /**
+   * GET /get-entrega-tarea?leccionId=...
+   * Devuelve la entrega del usuario para una lección tipo `tarea`. Lee de
+   * `entregas_tarea` (NO de respuestas_quiz, que es solo para quizzes).
+   * → { tieneResultados, respuestaId, archivos, comentario, comentariosHistorial, fechaEntrega }
+   */
+  async getEntregaTarea(leccionId) {
+    const { data } = await callEdge(
+      `get-entrega-tarea?leccionId=${encodeURIComponent(leccionId)}`,
+      { method: "GET" },
+    );
+    return data;
+  },
+
+  /**
    * GET /get-curso-roster?cursoId=...
    * Devuelve los inscritos del curso (Persona Portal info), para alimentar
    * el autocomplete de menciones en el composer del foro.

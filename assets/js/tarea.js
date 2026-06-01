@@ -69,7 +69,7 @@ export async function mountTarea({ container, leccionId, inscripcionId, onComple
 
   // Cargar estado actual desde backend
   try {
-    const prev = await api.resultadosQuiz(leccionId);
+    const prev = await api.getEntregaTarea(leccionId);
     if (prev?.tieneResultados) {
       state.savedFiles = Array.isArray(prev.archivos) ? prev.archivos : [];
       state.comentariosHistorial = Array.isArray(prev.comentariosHistorial)
@@ -510,7 +510,7 @@ async function commitEntrega(state) {
     } else {
       // Solo borrados, sin upload ni comentario nuevo. Refrescamos estado
       // desde el backend.
-      const fresh = await api.resultadosQuiz(state.leccionId);
+      const fresh = await api.getEntregaTarea(state.leccionId);
       if (fresh?.tieneResultados) {
         state.savedFiles = Array.isArray(fresh.archivos) ? fresh.archivos : [];
         state.comentariosHistorial = Array.isArray(fresh.comentariosHistorial)
