@@ -164,6 +164,10 @@ function renderIntro() {
 }
 
 function renderPregunta(idx, respuestas) {
+  // Guard defensivo: clamp al rango válido si por alguna razón llega fuera
+  // (race condition entre setTimeouts si el user hace clicks rápidos).
+  if (idx < 0) idx = 0;
+  if (idx >= PREGUNTAS.length) idx = PREGUNTAS.length - 1;
   const p = PREGUNTAS[idx];
   const selected = respuestas[p.id];
   const isLast = idx === PREGUNTAS.length - 1;
@@ -225,6 +229,11 @@ async function clickHandler(state, e) {
 
   if (action === "answer") {
     const v = parseInt(btn.getAttribute("data-value"), 10);
+    // Guard: si por race condition el currentIndex está fuera de rango, abortar
+    if (state.currentIndex < 0 || state.currentIndex >= PREGUNTAS.length) {
+      console.warn("[test] answer click on out-of-range index", state.currentIndex);
+      return;
+    }
     const p = PREGUNTAS[state.currentIndex];
     state.respuestas[p.id] = v;
 
@@ -245,6 +254,11 @@ async function clickHandler(state, e) {
       setTimeout(() => renderInto(state), 200);
     } else {
       setTimeout(() => {
+        // Guard contra race condition: no avanzar más allá del último
+        if (state.currentIndex >= PREGUNTAS.length - 1) {
+          renderInto(state);
+          return;
+        }
         state.currentIndex += 1;
         renderInto(state);
       }, 280);
