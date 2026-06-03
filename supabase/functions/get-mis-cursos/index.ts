@@ -154,14 +154,32 @@ function startSpan(name: string, extra: Record<string, unknown> = {}) {
 // END OF SHARED HELPERS — handler de la función comienza abajo
 // ════════════════════════════════════════════════════════════════════
 
-// SOPHIA Portal · get-mis-cursos (Postgres)
-// Returns the list of courses the authenticated user is enrolled in,
-// with computed progress %.
+// SOPHIA Portal · get-mis-cursos (Postgres) — v2 RPC
+// Lists the user's enrollments with course info + progress counts.
+//
+// v2: las 3 queries (inscripciones+curso, totales de lecciones, progresos)
+// y los conteos en JS se colapsaron en UNA llamada a
+// public.rpc_get_mis_cursos (migración 20260603_003_rpc_lectura.sql).
+// Los conteos ahora son agregados SQL — ya no se traen filas de
+// lecciones/progreso_lecciones solo para contarlas.
+//
+// Nota: el total de lecciones ahora EXCLUYE las archivadas, igual que
+// get-curso. Antes este endpoint las incluía y el progresoPct del listado
+// podía diferir del detalle.
+//
+// v2 también agrega Cache-Control: private, max-age=60 al 200 (con
+// Vary: Authorization). El frontend hace fetch con cache:"reload" tras
+// marcar-leccion.
 //
 // GET /get-mis-cursos
 // Headers: Authorization: Bearer <supabase_jwt>
 //
 // Returns 200: { cursos: [{ id, inscripcionId, slug, titulo, ..., progresoPct, ... }] }
+
+const CACHE_HEADERS = {
+  "Cache-Control": "private, max-age=60",
+  Vary: "Origin, Authorization",
+};
 
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
@@ -177,88 +195,18 @@ Deno.serve(async (req) => {
     const persona = await requireUser(req);
     const db = getDb();
 
-    // Inscripciones activas con curso joineado
-    const { data: inscripciones, error: insErr } = await db
-      .from("inscripciones")
-      .select(`
-        id, estatus, fecha_inscripcion,
-        curso:cursos!inner (
-          id, slug, titulo, descripcion_corta,
-          cover_image, instructor, color_primario, modalidad,
-          fecha_inicio, fecha_fin, estatus
-        )
-      `)
-      .eq("persona_id", persona.id)
-      .in("estatus", ["activa", "finalizada"])
-      .order("fecha_inscripcion", { ascending: false });
-
-    if (insErr) throw new ApiError(500, "db_error", insErr.message);
-    if (!inscripciones?.length) {
-      span.end({ persona: persona.id, cursos: 0 });
-      return jsonResponse(req, { cursos: [] });
-    }
-
-    const cursoIds = inscripciones.map((i: any) => i.curso.id);
-    const inscripcionIds = inscripciones.map((i: any) => i.id);
-
-    // Total lecciones por curso (via módulos)
-    const { data: totales, error: tErr } = await db
-      .from("lecciones")
-      .select("modulo_id, modulos!inner(curso_id)")
-      .in("modulos.curso_id", cursoIds);
-    if (tErr) throw new ApiError(500, "db_error", tErr.message);
-
-    const totalesPorCurso = new Map<string, number>();
-    for (const l of totales || []) {
-      const cid = (l as any).modulos.curso_id;
-      totalesPorCurso.set(cid, (totalesPorCurso.get(cid) ?? 0) + 1);
-    }
-
-    // Completadas por inscripción
-    const { data: progresos, error: pErr } = await db
-      .from("progreso_lecciones")
-      .select("inscripcion_id")
-      .in("inscripcion_id", inscripcionIds)
-      .eq("completado", true);
-    if (pErr) throw new ApiError(500, "db_error", pErr.message);
-
-    const completadasPorInscripcion = new Map<string, number>();
-    for (const p of progresos || []) {
-      const k = (p as any).inscripcion_id;
-      completadasPorInscripcion.set(k, (completadasPorInscripcion.get(k) ?? 0) + 1);
-    }
-
-    const cursos = inscripciones.map((i: any) => {
-      const c = i.curso;
-      const totalLecciones = totalesPorCurso.get(c.id) ?? 0;
-      const completadas = completadasPorInscripcion.get(i.id) ?? 0;
-      const progresoPct = totalLecciones > 0
-        ? Math.round((completadas / totalLecciones) * 100)
-        : 0;
-
-      return {
-        id: c.id,
-        inscripcionId: i.id,
-        slug: c.slug ?? "",
-        titulo: c.titulo ?? "",
-        descripcionCorta: c.descripcion_corta ?? "",
-        coverUrl: c.cover_image ?? null,
-        instructor: c.instructor ?? "",
-        colorPrimario: c.color_primario ?? "",
-        modalidad: c.modalidad ?? "",
-        fechaInicio: c.fecha_inicio ?? null,
-        fechaFin: c.fecha_fin ?? null,
-        estatus: c.estatus ?? "",
-        inscripcionEstatus: i.estatus ?? "",
-        fechaInscripcion: i.fecha_inscripcion ?? null,
-        progresoPct,
-        totalLecciones,
-        leccionesCompletadas: completadas,
-      };
+    const { data, error: rpcErr } = await db.rpc("rpc_get_mis_cursos", {
+      p_persona_id: persona.id,
     });
+    if (rpcErr) throw new ApiError(500, "db_error", rpcErr.message);
+
+    const cursos = Array.isArray(data?.cursos) ? data.cursos : [];
 
     span.end({ persona: persona.id, cursos: cursos.length });
-    return jsonResponse(req, { cursos });
+    return new Response(JSON.stringify({ cursos }), {
+      status: 200,
+      headers: { ...corsHeaders(req), "Content-Type": "application/json", ...CACHE_HEADERS },
+    });
   } catch (err) {
     span.end({ error: true });
     return errorResponse(req, err);

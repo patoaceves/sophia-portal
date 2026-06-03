@@ -1,5 +1,15 @@
 // SOPHIA Portal · Dashboard del curso
 //
+// Cambios v3 (performance):
+//   - Los resultados del test y la autoeval solo se piden upfront si el
+//     usuario aterriza en el tab Resumen; en otros tabs el panel Resumen
+//     se renderiza como skeleton y se hidrata lazy al activarlo
+//     (ensureResumenHydrated).
+//   - El preview del foro ya NO se carga en cada load: solo cuando el
+//     Resumen está visible/hidratado.
+//   - El prefetch de lecciones usa requestIdleCallback (fallback setTimeout)
+//     para no competir con el render inicial.
+//
 // Cambios v2:
 //   - Pestaña "Test de Felicidad" eliminada. El acceso al test es vía:
 //     a) la cajita "Tu rueda" en el Resumen (que linkea a resultados o lección)
@@ -76,13 +86,18 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
   const stopLoader = startLoaderRotation();
 
   try {
+    // Los resultados del test y la autoeval solo alimentan el tab Resumen
+    // (rueda, cajita del test, popups de pilares). Si el usuario aterriza en
+    // otro tab, NO bloqueamos el primer load con esos requests: se cargan
+    // lazy la primera vez que active Resumen (ensureResumenHydrated).
+    const wantsResumen = tab === "resumen";
     const [data, resultadoTest, resultadoAutoconocimiento] = await Promise.all([
       api.curso(slug),
-      api.resultadosTest().catch(() => null),
-      api.resultadosAutoeval("autoconocimiento").catch(() => null),
+      wantsResumen ? api.resultadosTest().catch(() => null) : Promise.resolve(null),
+      wantsResumen ? api.resultadosAutoeval("autoconocimiento").catch(() => null) : Promise.resolve(null),
     ]);
     stopLoader();
-    renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento);
+    renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento, wantsResumen);
   } catch (e) {
     stopLoader();
     console.error("get-curso failed:", e);
@@ -97,7 +112,15 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
 })();
 
 // ────────────────────────────────────────────────────────────────────
-function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento) {
+// ────────────────────────────────────────────────────────────────────
+// Estado de hidratación del Resumen.
+// Cuando se aterriza en otro tab, el panel Resumen se renderiza como
+// skeleton y sus datos (test + autoeval) se cargan al activarlo.
+let currentCtx = null;
+let resumenHydrated = false;
+let resumenHydrating = false;
+
+function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento, hydrated = true) {
   const { curso, inscripcion, modulos } = payload;
 
   const totalLecc = modulos.reduce((s, c) => s + c.lecciones.length, 0);
@@ -113,9 +136,12 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
     || (localExt ? `/assets/img/${slug}/portada.${localExt}` : null);
 
   const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento };
+  currentCtx = ctx;
+  resumenHydrated = hydrated;
+  resumenHydrating = false;
 
   const panels = {
-    resumen:  renderResumenTab(ctx),
+    resumen:  hydrated ? renderResumenTab(ctx) : renderResumenSkeleton(),
     temario:  renderTemarioTab(ctx),
     recursos: renderRecursosTab(ctx),
     foro:     renderForoTab(ctx),
@@ -147,45 +173,107 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
     ensureForoMounted();
   }
 
+  // Widgets del Resumen (rueda, mini-wedge, alturas, foro preview): solo si
+  // el resumen ya está hidratado. Si no, ensureResumenHydrated los monta
+  // cuando el usuario active el tab.
+  if (hydrated) {
+    mountResumenWidgets(ctx);
+  }
+
+  // Prefetch en background: lección siguiente + primeras del primer módulo.
+  // Hace la primera navegación instantánea (sin cold start), pero NO debe
+  // competir con el render inicial → requestIdleCallback (con fallback).
+  schedulePrefetchLecciones(ctx);
+}
+
+/**
+ * Monta los widgets dinámicos del tab Resumen sobre el markup ya pintado:
+ * rueda del test, mini-wedge de autoconocimiento, sincronización de alturas
+ * y carga del preview del foro. Idempotente respecto al re-render del panel.
+ */
+function mountResumenWidgets(ctx) {
   // Mount the preview rueda inside the test card (only if user has results)
-  if (resultadoTest?.tieneResultados && resultadoTest.scores) {
+  if (ctx.resultadoTest?.tieneResultados && ctx.resultadoTest.scores) {
     const svg = document.getElementById("dashboard-rueda-svg");
     const tip = document.getElementById("dashboard-rueda-tooltip");
     if (svg && tip) {
-      mountRueda({ svg, tooltip: tip, scores: resultadoTest.scores, animate: true, compact: true });
+      mountRueda({ svg, tooltip: tip, scores: ctx.resultadoTest.scores, animate: true, compact: true });
     }
   }
 
   // Mount mini-wedge inside the pillar-icon hover popup for Autoconocimiento.
-  // (Previously vivía en la cajita standalone del dashboard; ahora vive
-  // dentro del popup que aparece al hacer hover sobre la card del pilar.)
-  if (resultadoAutoconocimiento?.tieneResultados && typeof resultadoAutoconocimiento.pct === "number") {
+  if (ctx.resultadoAutoconocimiento?.tieneResultados && typeof ctx.resultadoAutoconocimiento.pct === "number") {
     const wedgeMount = document.getElementById("pillar-popup-wedge-autoconocimiento");
     if (wedgeMount) {
-      drawMiniWedge(wedgeMount, resultadoAutoconocimiento.pct, "#66a3f4");
+      drawMiniWedge(wedgeMount, ctx.resultadoAutoconocimiento.pct, "#66a3f4");
     }
   }
 
   // Sincronizar altura del foro con la del diagrama de felicidad.
-  // La altura "tope" del row la define el diagrama (más compacto): medimos
-  // su altura con ResizeObserver y la aplicamos al foro como max-height
-  // (via CSS var --resumen-row-height). El foro hace scroll interno si su
-  // contenido excede ese tope. Solo aplica en desktop (>= 901px); en
-  // mobile el grid es de una columna y no tiene sentido limitar.
   matchResumenColumnHeights();
 
-  // Cargar preview del foro en background (la card vive en el resumen,
-  // que es el tab default). Si el usuario aterriza en otro tab, igual
-  // se carga para que esté listo cuando vuelva al resumen.
+  // Preview del foro: solo se carga cuando el Resumen está visible/hidratado
+  // (antes se cargaba siempre, incluso aterrizando en temario/recursos/foro).
   fetchForoPreview(ctx.curso.id);
+}
 
-  // Prefetch en background: lección siguiente + todas las del primer módulo
-  // Esto hace que la primera navegacion sea instantanea (sin cold start)
-  setTimeout(() => {
+/**
+ * Skeleton del panel Resumen mientras sus datos (test + autoeval) no se han
+ * pedido. Se reemplaza completo en ensureResumenHydrated().
+ */
+function renderResumenSkeleton() {
+  return `
+    <div class="resumen-row" data-resumen-skeleton>
+      <div class="loading-skeleton" style="height: 220px; border-radius: 16px;"></div>
+      <div class="loading-skeleton" style="height: 220px; border-radius: 16px;"></div>
+    </div>
+  `;
+}
+
+/**
+ * Carga lazy de los datos del Resumen (test + autoeval) la primera vez que
+ * el usuario activa ese tab habiendo aterrizado en otro. Re-renderiza el
+ * panel y monta sus widgets.
+ */
+async function ensureResumenHydrated() {
+  if (resumenHydrated || resumenHydrating || !currentCtx) return;
+  resumenHydrating = true;
+  try {
+    const [rt, ra] = await Promise.all([
+      api.resultadosTest().catch(() => null),
+      api.resultadosAutoeval("autoconocimiento").catch(() => null),
+    ]);
+    currentCtx.resultadoTest = rt;
+    currentCtx.resultadoAutoconocimiento = ra;
+    const panel = document.getElementById("tab-resumen");
+    if (panel) {
+      panel.innerHTML = renderResumenTab(currentCtx);
+      mountResumenWidgets(currentCtx);
+    }
+    resumenHydrated = true;
+  } catch (e) {
+    console.warn("ensureResumenHydrated failed:", e);
+  } finally {
+    resumenHydrating = false;
+  }
+}
+
+/**
+ * Prefetch de lecciones en idle time (no compite con el render inicial ni
+ * con los fetches del tab activo). Fallback a setTimeout donde no exista
+ * requestIdleCallback (Safari).
+ */
+function schedulePrefetchLecciones(ctx) {
+  const run = () => {
     if (ctx.next?.id) api.leccion(ctx.next.id).catch(() => {});
     const primerasLecciones = (ctx.modulos[0]?.lecciones ?? []).slice(0, 4);
     primerasLecciones.forEach(l => api.leccion(l.id).catch(() => {}));
-  }, 1200);
+  };
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(run, { timeout: 5000 });
+  } else {
+    setTimeout(run, 2000);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -259,10 +347,17 @@ function activateTab(tab, slug, updateHistory = true) {
     // El usuario está viendo el foro → marcar todo como leído + limpiar badge
     markForoSeen();
   } else if (tab === "resumen") {
-    // Volvimos al resumen: re-fetchear el preview por si el usuario posteó
-    // algo nuevo en la pestaña Foro.
-    const cursoId = document.querySelector('[data-foro-preview]')?.dataset.cursoId;
-    if (cursoId) fetchForoPreview(cursoId);
+    if (!resumenHydrated) {
+      // Aterrizó en otro tab: primera activación del resumen → cargar sus
+      // datos (test + autoeval), re-renderizar el panel y montar widgets
+      // (incluido el preview del foro).
+      ensureResumenHydrated();
+    } else {
+      // Volvimos al resumen: re-fetchear el preview por si el usuario posteó
+      // algo nuevo en la pestaña Foro.
+      const cursoId = document.querySelector('[data-foro-preview]')?.dataset.cursoId;
+      if (cursoId) fetchForoPreview(cursoId);
+    }
   }
 }
 
@@ -271,6 +366,18 @@ function activateTab(tab, slug, updateHistory = true) {
  */
 function foroSeenKey(cursoId) {
   return `sophia_foro_last_seen_${cursoId}`;
+}
+
+// ── Cache local de posts del preview (id → post) ─────────────────────
+// Los thumbnails del resumen abren el lightbox con el post completo; este
+// cache evita re-fetchear la página 1 del foro en cada click.
+const previewPostsById = new Map();
+
+function cachePreviewPosts(posts) {
+  previewPostsById.clear();
+  for (const p of posts || []) {
+    if (p?.id) previewPostsById.set(p.id, p);
+  }
 }
 
 function getForoLastSeen(cursoId) {
@@ -589,6 +696,8 @@ async function fetchForoPreview(cursoId) {
 
   try {
     const data = await api.foroPosts(cursoId);
+    // Cachear la página para que el lightbox del preview no re-fetchee
+    cachePreviewPosts(data?.posts ?? []);
     // Actualizar badge del tab con el conteo de "nuevos"
     updateForoBadge(data?.posts ?? []);
 
@@ -702,8 +811,15 @@ function wireForoPreviewCompose(card) {
       e.stopPropagation();
       const postId = thumbBtn.dataset.postId;
       try {
-        const data = await api.foroPosts(cursoId);
-        const post = (data?.posts ?? []).find(p => p.id === postId);
+        // v2: resolver del cache del preview (los thumbnails del resumen
+        // solo muestran posts de la página ya cargada). Fallback a fetch
+        // solo si el cache quedó vacío (ej. tras un error previo).
+        let post = previewPostsById.get(postId);
+        if (!post) {
+          const data = await api.foroPosts(cursoId);
+          cachePreviewPosts(data?.posts ?? []);
+          post = previewPostsById.get(postId);
+        }
         if (post) {
           openForoLightbox({
             post,

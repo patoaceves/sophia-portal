@@ -1,6 +1,13 @@
 # Estado de sincronización · Edge Functions (repo vs producción)
 
-**Actualizado: 2026-06-01 — SINCRONIZACIÓN COMPLETA (27/27).**
+**Actualizado: 2026-06-03 — SINCRONIZACIÓN COMPLETA (27/27, perf v2+v3 deployada).**
+
+Migraciones aplicadas en prod: `20260603_003_rpc_lectura.sql` (rpc_get_curso,
+rpc_get_mis_cursos), `20260603_004_indices_foro_visibles.sql` (índices del
+foro) y `20260603_005_rpc_leccion_y_cursor_foro.sql` (rpc_get_leccion +
+índice del cursor compuesto). Funciones redeployadas vía MCP: `get-curso`
+(plataforma v13), `get-mis-cursos` (v13), `get-leccion` (v19),
+`submit-tarea` (v8), `get-foro-posts` (v12).
 
 ## Resumen
 
@@ -23,16 +30,33 @@ submit-test-felicidad, upload-asset.
 
 ## Notas
 
-- `submit-tarea` está en v6 (guard de Content-Length + topes de archivos).
+- `get-curso` v2: las 5 queries + armado del árbol se colapsaron en una
+  llamada a `public.rpc_get_curso` (requiere migración
+  `20260603_003_rpc_lectura.sql`). Responde con
+  `Cache-Control: private, max-age=60` y `Vary: Origin, Authorization`.
+- `get-mis-cursos` v2: conteos por SQL vía `public.rpc_get_mis_cursos`
+  (misma migración); ya no trae filas de lecciones/progreso para contar en
+  JS. Mismo cache header. OJO: el total de lecciones ahora EXCLUYE
+  archivadas (consistente con get-curso); el progresoPct del listado puede
+  variar ligeramente vs antes.
+- `get-leccion` v3: las 5 queries (lección, módulo, inscripción, hermanas,
+  progreso) se colapsaron en una llamada a `public.rpc_get_leccion`
+  (migración 005). La sanitización XSS del HTML se queda en el edge (el RPC
+  regresa `contenidoHtmlRaw`). Prev/next ahora ordenan por (orden, id) —
+  estable con órdenes duplicados. Conserva el cache header de v2.
+- `get-foro-posts` v12: cursor compuesto `fecha|id` con orden
+  (fecha desc, id desc) — el cursor v11 (solo fecha) podía saltarse o
+  duplicar posts del mismo instante. Compat con cursores viejos (solo
+  fecha). El cursor se valida con regex antes de interpolarse en el `.or()`
+  de PostgREST. v11 introdujo la paginación real con `?limit`/`?before`.
+- `submit-tarea` está en v7: sube el File (Blob) directo a Storage, sin
+  `f.arrayBuffer()` (antes cada archivo vivía dos veces en memoria). v6
+  agregó el guard de Content-Length + topes de archivos.
 - `get-entrega-tarea` es nueva (lee entregas_tarea; arregla el bug de tareas
   que desaparecían al recargar).
 - `upload-asset` v8: valida `cursoId` como UUID (ya no `rec` de Airtable),
   guard de Content-Length (413 si > 55 MB) antes de parsear el body, y sube el
   File directo a Storage (sin copia extra en memoria por arrayBuffer).
-- `get-foro-posts` v11: paginación real. `?limit` (default 50, máx 100) y
-  cursor `?before=<ISO>` sobre los posts top-level; devuelve `hasMore` y
-  `nextCursor`. Trae los comentarios solo de la página. El frontend (foro.js)
-  usa un botón "Cargar más" para traer páginas más viejas.
 - `proxy-inscripcion` v3: paridad completa con la automation de Airtable
   "Alta participantes desde ventas" (ya retirable). Crea persona (respetando
   el `rol` del embed) + invitación en Postgres y manda el webhook a GHL con

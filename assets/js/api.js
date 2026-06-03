@@ -21,6 +21,9 @@ export class ApiError extends Error {
  * @param {object} [opts.body]
  * @param {Record<string,string|number|undefined|null>} [opts.query]
  * @param {Record<string,string>} [opts.headers]
+ * @param {RequestCache} [opts.fetchCache] - cache mode del fetch ("reload" para
+ *   bustear el HTTP cache del browser tras una mutación; las funciones de
+ *   lectura ahora responden con Cache-Control: private, max-age=60).
  * @returns {Promise<{data: any, status: number}>}
  */
 export async function callEdge(fnName, opts = {}) {
@@ -47,7 +50,12 @@ export async function callEdge(fnName, opts = {}) {
     body = JSON.stringify(opts.body);
   }
 
-  const res = await fetch(url, { method, headers, body });
+  const res = await fetch(url, {
+    method,
+    headers,
+    body,
+    ...(opts.fetchCache ? { cache: opts.fetchCache } : {}),
+  });
   let data = null;
   const text = await res.text();
   if (text) {
@@ -99,6 +107,18 @@ function cacheClear(prefix) {
   } catch {}
 }
 
+// ── Bust del HTTP cache del browser ──────────────────────────────────
+// get-curso / get-mis-cursos / get-leccion ahora responden con
+// Cache-Control: private, max-age=60, así que limpiar sessionStorage no
+// basta: el browser podría servir la respuesta HTTP stale por hasta 60s.
+// Tras una mutación que afecta progreso, registramos qué endpoints deben
+// re-fetchearse con cache:"reload" (fuerza red y actualiza el HTTP cache).
+const httpBust = new Set();
+
+function takeBust(key) {
+  return httpBust.delete(key) ? "reload" : undefined;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const api = {
@@ -113,7 +133,7 @@ export const api = {
   async misCursos() {
     const hit = cacheGet("api:mis-cursos");
     if (hit) return hit;
-    const { data } = await callEdge("get-mis-cursos");
+    const { data } = await callEdge("get-mis-cursos", { fetchCache: takeBust("mis-cursos") });
     cacheSet("api:mis-cursos", data);
     return data;
   },
@@ -123,7 +143,7 @@ export const api = {
     const key = `api:curso:${slug}`;
     const hit = cacheGet(key);
     if (hit) return hit;
-    const { data } = await callEdge("get-curso", { query: { slug } });
+    const { data } = await callEdge("get-curso", { query: { slug }, fetchCache: takeBust("curso") });
     cacheSet(key, data);
     return data;
   },
@@ -133,7 +153,7 @@ export const api = {
     const key = `api:leccion:${id}`;
     const hit = cacheGet(key);
     if (hit) return hit;
-    const { data } = await callEdge("get-leccion", { query: { id } });
+    const { data } = await callEdge("get-leccion", { query: { id }, fetchCache: takeBust(`leccion:${id}`) });
     cacheSet(key, data);
     return data;
   },
@@ -149,6 +169,11 @@ export const api = {
     cacheClear("api:curso:");
     cacheDel("api:mis-cursos");
     cacheDel(`api:leccion:${leccionId}`);
+    // ...y bustea también el HTTP cache (Cache-Control: max-age=60) en el
+    // siguiente fetch de estos endpoints.
+    httpBust.add("curso");
+    httpBust.add("mis-cursos");
+    httpBust.add(`leccion:${leccionId}`);
     return data;
   },
 
@@ -355,6 +380,14 @@ export const api = {
         let payload = null;
         try { payload = JSON.parse(xhr.responseText); } catch { /* not json */ }
         if (xhr.status >= 200 && xhr.status < 300 && payload?.ok) {
+          // submit-tarea upserta progreso (lección completada) server-side:
+          // invalidar igual que marcarLeccion (sessionStorage + HTTP cache).
+          cacheClear("api:curso:");
+          cacheDel("api:mis-cursos");
+          cacheDel(`api:leccion:${leccionId}`);
+          httpBust.add("curso");
+          httpBust.add("mis-cursos");
+          httpBust.add(`leccion:${leccionId}`);
           resolve(payload);
         } else {
           const msg = payload?.error || `Submit tarea failed (${xhr.status})`;
