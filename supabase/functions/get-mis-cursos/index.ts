@@ -1,164 +1,17 @@
-// SOPHIA Portal · get-mis-cursos (inlined for dashboard deploy)
-// Returns the list of courses the authenticated user is enrolled in,
-// with computed progress %.
-//
-// GET /get-mis-cursos
-// Headers: Authorization: Bearer <supabase_jwt>
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// Mantener sincronizado con _shared/ si en algún momento se usa CLI deploy.
+// ════════════════════════════════════════════════════════════════════
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// ============================================================================
-// AIRTABLE CONSTANTS & HELPERS
-// ============================================================================
-
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-  CRM: "app1SbOC98k2OP5m1",
-} as const;
-
-const TABLES = {
-  CURSOS: "tblJpUGeBsLNkk9UO",
-  MODULOS: "tblFHDXmg47igVihD",
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
-  PERSONAS: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-} as const;
-
-const FIELDS = {
-  CURSOS: {
-    TITULO: "fldrskH4P70JPikaS",
-    SLUG: "fldnbvTXzNFOGxOYs",
-    DESCRIPCION_CORTA: "fldUyd2c5OJjRjPz0",
-    COVER_IMAGE: "fld6kHgjdRxGfswko",
-    INSTRUCTOR: "fldja8z8xNZCz7gd6",
-    COLOR_PRIMARIO: "fldF45BjJoMU90jUP",
-    MODALIDAD: "fldwRC5bsmiwqsUlP",
-    FECHA_INICIO: "fldENsivuaLfgVUXW",
-    FECHA_FIN: "fldXjIbSIno6D2XD1",
-    ESTATUS: "fld6yNo5RZiHHWO8X",
-    MODULOS: "fldAkJ8rPjrZr2llL",
-  },
-  MODULOS: {
-    CURSO: "fldYXfwCaNILYPhkV",
-    LECCIONES: "fld6zL7apr0D82dgJ",
-  },
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-    ESTATUS: "flduEWS1l327elsD6",
-    FECHA_INSCRIPCION: "fldrfWGCdo6KZZhQz",
-    PROGRESO_LECCIONES: "fldhghcOlF7dSZzFn",
-    PROGRESO_PCT: "fldLoqPH7FVUgBm4T",
-  },
-  PROGRESO_LECCIONES: {
-    INSCRIPCION: "fld5osGXDLBrvgW63",
-    COMPLETADO: "fldtGaRMNd69jcK3D",
-  },
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-    NOMBRE: "fldEbEI3pLEAmlYAe",
-    APELLIDOS: "fldCnRa0XFvH1FtfQ",
-    ROL: "fldOF0bnjfErxEOCO",
-  },
-  PERSONAS_PORTAL: {
-    NOMBRE: "fldhTiwmmXtIIS8dD",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
-}
-
-interface AirtableListResponse {
-  records: AirtableRecord[];
-  offset?: string;
-}
-
-function getAirtablePAT(): string {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT not configured");
-  return pat;
-}
-
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  options: {
-    filterByFormula?: string;
-    fields?: string[];
-    maxRecords?: number;
-    pageSize?: number;
-  } = {},
-): Promise<AirtableRecord[]> {
-  const pat = getAirtablePAT();
-  const all: AirtableRecord[] = [];
-  let offset: string | undefined;
-
-  do {
-    const params = new URLSearchParams();
-    params.set("returnFieldsByFieldId", "true");
-    if (options.filterByFormula) params.set("filterByFormula", options.filterByFormula);
-    if (options.maxRecords) params.set("maxRecords", String(options.maxRecords));
-    if (options.pageSize) params.set("pageSize", String(options.pageSize));
-    if (offset) params.set("offset", offset);
-    options.fields?.forEach((f) => params.append("fields[]", f));
-
-    const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}?${params}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Airtable list failed: ${res.status} ${await res.text()}`);
-    }
-    const data = (await res.json()) as AirtableListResponse;
-    all.push(...data.records);
-    offset = data.offset;
-    if (options.maxRecords && all.length >= options.maxRecords) break;
-  } while (offset);
-
-  return all;
-}
-
-async function updateRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable update failed: ${res.status} ${await res.text()}`);
+// ── ApiError + CORS + responses ─────────────────────────────────────
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
   }
-  return await res.json();
 }
-
-function eqFormula(fieldId: string, value: string): string {
-  const escaped = value.replace(/'/g, "\\'");
-  return `{${fieldId}} = '${escaped}'`;
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-// ============================================================================
-// CORS
-// ============================================================================
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
@@ -170,8 +23,7 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -191,281 +43,224 @@ function handleOptions(req: Request): Response | null {
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-    },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400): Response {
-  return jsonResponse(req, { error: message }, status);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-// ============================================================================
-// AUTH HELPER
-// ============================================================================
+// ── DB singleton (service_role, bypassa RLS) ────────────────────────
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
+  });
+  return _db;
+}
 
-interface AuthedUser {
-  authUserId: string;
+// ── Persona + JWT validation ─────────────────────────────────────────
+type Persona = {
+  id: string;
+  auth_user_id: string;
   email: string;
-  personaId: string;
-  personaPortalId: string;
-  rol: string;
   nombre: string;
   apellidos: string;
+  rol: string;
+  avatar_url: string | null;
+};
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = "HttpError";
-  }
-}
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
 
-async function requireAuth(req: Request): Promise<AuthedUser> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing Authorization header");
-  }
-  const jwt = authHeader.slice("Bearer ".length);
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
-    Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseKey) {
-    throw new HttpError(500, "Supabase env not configured");
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
 
-  const { data: userData, error } = await supabase.auth.getUser(jwt);
-  if (error || !userData.user) {
-    throw new HttpError(401, "Invalid JWT");
-  }
+  const authUserId = user.id;
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
 
-  const authUserId = userData.user.id;
-  const email = normalizeEmail(userData.user.email ?? "");
-  if (!email) throw new HttpError(401, "User has no email");
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
 
-  let personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-
-  if (personas.length === 0) {
-    personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-
-    if (personas.length > 0 && !personas[0].fields[FIELDS.PERSONAS_CRM.AUTH_USER_ID]) {
-      await updateRecord(BASES.CRM, TABLES.PERSONAS, personas[0].id, {
-        [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
-      });
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email)
+      .maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: authUserId }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = authUserId;
+    } else if (byEmail.auth_user_id !== authUserId) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
     }
+    persona = byEmail;
   }
+  return persona as Persona;
+}
 
-  if (personas.length === 0) {
-    throw new HttpError(403, "No Persona record found. Run auth-bootstrap first.");
-  }
-
-  const p = personas[0];
-  const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
-
-  // Lookup adicional: la tabla synced de Personas en Portal (tblwo4xOFhmx2TznJ).
-  // Inscripciones.persona linkea a ESTA tabla, no a CRM, así que necesitamos
-  // su record ID (distinto al de CRM) para filtrar Inscripciones.
-  const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  let personaPortalId = personasPortal[0]?.id;
-  if (!personaPortalId) {
-    // Fallback: buscar por email (la sync de CRM→Portal puede tardar)
-    const byEmail = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-    personaPortalId = byEmail[0]?.id;
-  }
-  if (!personaPortalId) {
-    throw new HttpError(
-      403,
-      "Persona no encontrada en sync de Portal. Espera unos minutos a que Airtable sincronice CRM→Portal o contacta a soporte.",
-    );
-  }
-
-
+// ── Observability ────────────────────────────────────────────────────
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
   return {
-    authUserId,
-    email,
-    personaId: p.id,
-    personaPortalId,
-    rol,
-    nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] as string) ?? "",
-    apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] as string) ?? "",
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
   };
 }
 
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
+// ════════════════════════════════════════════════════════════════════
+// END OF SHARED HELPERS — handler de la función comienza abajo
+// ════════════════════════════════════════════════════════════════════
+
+// SOPHIA Portal · get-mis-cursos (Postgres)
+// Returns the list of courses the authenticated user is enrolled in,
+// with computed progress %.
+//
+// GET /get-mis-cursos
+// Headers: Authorization: Bearer <supabase_jwt>
+//
+// Returns 200: { cursos: [{ id, inscripcionId, slug, titulo, ..., progresoPct, ... }] }
 
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
+  const cors = handleOptions(req);
+  if (cors) return cors;
 
   if (req.method !== "GET") {
-    return errorResponse(req, "Method not allowed", 405);
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use GET"));
   }
 
+  const span = startSpan("get-mis-cursos");
+
   try {
-    const user = await requireAuth(req);
+    const persona = await requireUser(req);
+    const db = getDb();
 
-    // 1. Get all Inscripciones, then filter in JS by personaPortalId.
-    // (Airtable filterByFormula on linked-record fields can't match record IDs;
-    // ARRAYJOIN returns primary field values, not IDs.)
-    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      fields: [
-        FIELDS.INSCRIPCIONES.PERSONA,
-        FIELDS.INSCRIPCIONES.CURSO,
-        FIELDS.INSCRIPCIONES.ESTATUS,
-        FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION,
-        FIELDS.INSCRIPCIONES.PROGRESO_LECCIONES,
-        FIELDS.INSCRIPCIONES.PROGRESO_PCT,
-      ],
-    });
-    const inscripciones = allInscripciones.filter((ins) => {
-      const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-      return ps.includes(user.personaPortalId);
-    });
+    // Inscripciones activas con curso joineado
+    const { data: inscripciones, error: insErr } = await db
+      .from("inscripciones")
+      .select(`
+        id, estatus, fecha_inscripcion,
+        curso:cursos!inner (
+          id, slug, titulo, descripcion_corta,
+          cover_image, instructor, color_primario, modalidad,
+          fecha_inicio, fecha_fin, estatus
+        )
+      `)
+      .eq("persona_id", persona.id)
+      .in("estatus", ["activa", "finalizada"])
+      .order("fecha_inscripcion", { ascending: false });
 
-    if (inscripciones.length === 0) {
+    if (insErr) throw new ApiError(500, "db_error", insErr.message);
+    if (!inscripciones?.length) {
+      span.end({ persona: persona.id, cursos: 0 });
       return jsonResponse(req, { cursos: [] });
     }
 
-    // Collect unique Curso IDs
-    const cursoIds = new Set<string>();
-    for (const ins of inscripciones) {
-      const cursos = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-      cursos.forEach((id) => cursoIds.add(id));
+    const cursoIds = inscripciones.map((i: any) => i.curso.id);
+    const inscripcionIds = inscripciones.map((i: any) => i.id);
+
+    // Total lecciones por curso (via módulos)
+    const { data: totales, error: tErr } = await db
+      .from("lecciones")
+      .select("modulo_id, modulos!inner(curso_id)")
+      .in("modulos.curso_id", cursoIds);
+    if (tErr) throw new ApiError(500, "db_error", tErr.message);
+
+    const totalesPorCurso = new Map<string, number>();
+    for (const l of totales || []) {
+      const cid = (l as any).modulos.curso_id;
+      totalesPorCurso.set(cid, (totalesPorCurso.get(cid) ?? 0) + 1);
     }
 
-    // 2. Fetch Cursos
-    const allCursos = await listRecords(BASES.PORTAL, TABLES.CURSOS, {
-      fields: [
-        FIELDS.CURSOS.TITULO,
-        FIELDS.CURSOS.SLUG,
-        FIELDS.CURSOS.DESCRIPCION_CORTA,
-        FIELDS.CURSOS.COVER_IMAGE,
-        FIELDS.CURSOS.INSTRUCTOR,
-        FIELDS.CURSOS.COLOR_PRIMARIO,
-        FIELDS.CURSOS.MODALIDAD,
-        FIELDS.CURSOS.FECHA_INICIO,
-        FIELDS.CURSOS.FECHA_FIN,
-        FIELDS.CURSOS.ESTATUS,
-        FIELDS.CURSOS.MODULOS,
-      ],
-    });
-    const cursosById = new Map<string, AirtableRecord>();
-    for (const c of allCursos) {
-      if (cursoIds.has(c.id)) cursosById.set(c.id, c);
-    }
-
-    // 3. Count total Lecciones per Curso (via Módulos)
-    const allModulos = await listRecords(BASES.PORTAL, TABLES.MODULOS, {
-      fields: [FIELDS.MODULOS.CURSO, FIELDS.MODULOS.LECCIONES],
-    });
-    const leccionesCountPorCurso = new Map<string, number>();
-    for (const mod of allModulos) {
-      const cursoLinks = (mod.fields[FIELDS.MODULOS.CURSO] as string[]) ?? [];
-      const lecciones = (mod.fields[FIELDS.MODULOS.LECCIONES] as string[]) ?? [];
-      for (const cursoId of cursoLinks) {
-        if (!cursoIds.has(cursoId)) continue;
-        leccionesCountPorCurso.set(
-          cursoId,
-          (leccionesCountPorCurso.get(cursoId) ?? 0) + lecciones.length,
-        );
-      }
-    }
-
-    // 4. Count completed lessons per Inscripción (filter client-side: Airtable
-    // can't match record IDs in linked-record fields via filterByFormula).
-    // The boolean COMPLETADO check works fine in Airtable, but we still need
-    // to filter by inscripcion in JS.
-    const inscripcionIds = new Set(inscripciones.map((i) => i.id));
-    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      filterByFormula: `{${FIELDS.PROGRESO_LECCIONES.COMPLETADO}}`,
-      fields: [
-        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
-        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
-      ],
-    });
-    const progresos = allProgresos.filter((p) => {
-      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      return ins.some((id) => inscripcionIds.has(id));
-    });
+    // Completadas por inscripción
+    const { data: progresos, error: pErr } = await db
+      .from("progreso_lecciones")
+      .select("inscripcion_id")
+      .in("inscripcion_id", inscripcionIds)
+      .eq("completado", true);
+    if (pErr) throw new ApiError(500, "db_error", pErr.message);
 
     const completadasPorInscripcion = new Map<string, number>();
-    for (const p of progresos) {
-      const insLinks = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      for (const insId of insLinks) {
-        completadasPorInscripcion.set(insId, (completadasPorInscripcion.get(insId) ?? 0) + 1);
-      }
+    for (const p of progresos || []) {
+      const k = (p as any).inscripcion_id;
+      completadasPorInscripcion.set(k, (completadasPorInscripcion.get(k) ?? 0) + 1);
     }
 
-    // 5. Assemble response
-    const cursos = inscripciones
-      .map((ins) => {
-        const cursoLinks = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-        const cursoId = cursoLinks[0];
-        if (!cursoId) return null;
-        const c = cursosById.get(cursoId);
-        if (!c) return null;
+    const cursos = inscripciones.map((i: any) => {
+      const c = i.curso;
+      const totalLecciones = totalesPorCurso.get(c.id) ?? 0;
+      const completadas = completadasPorInscripcion.get(i.id) ?? 0;
+      const progresoPct = totalLecciones > 0
+        ? Math.round((completadas / totalLecciones) * 100)
+        : 0;
 
-        const totalLecciones = leccionesCountPorCurso.get(cursoId) ?? 0;
-        const completadas = completadasPorInscripcion.get(ins.id) ?? 0;
-        const progresoPct = totalLecciones > 0
-          ? Math.round((completadas / totalLecciones) * 100)
-          : 0;
+      return {
+        id: c.id,
+        inscripcionId: i.id,
+        slug: c.slug ?? "",
+        titulo: c.titulo ?? "",
+        descripcionCorta: c.descripcion_corta ?? "",
+        coverUrl: c.cover_image ?? null,
+        instructor: c.instructor ?? "",
+        colorPrimario: c.color_primario ?? "",
+        modalidad: c.modalidad ?? "",
+        fechaInicio: c.fecha_inicio ?? null,
+        fechaFin: c.fecha_fin ?? null,
+        estatus: c.estatus ?? "",
+        inscripcionEstatus: i.estatus ?? "",
+        fechaInscripcion: i.fecha_inscripcion ?? null,
+        progresoPct,
+        totalLecciones,
+        leccionesCompletadas: completadas,
+      };
+    });
 
-        const coverAttachments = c.fields[FIELDS.CURSOS.COVER_IMAGE] as
-          | { url: string }[]
-          | undefined;
-        const coverUrl = coverAttachments?.[0]?.url ?? null;
-
-        return {
-          id: cursoId,
-          inscripcionId: ins.id,
-          slug: c.fields[FIELDS.CURSOS.SLUG] ?? "",
-          titulo: c.fields[FIELDS.CURSOS.TITULO] ?? "",
-          descripcionCorta: c.fields[FIELDS.CURSOS.DESCRIPCION_CORTA] ?? "",
-          coverUrl,
-          instructor: c.fields[FIELDS.CURSOS.INSTRUCTOR] ?? "",
-          colorPrimario: c.fields[FIELDS.CURSOS.COLOR_PRIMARIO] ?? "",
-          modalidad: c.fields[FIELDS.CURSOS.MODALIDAD] ?? "",
-          fechaInicio: c.fields[FIELDS.CURSOS.FECHA_INICIO] ?? null,
-          fechaFin: c.fields[FIELDS.CURSOS.FECHA_FIN] ?? null,
-          estatus: c.fields[FIELDS.CURSOS.ESTATUS] ?? "",
-          inscripcionEstatus: ins.fields[FIELDS.INSCRIPCIONES.ESTATUS] ?? "",
-          fechaInscripcion: ins.fields[FIELDS.INSCRIPCIONES.FECHA_INSCRIPCION] ?? null,
-          progresoPct,
-          totalLecciones,
-          leccionesCompletadas: completadas,
-        };
-      })
-      .filter((x) => x !== null);
-
+    span.end({ persona: persona.id, cursos: cursos.length });
     return jsonResponse(req, { cursos });
-  } catch (e) {
-    if (e instanceof HttpError) {
-      return errorResponse(req, e.message, e.status);
-    }
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-mis-cursos error:", msg);
-    return errorResponse(req, msg, 500);
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

@@ -1,224 +1,184 @@
-// SOPHIA Portal · get-curso-roster
+// SOPHIA Portal · get-curso-roster (Postgres, inlined)
 //
-// Devuelve la lista de personas inscritas a un curso (Persona Portal info).
-// Usado por el autocomplete de menciones en el composer del foro.
+// Devuelve la lista de personas inscritas activamente a un curso.
+// Solo accesible si el user que pregunta está él mismo inscrito (o es admin/instructor).
 //
-// Endpoint: GET /get-curso-roster?cursoId=recXXX
-// Headers:  Authorization: Bearer <jwt>
-//
-// Response 200:
-// {
-//   ok: true,
-//   roster: [
-//     { id, nombre, apellidos, iniciales, avatarUrl, rol }
-//   ]
-// }
-//
-// Política: solo usuarios inscritos al curso pueden ver el roster.
+// GET /get-curso-roster?cursoId=<UUID>
+// Response: { ok: true, roster: [{ id, nombre, apellidos, iniciales, avatarUrl, rol }] }
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
-const BASES = { CRM: "app1SbOC98k2OP5m1", PORTAL: "app0S6GrJQ8YatvCc" } as const;
-const TABLES = {
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-} as const;
-const FIELDS = {
-  PERSONAS_PORTAL: {
-    NOMBRE: "fldhTiwmmXtIIS8dD",
-    APELLIDOS: "fldvZE8Y5Y4rVCOKa",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-    AVATAR_URL: "fldvi4xBiYc6tPbar",
-    ROL: "fldRcBDK58Mu2tkWj",
-  },
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-    ESTATUS: "flduEWS1l327elsD6",
-  },
-} as const;
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-// ============================================================================
-// CORS
-// ============================================================================
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:5500",
+  "http://localhost:3000", "http://localhost:5173",
+  "http://127.0.0.1:3000", "http://127.0.0.1:5500",
 ];
+
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const isVercelPreview = /^https:\/\/sophia-portal-[a-z0-9-]+\.vercel\.app$/.test(origin);
-  const allowed = ALLOWED_ORIGINS.includes(origin) || isVercelPreview ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
+    Vary: "Origin",
   };
 }
+
 function handleOptions(req: Request): Response | null {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(req) });
   return null;
 }
+
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
-  });
-}
-function errorResponse(req: Request, message: string, status = 400, code?: string): Response {
-  return jsonResponse(req, { ok: false, error: message, code }, status);
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(req), "Content-Type": "application/json" } });
 }
 
-// ============================================================================
-// AIRTABLE
-// ============================================================================
-interface AirtableRecord { id: string; createdTime?: string; fields: Record<string, unknown> }
-async function airtableFetch(path: string, init?: RequestInit) {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT env var missing");
-  const res = await fetch(`${AIRTABLE_API}${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json", ...(init?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(`Airtable error ${res.status}: ${await res.text()}`);
-  return res.json();
-}
-async function listRecords(
-  baseId: string, tableId: string,
-  opts: { filterByFormula?: string; fields?: string[]; pageSize?: number } = {},
-): Promise<AirtableRecord[]> {
-  const params = new URLSearchParams();
-  params.set("returnFieldsByFieldId", "true");
-  if (opts.filterByFormula) params.set("filterByFormula", opts.filterByFormula);
-  if (opts.fields) opts.fields.forEach((f) => params.append("fields[]", f));
-  if (opts.pageSize) params.set("pageSize", String(opts.pageSize));
-  const data = await airtableFetch(`/${baseId}/${tableId}?${params}`);
-  return data.records as AirtableRecord[];
-}
-function eqFormula(fieldId: string, value: string): string {
-  return `{${fieldId}} = '${value.replace(/'/g, "\\'")}'`;
-}
-function iniciales(nombre: string, apellidos: string): string {
-  const a = (nombre || "").trim()[0] || "";
-  const b = (apellidos || "").trim()[0] || "";
-  return ((a + b).toUpperCase() || "?");
-}
-function isValidRecordId(s: unknown): s is string {
-  return typeof s === "string" && /^rec[A-Za-z0-9]{14,}$/.test(s);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled:", msg);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-// ============================================================================
-// MAIN
-// ============================================================================
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE env");
+  _db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "public" } });
+  return _db;
+}
+
+type Persona = { id: string; auth_user_id: string; email: string; nombre: string; apellidos: string; rol: string; avatar_url: string | null; };
+
+function normalizeEmail(email: string): string { return email.trim().toLowerCase(); }
+
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env");
+
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido");
+
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "Usuario sin email");
+
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas").select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", user.id).maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas").select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: user.id }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = user.id;
+    } else if (byEmail.auth_user_id !== user.id) {
+      throw new ApiError(409, "email_conflict", "Email vinculado a otra cuenta");
+    }
+    persona = byEmail;
+  }
+  return persona as Persona;
+}
+
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
+  return {
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      console.log(JSON.stringify({ span: name, ms, ts: new Date().toISOString(), ...extra, ...more }));
+      return ms;
+    },
+  };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function initialsOf(nombre: string, apellidos: string): string {
+  const n = (nombre ?? "").trim();
+  const a = (apellidos ?? "").trim();
+  const i1 = n ? n[0].toUpperCase() : "";
+  const i2 = a ? a[0].toUpperCase() : "";
+  return (i1 + i2) || "??";
+}
 
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
-  if (req.method !== "GET") return errorResponse(req, "Method not allowed", 405);
+  const cors = handleOptions(req);
+  if (cors) return cors;
+  if (req.method !== "GET") {
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use GET"));
+  }
+  const span = startSpan("get-curso-roster");
 
   try {
-    // Auth
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return errorResponse(req, "Missing Authorization", 401, "no_auth");
-    const jwt = authHeader.slice("Bearer ".length);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseAuth = createClient(supabaseUrl, anonKey);
-    const { data: userData, error: authErr } = await supabaseAuth.auth.getUser(jwt);
-    if (authErr || !userData.user) return errorResponse(req, "Invalid JWT", 401, "invalid_jwt");
-    const authUserId = userData.user.id;
-    const email = userData.user.email ?? "";
-
-    // Param
     const url = new URL(req.url);
-    const cursoId = url.searchParams.get("cursoId");
-    if (!isValidRecordId(cursoId)) return errorResponse(req, "cursoId inválido", 400, "invalid_curso_id");
-
-    // Resolver Persona Portal del caller
-    let mePortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-      fields: [FIELDS.PERSONAS_PORTAL.AUTH_USER_ID],
-      pageSize: 1,
-    });
-    if (mePortal.length === 0 && email) {
-      mePortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-        filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.toLowerCase().replace(/'/g, "\\'")}'`,
-        fields: [FIELDS.PERSONAS_PORTAL.EMAIL],
-        pageSize: 1,
-      });
-    }
-    if (mePortal.length === 0) return errorResponse(req, "Sin perfil", 404, "no_persona");
-    const meId = mePortal[0].id;
-
-    // Verificar que el caller esté inscrito al curso
-    const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula: `AND(SEARCH('${cursoId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.CURSO}})), SEARCH('${meId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.PERSONA}})))`,
-      fields: [FIELDS.INSCRIPCIONES.PERSONA],
-      pageSize: 1,
-    });
-    if (inscripciones.length === 0) return errorResponse(req, "No estás inscrito a este curso", 403, "not_enrolled");
-
-    // Cargar TODAS las inscripciones al curso
-    const allEnrollments = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula: `SEARCH('${cursoId}', ARRAYJOIN({${FIELDS.INSCRIPCIONES.CURSO}}))`,
-      fields: [FIELDS.INSCRIPCIONES.PERSONA, FIELDS.INSCRIPCIONES.ESTATUS],
-    });
-    const enrolledPersonaIds = new Set<string>();
-    for (const ins of allEnrollments) {
-      const personas = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-      for (const pid of personas) enrolledPersonaIds.add(pid);
+    const cursoId = url.searchParams.get("cursoId")?.trim() ?? "";
+    if (!cursoId || !UUID_RE.test(cursoId)) {
+      throw new ApiError(400, "invalid_curso_id", "cursoId inválido");
     }
 
-    if (enrolledPersonaIds.size === 0) {
-      return jsonResponse(req, { ok: true, roster: [] });
+    const persona = await requireUser(req);
+    const db = getDb();
+
+    const { data: myInsc } = await db
+      .from("inscripciones").select("id")
+      .eq("persona_id", persona.id).eq("curso_id", cursoId).limit(1).maybeSingle();
+    const isAdmin = ["admin", "instructor", "coordinador", "facilitador"].includes(persona.rol);
+    if (!myInsc && !isAdmin) {
+      throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
     }
 
-    // Cargar info de las Personas Portal correspondientes
-    const personas = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      fields: [
-        FIELDS.PERSONAS_PORTAL.NOMBRE,
-        FIELDS.PERSONAS_PORTAL.APELLIDOS,
-        FIELDS.PERSONAS_PORTAL.AVATAR_URL,
-        FIELDS.PERSONAS_PORTAL.ROL,
-      ],
-    });
-    const roster = personas
-      .filter((p) => enrolledPersonaIds.has(p.id))
-      .map((p) => {
-        const nombre = (p.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "";
-        const apellidos = (p.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "";
-        const avatarUrl = (p.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "";
-        const rolRaw = p.fields[FIELDS.PERSONAS_PORTAL.ROL] as string | { name?: string } | undefined;
-        const rol = typeof rolRaw === "string" ? rolRaw : rolRaw?.name ?? "participante";
-        return {
-          id: p.id,
-          nombre,
-          apellidos,
-          iniciales: iniciales(nombre, apellidos),
-          avatarUrl,
-          rol,
-        };
-      })
-      // Excluir al propio usuario del autocomplete (no se menciona a sí mismo)
-      .filter((p) => p.id !== meId)
-      // Orden alfabético
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    const { data: rows, error } = await db
+      .from("inscripciones")
+      .select("personas!inner(id, nombre, apellidos, avatar_url, rol)")
+      .eq("curso_id", cursoId).eq("estatus", "activa");
+    if (error) throw new ApiError(500, "db_error", error.message);
 
+    const seen = new Set<string>();
+    const roster = (rows ?? [])
+      .map((r: any) => r.personas)
+      .filter((p: any) => p && !seen.has(p.id) && seen.add(p.id))
+      .map((p: any) => ({
+        id: p.id,
+        nombre: p.nombre ?? "",
+        apellidos: p.apellidos ?? "",
+        iniciales: initialsOf(p.nombre, p.apellidos),
+        avatarUrl: p.avatar_url ?? "",
+        rol: p.rol ?? "participante",
+      }))
+      .sort((a, b) => (a.nombre + a.apellidos).localeCompare(b.nombre + b.apellidos));
+
+    span.end({ persona: persona.id, curso: cursoId, count: roster.length });
     return jsonResponse(req, { ok: true, roster });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("get-curso-roster fatal:", msg);
-    return errorResponse(req, msg, 500, "fatal");
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

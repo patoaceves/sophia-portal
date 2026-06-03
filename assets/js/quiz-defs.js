@@ -649,6 +649,90 @@ export const QUIZZES = {
       { id: "emo_satisfaccion", tipo: "choice", eyebrow: "Estado emocional · 35 de 35", texto: "¿Siento satisfacción con mi vida en general en la última semana?", opciones: ["Sí", "No"], obligatoria: true },
     ],
   },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Bienestar Emocional · Test de diagnóstico breve
+  // Actividad previa de la sesión 5 (HW). Reflexivo (sin score):
+  // 4 enunciados en escala Likert de acuerdo (1-5) + 1 pregunta abierta.
+  // Muestra el resumen de respuestas al final.
+  // ───────────────────────────────────────────────────────────────────
+  "bienestar-emocional-diagnostico": {
+    titulo: "Test de diagnóstico breve",
+    introEyebrow: "Actividad previa · Bienestar Emocional",
+    introTitle: "Test de diagnóstico breve: Bienestar Emocional",
+    introLead: [
+      "Antes de la sesión en vivo, tómate un par de minutos para este breve autodiagnóstico. Para cada enunciado, indica qué tan de acuerdo estás en una escala del 1 al 5.",
+      "No hay respuestas correctas ni incorrectas: es una foto de tu momento actual. Tus respuestas se guardan y son confidenciales; las retomaremos en la sesión.",
+    ],
+    doneTitle: "¡Listo! Diagnóstico completado",
+    doneLead: "Gracias por tu honestidad. Tu autodiagnóstico quedó registrado y será nuestro punto de partida en la sesión de Bienestar Emocional.",
+    preguntas: [
+      {
+        id: "conciencia_emocional",
+        tipo: "choice",
+        eyebrow: "Conciencia y Manejo Emocional",
+        texto: "¿Qué tan de acuerdo estás? \u201cLogro identificar qué emoción estoy sintiendo (tristeza, enojo, frustración) en el momento en que ocurre\u201d.",
+        opciones: [
+          "1 · Totalmente en desacuerdo",
+          "2 · En desacuerdo",
+          "3 · Neutral",
+          "4 · De acuerdo",
+          "5 · Totalmente de acuerdo",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "autocuidado",
+        tipo: "choice",
+        eyebrow: "Autocuidado y Estilo de Vida",
+        texto: "¿Qué tan de acuerdo estás? \u201cConsigo desconectarme de mis obligaciones diarias (trabajo, pendientes) para disfrutar tiempo para mí\u201d.",
+        opciones: [
+          "1 · Totalmente en desacuerdo",
+          "2 · En desacuerdo",
+          "3 · Neutral",
+          "4 · De acuerdo",
+          "5 · Totalmente de acuerdo",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "relaciones_entorno",
+        tipo: "choice",
+        eyebrow: "Relaciones y Entorno",
+        texto: "¿Qué tan de acuerdo estás? \u201cSiento que cuento con el apoyo emocional de amigos o familiares cuando lo necesito\u201d.",
+        opciones: [
+          "1 · Totalmente en desacuerdo",
+          "2 · En desacuerdo",
+          "3 · Neutral",
+          "4 · De acuerdo",
+          "5 · Totalmente de acuerdo",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "proposito_mentalidad",
+        tipo: "choice",
+        eyebrow: "Propósito y Mentalidad",
+        texto: "¿Qué tan de acuerdo estás? \u201cEncuentro satisfacción o sentido a las actividades que realizo durante el día\u201d.",
+        opciones: [
+          "1 · Totalmente en desacuerdo",
+          "2 · En desacuerdo",
+          "3 · Neutral",
+          "4 · De acuerdo",
+          "5 · Totalmente de acuerdo",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "conclusion_abierta",
+        tipo: "texto",
+        eyebrow: "Conclusión",
+        texto: "¿Qué te gustaría saber sobre el bienestar emocional?",
+        placeholder: "Escribe lo que te gustaría explorar o resolver en la sesión. (Opcional)",
+        obligatoria: false,
+      },
+    ],
+  },
 };
 
 export function getQuizDef(key) {

@@ -1,182 +1,35 @@
-// SOPHIA Portal · submit-quiz (inlined for dashboard deploy)
+// SOPHIA Portal · submit-quiz (Postgres, inlined)
 //
-// Guarda las respuestas de una actividad en clase (quiz) en la tabla
-// Airtable "Actividades en Clase". A diferencia de las autoevaluaciones,
-// los quizzes NO puntúan: solo se registran las respuestas tal cual.
+// Guarda las respuestas de un quiz (actividad en clase) en respuestas_quiz.
+// Los quizzes NO puntúan: solo se registran las respuestas tal cual.
+// Idempotente por (leccion_id + inscripcion_id).
 //
 // POST /submit-quiz
-// Body: { leccionId: string, inscripcionId?: string, actividad: string,
-//         respuestas: Record<string, string> }
-// Headers: Authorization: Bearer <supabase_jwt>
+// Body: { leccionId, inscripcionId?, actividad: string, respuestas: Record<string,string> }
+// Response: { ok: true, respuestaId, alreadySubmitted? }
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// ════════════════════════════════════════════════════════════════════
 
-// ============================================================================
-// AIRTABLE CONSTANTS & HELPERS
-// ============================================================================
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-  CRM: "app1SbOC98k2OP5m1",
-} as const;
-
-const TABLES = {
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  ACTIVIDADES: "tbllM76FnC50EHRCx",
-  PERSONAS: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-} as const;
-
-const FIELDS = {
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-  },
-  ACTIVIDADES: {
-    RESUMEN: "fldU52Cyxu7zoeHKj",
-    ACTIVIDAD: "fldumUkw9GPp8gF9A",
-    LECCION: "fldD7y3DXBGUnKOpa",
-    INSCRIPCION: "fldoZwq6JeRdjm3gj",
-    RESPUESTAS_JSON: "flduVXSkzzUCjB6ks",
-    FECHA: "fldE610Bqq0mMOLnz",
-    COMPLETADO: "fldLWVj1bLsPtS3wI",
-  },
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-    NOMBRE: "fldEbEI3pLEAmlYAe",
-    APELLIDOS: "fldCnRa0XFvH1FtfQ",
-    ROL: "fldOF0bnjfErxEOCO",
-  },
-  PERSONAS_PORTAL: {
-    NOMBRE: "fldhTiwmmXtIIS8dD",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
-}
-
-interface AirtableListResponse {
-  records: AirtableRecord[];
-  offset?: string;
-}
-
-function getAirtablePAT(): string {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT not configured");
-  return pat;
-}
-
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  options: {
-    filterByFormula?: string;
-    fields?: string[];
-    maxRecords?: number;
-    pageSize?: number;
-  } = {},
-): Promise<AirtableRecord[]> {
-  const pat = getAirtablePAT();
-  const all: AirtableRecord[] = [];
-  let offset: string | undefined;
-
-  do {
-    const params = new URLSearchParams();
-    params.set("returnFieldsByFieldId", "true");
-    if (options.filterByFormula) params.set("filterByFormula", options.filterByFormula);
-    if (options.maxRecords) params.set("maxRecords", String(options.maxRecords));
-    if (options.pageSize) params.set("pageSize", String(options.pageSize));
-    if (offset) params.set("offset", offset);
-    options.fields?.forEach((f) => params.append("fields[]", f));
-
-    const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}?${params}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Airtable list failed: ${res.status} ${await res.text()}`);
-    }
-    const data = (await res.json()) as AirtableListResponse;
-    all.push(...data.records);
-    offset = data.offset;
-    if (options.maxRecords && all.length >= options.maxRecords) break;
-  } while (offset);
-
-  return all;
-}
-
-async function createRecord(
-  baseId: string,
-  tableId: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable create failed: ${res.status} ${await res.text()}`);
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
   }
-  return await res.json();
 }
-
-async function updateRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable update failed: ${res.status} ${await res.text()}`);
-  }
-  return await res.json();
-}
-
-function eqFormula(fieldId: string, value: string): string {
-  const escaped = value.replace(/'/g, "\\'");
-  return `{${fieldId}} = '${escaped}'`;
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-// ============================================================================
-// CORS
-// ============================================================================
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5500",
+  "http://localhost:3000", "http://localhost:5173",
+  "http://127.0.0.1:3000", "http://127.0.0.1:5500",
 ];
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -195,270 +48,218 @@ function handleOptions(req: Request): Response | null {
 
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-    },
+    status, headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400): Response {
-  return jsonResponse(req, { error: message }, status);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-// ============================================================================
-// AUTH HELPER
-// ============================================================================
-
-interface AuthedUser {
-  authUserId: string;
-  email: string;
-  personaId: string;
-  personaPortalId: string;
-  rol: string;
-  nombre: string;
-  apellidos: string;
-}
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = "HttpError";
-  }
-}
-
-async function requireAuth(req: Request): Promise<AuthedUser> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing Authorization header");
-  }
-  const jwt = authHeader.slice("Bearer ".length);
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
-    Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseKey) {
-    throw new HttpError(500, "Supabase env not configured");
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
   });
+  return _db;
+}
 
-  const { data: userData, error } = await supabase.auth.getUser(jwt);
-  if (error || !userData.user) {
-    throw new HttpError(401, "Invalid JWT");
-  }
+type Persona = {
+  id: string; auth_user_id: string; email: string;
+  nombre: string; apellidos: string; rol: string; avatar_url: string | null;
+};
 
-  const authUserId = userData.user.id;
-  const email = normalizeEmail(userData.user.email ?? "");
-  if (!email) throw new HttpError(401, "User has no email");
+function normalizeEmail(email: string): string { return email.trim().toLowerCase(); }
 
-  let personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
+
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
 
-  if (personas.length === 0) {
-    personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
 
-    if (personas.length > 0 && !personas[0].fields[FIELDS.PERSONAS_CRM.AUTH_USER_ID]) {
-      await updateRecord(BASES.CRM, TABLES.PERSONAS, personas[0].id, {
-        [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
-      });
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", user.id).maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: user.id }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = user.id;
+    } else if (byEmail.auth_user_id !== user.id) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
     }
+    persona = byEmail;
   }
+  return persona as Persona;
+}
 
-  if (personas.length === 0) {
-    throw new HttpError(403, "No Persona record found. Run auth-bootstrap first.");
-  }
-
-  const p = personas[0];
-  const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
-
-  const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  let personaPortalId = personasPortal[0]?.id;
-  if (!personaPortalId) {
-    const byEmail = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-    personaPortalId = byEmail[0]?.id;
-  }
-  if (!personaPortalId) {
-    throw new HttpError(
-      403,
-      "Persona no encontrada en sync de Portal. Espera unos minutos a que Airtable sincronice CRM→Portal o contacta a soporte.",
-    );
-  }
-
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
   return {
-    authUserId,
-    email,
-    personaId: p.id,
-    personaPortalId,
-    rol,
-    nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] as string) ?? "",
-    apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] as string) ?? "",
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
   };
 }
 
-// ============================================================================
-// VALIDATION
-// ============================================================================
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Las respuestas de un quiz son un objeto { preguntaId: string }. No
-// puntuamos ni validamos contra un esquema fijo (las preguntas viven en el
-// front-end); solo exigimos que sea un objeto plano de strings y acotamos
-// el tamaño para evitar payloads abusivos.
-function validateRespuestas(
-  respuestas: unknown,
-): { ok: true; clean: Record<string, string> } | { ok: false; error: string } {
-  if (!respuestas || typeof respuestas !== "object" || Array.isArray(respuestas)) {
-    return { ok: false, error: "respuestas debe ser un objeto" };
-  }
-  const entries = Object.entries(respuestas as Record<string, unknown>);
-  if (entries.length === 0) {
-    return { ok: false, error: "respuestas está vacío" };
-  }
-  if (entries.length > 100) {
-    return { ok: false, error: "demasiadas respuestas" };
-  }
-  const clean: Record<string, string> = {};
-  for (const [k, v] of entries) {
-    if (typeof v !== "string") {
-      return { ok: false, error: `respuesta inválida para ${k}` };
-    }
-    if (v.length > 4000) {
-      return { ok: false, error: `respuesta demasiado larga para ${k}` };
-    }
-    clean[k] = v;
-  }
-  return { ok: true, clean };
-}
-
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
+const MAX_ANSWER_LEN = 5000;
 
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
-
+  const cors = handleOptions(req);
+  if (cors) return cors;
   if (req.method !== "POST") {
-    return errorResponse(req, "Method not allowed", 405);
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use POST"));
   }
+  const span = startSpan("submit-quiz");
 
   try {
-    const user = await requireAuth(req);
-
-    let body: {
+    const body = await req.json().catch(() => ({})) as {
       leccionId?: string;
       inscripcionId?: string;
       actividad?: string;
-      respuestas?: Record<string, unknown>;
+      respuestas?: Record<string, string>;
     };
-    try {
-      body = await req.json();
-    } catch {
-      return errorResponse(req, "Invalid JSON body", 400);
+    const { leccionId, inscripcionId: bodyInscripcionId, actividad, respuestas } = body;
+
+    if (!leccionId || !UUID_RE.test(leccionId)) {
+      throw new ApiError(400, "invalid_leccion_id", "leccionId inválido");
+    }
+    if (!actividad || typeof actividad !== "string") {
+      throw new ApiError(400, "invalid_actividad", "actividad inválida");
+    }
+    if (!respuestas || typeof respuestas !== "object" || Array.isArray(respuestas)) {
+      throw new ApiError(400, "invalid_respuestas", "respuestas debe ser un objeto");
+    }
+    if (Object.keys(respuestas).length === 0) {
+      throw new ApiError(400, "empty_respuestas", "respuestas vacío");
+    }
+    for (const [k, v] of Object.entries(respuestas)) {
+      if (typeof v !== "string") {
+        throw new ApiError(400, "invalid_respuestas", `respuesta '${k}' debe ser string`);
+      }
+      if (v.length > MAX_ANSWER_LEN) {
+        throw new ApiError(400, "answer_too_long", `respuesta '${k}' excede ${MAX_ANSWER_LEN} chars`);
+      }
     }
 
-    const { leccionId, inscripcionId, actividad, respuestas } = body;
-    if (!leccionId) return errorResponse(req, "leccionId is required", 400);
-    if (!actividad) return errorResponse(req, "actividad is required", 400);
-    if (!respuestas) return errorResponse(req, "respuestas is required", 400);
-    // inscripcionId es OBLIGATORIO: get-resultados-quiz solo encuentra
-    // registros que tienen un link de inscripción del usuario. Sin él, el
-    // registro queda huérfano (invisible al chequeo de "ya completaste").
-    if (!inscripcionId) return errorResponse(req, "inscripcionId is required", 400);
+    const persona = await requireUser(req);
+    const db = getDb();
 
-    const valid = validateRespuestas(respuestas);
-    if (!valid.ok) return errorResponse(req, valid.error, 400);
+    // Validar lección existe y obtener curso_id (a través de modulo)
+    const { data: leccion, error: lErr } = await db
+      .from("lecciones")
+      .select("id, modulo_id, modulos!inner(curso_id)")
+      .eq("id", leccionId).maybeSingle();
+    if (lErr) throw new ApiError(500, "db_error", lErr.message);
+    if (!leccion) throw new ApiError(404, "leccion_not_found", "Lección no encontrada");
+    const cursoId = (leccion as any).modulos?.curso_id;
 
-    // Validar ownership de la inscripción
-    const insc = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-      filterByFormula: `RECORD_ID()='${inscripcionId}'`,
-      maxRecords: 1,
-    });
-    if (insc.length === 0) {
-      throw new HttpError(404, "Inscripción not found");
+    // Resolver inscripcion_id
+    let inscripcionId = bodyInscripcionId;
+    if (inscripcionId) {
+      if (!UUID_RE.test(inscripcionId)) {
+        throw new ApiError(400, "invalid_inscripcion_id", "inscripcionId inválido");
+      }
+      const { data: insc, error: iErr } = await db
+        .from("inscripciones").select("id, persona_id, curso_id")
+        .eq("id", inscripcionId).maybeSingle();
+      if (iErr) throw new ApiError(500, "db_error", iErr.message);
+      if (!insc) throw new ApiError(404, "inscripcion_not_found", "Inscripción no encontrada");
+      if (insc.persona_id !== persona.id) {
+        throw new ApiError(403, "not_owner", "Esta inscripción no es tuya");
+      }
+    } else {
+      // Derivar inscripcion_id desde persona + curso de la lección
+      const { data: insc, error: iErr } = await db
+        .from("inscripciones")
+        .select("id")
+        .eq("persona_id", persona.id)
+        .eq("curso_id", cursoId)
+        .order("fecha_inscripcion", { ascending: false })
+        .limit(1).maybeSingle();
+      if (iErr) throw new ApiError(500, "db_error", iErr.message);
+      if (!insc) throw new ApiError(403, "no_inscripcion", "No estás inscrito a este curso");
+      inscripcionId = insc.id;
     }
-    const ownerPersonas =
-      (insc[0].fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-    if (!ownerPersonas.includes(user.personaPortalId)) {
-      throw new HttpError(403, "Inscripción does not belong to this user");
+
+    // Idempotencia: si ya respondió este quiz, devolver ID existente
+    const { data: existing, error: eErr } = await db
+      .from("respuestas_quiz")
+      .select("id")
+      .eq("leccion_id", leccionId)
+      .eq("inscripcion_id", inscripcionId)
+      .limit(1).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (existing) {
+      span.end({ persona: persona.id, respuesta: existing.id, idempotent: true });
+      return jsonResponse(req, { ok: true, respuestaId: existing.id, alreadySubmitted: true });
     }
 
+    // Insert
     const completedAt = new Date().toISOString();
-    const fechaCorta = completedAt.slice(0, 10);
-
     const payload = {
       version: 1,
       actividad,
-      respuestas: valid.clean,
+      respuestas,
       completedAt,
     };
+    const { data: created, error: cErr } = await db
+      .from("respuestas_quiz")
+      .insert({
+        inscripcion_id: inscripcionId,
+        leccion_id: leccionId,
+        respuestas: payload,
+        completado_en: completedAt,
+      })
+      .select("id").single();
+    if (cErr) throw new ApiError(500, "db_error", cErr.message);
 
-    const fields: Record<string, unknown> = {
-      [FIELDS.ACTIVIDADES.RESUMEN]: `${actividad} · ${fechaCorta}`,
-      [FIELDS.ACTIVIDADES.ACTIVIDAD]: actividad,
-      [FIELDS.ACTIVIDADES.LECCION]: [leccionId],
-      [FIELDS.ACTIVIDADES.INSCRIPCION]: [inscripcionId],
-      [FIELDS.ACTIVIDADES.RESPUESTAS_JSON]: JSON.stringify(payload),
-      [FIELDS.ACTIVIDADES.FECHA]: completedAt,
-      [FIELDS.ACTIVIDADES.COMPLETADO]: true,
-    };
-
-    // Upsert: si ya existe un registro para esta (Lección × Inscripción),
-    // lo actualizamos en lugar de crear duplicado.
-    //
-    // IMPORTANTE: filterByFormula con ARRAYJOIN sobre linked fields devuelve
-    // los NOMBRES (primary field) de los records linkeados, no los IDs.
-    // Por eso filtramos: pre-filtramos por `Actividad` (text plano que sí
-    // funciona en formula) y matcheamos leccionId/inscripcionId en JS.
-    const candidatos = await listRecords(BASES.PORTAL, TABLES.ACTIVIDADES, {
-      filterByFormula: `{${FIELDS.ACTIVIDADES.ACTIVIDAD}} = '${actividad.replace(/'/g, "\\'")}'`,
-    });
-    const previas = candidatos.filter((r) => {
-      const leccionLinks = (r.fields[FIELDS.ACTIVIDADES.LECCION] as string[]) ?? [];
-      const inscLinks = (r.fields[FIELDS.ACTIVIDADES.INSCRIPCION] as string[]) ?? [];
-      return leccionLinks.includes(leccionId) && inscLinks.includes(inscripcionId);
-    });
-
-    let rec;
-    if (previas.length > 0) {
-      // Si hubo duplicados previos (bug histórico), actualizamos el más
-      // reciente. Los demás quedan como huérfanos — no los borramos para
-      // no perder datos del alumno.
-      previas.sort((a, b) => {
-        const da = (a.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
-        const db = (b.fields[FIELDS.ACTIVIDADES.FECHA] as string) ?? "";
-        return db.localeCompare(da);
-      });
-      rec = await updateRecord(BASES.PORTAL, TABLES.ACTIVIDADES, previas[0].id, fields);
-    } else {
-      rec = await createRecord(BASES.PORTAL, TABLES.ACTIVIDADES, fields);
-    }
-
-    return jsonResponse(req, {
-      ok: true,
-      respuestaId: rec.id,
-      completedAt,
-    });
-  } catch (e) {
-    if (e instanceof HttpError) {
-      return errorResponse(req, e.message, e.status);
-    }
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("submit-quiz error:", msg);
-    return errorResponse(req, msg, 500);
+    span.end({ persona: persona.id, respuesta: created.id, actividad });
+    return jsonResponse(req, { ok: true, respuestaId: created.id });
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

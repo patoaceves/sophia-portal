@@ -1,290 +1,17 @@
-// SOPHIA Portal · get-leccion (inlined for dashboard deploy)
-// Returns full lesson content + prev/next IDs within the same chapter.
-// Validates that the user is enrolled in the parent course.
-//
-// GET /get-leccion?id=<leccionRecordId>
-// Headers: Authorization: Bearer <supabase_jwt>
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// Mantener sincronizado con _shared/ si en algún momento se usa CLI deploy.
+// ════════════════════════════════════════════════════════════════════
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// ============================================================================
-// HTML SANITIZER (inlined for self-contained deploy)
-// Defensa contra XSS en `contenidoHTML` que viene de Airtable. Mantener
-// sincronizado con supabase/functions/_shared/html-sanitizer.ts (referencia
-// canónica + 17 tests). Cualquier cambio aquí debe ir también al _shared.
-// ============================================================================
-
-const SANITIZER_ALLOWED_TAGS = new Set([
-  "p", "br", "hr", "div", "span", "article", "section", "header", "footer",
-  "h1", "h2", "h3", "h4", "h5", "h6",
-  "ul", "ol", "li",
-  "strong", "em", "b", "i", "u", "s", "mark", "small", "sub", "sup",
-  "blockquote", "code", "pre", "kbd",
-  "a", "img", "figure", "figcaption",
-  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption",
-  "details", "summary",
-]);
-const SANITIZER_GLOBAL_ATTRS = new Set(["class", "id", "title", "lang", "dir"]);
-const SANITIZER_TAG_ATTRS: Record<string, Set<string>> = {
-  a: new Set(["href", "target", "rel"]),
-  img: new Set(["src", "alt", "width", "height", "loading", "decoding"]),
-  table: new Set(["border", "cellpadding", "cellspacing"]),
-  td: new Set(["colspan", "rowspan", "headers"]),
-  th: new Set(["colspan", "rowspan", "scope", "headers"]),
-  ol: new Set(["start", "type", "reversed"]),
-  details: new Set(["open"]),
-};
-const SANITIZER_DANGEROUS_TAGS = new Set([
-  "script", "style", "iframe", "object", "embed", "link", "meta",
-  "form", "input", "button", "select", "textarea", "option",
-  "base", "applet", "audio", "video", "source", "track", "noscript",
-  "frame", "frameset", "svg", "math",
-]);
-
-function _decodeEntities(s: string): string {
-  return s
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-}
-
-function _isSafeUrl(rawValue: string): boolean {
-  const decoded = _decodeEntities(rawValue).trim().toLowerCase();
-  const schemeMatch = decoded.match(/^([a-z][a-z0-9+.\-]*):/);
-  if (!schemeMatch) return true; // sin scheme → relativo/absoluto/fragment
-  const scheme = schemeMatch[1];
-  if (scheme === "http" || scheme === "https" || scheme === "mailto" || scheme === "tel") return true;
-  if (scheme === "data" && decoded.startsWith("data:image/")) return true;
-  return false; // javascript:, vbscript:, file:, data:text/..., etc.
-}
-
-function _sanitizeAttrs(tagName: string, rawAttrs: string): string {
-  if (!rawAttrs || !rawAttrs.trim()) return "";
-  const allowedForTag = SANITIZER_TAG_ATTRS[tagName] ?? new Set<string>();
-  const result: string[] = [];
-  const attrRe = /([a-zA-Z_:][a-zA-Z0-9_:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
-  let m: RegExpExecArray | null;
-  while ((m = attrRe.exec(rawAttrs)) !== null) {
-    const name = m[1].toLowerCase();
-    const value = m[2] ?? m[3] ?? m[4] ?? "";
-    if (name.startsWith("on")) continue;
-    if (name === "style" || name === "formaction" || name === "srcdoc" || name === "background") continue;
-    if (!SANITIZER_GLOBAL_ATTRS.has(name) && !allowedForTag.has(name)) continue;
-    if ((name === "href" || name === "src") && !_isSafeUrl(value)) continue;
-    if (name === "target" && tagName === "a" && value.toLowerCase() === "_blank") {
-      result.push(`target="_blank"`);
-      continue;
-    }
-    const escaped = value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    if (value === "" && !m[0].includes("=")) result.push(name);
-    else result.push(`${name}="${escaped}"`);
+// ── ApiError + CORS + responses ─────────────────────────────────────
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
   }
-  const hasTargetBlank = result.some(a => a === `target="_blank"`);
-  const hasRel = result.some(a => a.startsWith("rel="));
-  if (hasTargetBlank && !hasRel && tagName === "a") {
-    result.push(`rel="noopener noreferrer"`);
-  }
-  return result.length > 0 ? " " + result.join(" ") : "";
 }
-
-function sanitizeHtml(html: string): string {
-  if (!html || typeof html !== "string") return "";
-  let out = html.replace(/<!--[\s\S]*?-->/g, "");
-  for (const tag of SANITIZER_DANGEROUS_TAGS) {
-    const blockRe = new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, "gi");
-    out = out.replace(blockRe, "");
-    const selfRe = new RegExp(`<${tag}\\b[^>]*\\/?>`, "gi");
-    out = out.replace(selfRe, "");
-  }
-  out = out.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9-]*)\b([^>]*)>/g, (_m, slash, tagName, attrs) => {
-    const tag = tagName.toLowerCase();
-    if (!SANITIZER_ALLOWED_TAGS.has(tag)) return "";
-    if (slash === "/") return `</${tag}>`;
-    return `<${tag}${_sanitizeAttrs(tag, attrs)}>`;
-  });
-  return out;
-}
-
-// ============================================================================
-// AIRTABLE CONSTANTS & HELPERS
-// ============================================================================
-
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-  CRM: "app1SbOC98k2OP5m1",
-} as const;
-
-const TABLES = {
-  MODULOS: "tblFHDXmg47igVihD",
-  LECCIONES: "tblBjfch6rc5ey7nn",
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  PROGRESO_LECCIONES: "tbllSrA7i4RxR6rqD",
-  PERSONAS: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-} as const;
-
-const FIELDS = {
-  MODULOS: {
-    CURSO: "fldYXfwCaNILYPhkV",
-    LECCIONES: "fld6zL7apr0D82dgJ",
-    TITULO: "fldyuVY3I4StxA5Fe",
-    ORDEN: "fldRzPBGYxP7lkiaZ",
-    PONENTE: "flduzlxs03hIYGhXi",
-  },
-  LECCIONES: {
-    TITULO: "fldMtiOdTsLzqa7Zc",
-    MODULO: "fld1olLdvNSup3YMc",
-    ORDEN: "fldCbdktDhca3mwJs",
-    TIPO: "fldALQfCvsjblaV2f",
-    ETIQUETA: "fld9ooqaUifHmUaG5",
-    CONTENIDO_HTML: "fldcvY2ABPzRp7pVS",
-    URL_VIDEO: "flddWqscYL9rkANQu",
-    URL_EXTERNA: "fldPfVk0nKaVV8Yik",
-    ARCHIVO: "fldsFIihdWWiUntYx",
-    AUTOEVAL: "fldYjgZCQLAFUCW1u",
-  },
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-  },
-  PROGRESO_LECCIONES: {
-    INSCRIPCION: "fld5osGXDLBrvgW63",
-    LECCION: "fldftZaLhQcHyKrBo",
-    COMPLETADO: "fldtGaRMNd69jcK3D",
-    COMPLETADO_EN: "fldEImFE2Osckh2wZ",
-  },
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-    NOMBRE: "fldEbEI3pLEAmlYAe",
-    APELLIDOS: "fldCnRa0XFvH1FtfQ",
-    ROL: "fldOF0bnjfErxEOCO",
-  },
-  PERSONAS_PORTAL: {
-    NOMBRE: "fldhTiwmmXtIIS8dD",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-  },
-} as const;
-
-// Map de record IDs de Autoevaluaciones → "tipo" que el frontend usa para
-// montar el wizard correcto (test-felicidad vs test-autoconocimiento).
-// Mantener sincronizado con KNOWN_IDS en submit-test-felicidad y
-// submit-test-autoconocimiento. Si autoevalId no está en este mapa, el
-// frontend cae al wizard de felicidad por compat con lecciones existentes.
-const KNOWN_AUTOEVAL_IDS: Record<string, "felicidad" | "autoconocimiento"> = {
-  "recjMR4P4TFLvFQ4A": "felicidad",
-  "recDLCMOgTZChS6Yf": "autoconocimiento",
-};
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
-}
-
-interface AirtableListResponse {
-  records: AirtableRecord[];
-  offset?: string;
-}
-
-function getAirtablePAT(): string {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT not configured");
-  return pat;
-}
-
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  options: {
-    filterByFormula?: string;
-    fields?: string[];
-    maxRecords?: number;
-    pageSize?: number;
-  } = {},
-): Promise<AirtableRecord[]> {
-  const pat = getAirtablePAT();
-  const all: AirtableRecord[] = [];
-  let offset: string | undefined;
-
-  do {
-    const params = new URLSearchParams();
-    params.set("returnFieldsByFieldId", "true");
-    if (options.filterByFormula) params.set("filterByFormula", options.filterByFormula);
-    if (options.maxRecords) params.set("maxRecords", String(options.maxRecords));
-    if (options.pageSize) params.set("pageSize", String(options.pageSize));
-    if (offset) params.set("offset", offset);
-    options.fields?.forEach((f) => params.append("fields[]", f));
-
-    const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}?${params}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Airtable list failed: ${res.status} ${await res.text()}`);
-    }
-    const data = (await res.json()) as AirtableListResponse;
-    all.push(...data.records);
-    offset = data.offset;
-    if (options.maxRecords && all.length >= options.maxRecords) break;
-  } while (offset);
-
-  return all;
-}
-
-async function getRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-): Promise<AirtableRecord | null> {
-  const pat = getAirtablePAT();
-  const res = await fetch(
-    `${AIRTABLE_API}/${baseId}/${tableId}/${recordId}?returnFieldsByFieldId=true`,
-    { headers: { Authorization: `Bearer ${pat}` } },
-  );
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    throw new Error(`Airtable get failed: ${res.status} ${await res.text()}`);
-  }
-  return await res.json();
-}
-
-async function updateRecord(
-  baseId: string,
-  tableId: string,
-  recordId: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableRecord> {
-  const pat = getAirtablePAT();
-  const res = await fetch(`${AIRTABLE_API}/${baseId}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Airtable update failed: ${res.status} ${await res.text()}`);
-  }
-  return await res.json();
-}
-
-function eqFormula(fieldId: string, value: string): string {
-  const escaped = value.replace(/'/g, "\\'");
-  return `{${fieldId}} = '${escaped}'`;
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-// ============================================================================
-// CORS
-// ============================================================================
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
@@ -296,8 +23,7 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -317,263 +43,483 @@ function handleOptions(req: Request): Response | null {
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-    },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400): Response {
-  return jsonResponse(req, { error: message }, status);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-// ============================================================================
-// AUTH HELPER
-// ============================================================================
+// ── DB singleton (service_role, bypassa RLS) ────────────────────────
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
+  });
+  return _db;
+}
 
-interface AuthedUser {
-  authUserId: string;
+// ── Persona + JWT validation ─────────────────────────────────────────
+type Persona = {
+  id: string;
+  auth_user_id: string;
   email: string;
-  personaId: string;
-  personaPortalId: string;
-  rol: string;
   nombre: string;
   apellidos: string;
+  rol: string;
+  avatar_url: string | null;
+};
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = "HttpError";
-  }
-}
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
 
-async function requireAuth(req: Request): Promise<AuthedUser> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing Authorization header");
-  }
-  const jwt = authHeader.slice("Bearer ".length);
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
-    Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseKey) {
-    throw new HttpError(500, "Supabase env not configured");
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
 
-  const { data: userData, error } = await supabase.auth.getUser(jwt);
-  if (error || !userData.user) {
-    throw new HttpError(401, "Invalid JWT");
-  }
+  const authUserId = user.id;
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
 
-  const authUserId = userData.user.id;
-  const email = normalizeEmail(userData.user.email ?? "");
-  if (!email) throw new HttpError(401, "User has no email");
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
 
-  let personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-
-  if (personas.length === 0) {
-    personas = await listRecords(BASES.CRM, TABLES.PERSONAS, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_CRM.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-
-    if (personas.length > 0 && !personas[0].fields[FIELDS.PERSONAS_CRM.AUTH_USER_ID]) {
-      await updateRecord(BASES.CRM, TABLES.PERSONAS, personas[0].id, {
-        [FIELDS.PERSONAS_CRM.AUTH_USER_ID]: authUserId,
-      });
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email)
+      .maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: authUserId }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = authUserId;
+    } else if (byEmail.auth_user_id !== authUserId) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
     }
+    persona = byEmail;
   }
+  return persona as Persona;
+}
 
-  if (personas.length === 0) {
-    throw new HttpError(403, "No Persona record found. Run auth-bootstrap first.");
-  }
-
-  const p = personas[0];
-  const rol = (p.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
-
-  // Lookup adicional: la tabla synced de Personas en Portal (tblwo4xOFhmx2TznJ).
-  // Inscripciones.persona linkea a ESTA tabla, no a CRM, así que necesitamos
-  // su record ID (distinto al de CRM) para filtrar Inscripciones.
-  const personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  let personaPortalId = personasPortal[0]?.id;
-  if (!personaPortalId) {
-    // Fallback: buscar por email (la sync de CRM→Portal puede tardar)
-    const byEmail = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-    personaPortalId = byEmail[0]?.id;
-  }
-  if (!personaPortalId) {
-    throw new HttpError(
-      403,
-      "Persona no encontrada en sync de Portal. Espera unos minutos a que Airtable sincronice CRM→Portal o contacta a soporte.",
-    );
-  }
-
-
+// ── Observability ────────────────────────────────────────────────────
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
   return {
-    authUserId,
-    email,
-    personaId: p.id,
-    personaPortalId,
-    rol,
-    nombre: (p.fields[FIELDS.PERSONAS_CRM.NOMBRE] as string) ?? "",
-    apellidos: (p.fields[FIELDS.PERSONAS_CRM.APELLIDOS] as string) ?? "",
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
   };
 }
 
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
+// ════════════════════════════════════════════════════════════════════
+// END OF SHARED HELPERS — handler de la función comienza abajo
+// ════════════════════════════════════════════════════════════════════
 
-Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
 
-  if (req.method !== "GET") {
-    return errorResponse(req, "Method not allowed", 405);
+// ════════════════════════════════════════════════════════════════════
+// HTML SANITIZER (inlined, sincronizado con _shared/html-sanitizer.ts)
+// ════════════════════════════════════════════════════════════════════
+
+// SOPHIA Portal · HTML sanitizer (server-side, Deno)
+//
+// Defensa contra XSS almacenado en `contenidoHTML` que viene de Airtable.
+// Cualquier persona con acceso a Airtable podría inyectar:
+//   <script>steal_jwt()</script>
+//   <img src=x onerror="...">
+//   <a href="javascript:...">
+//   <iframe src="evil.com">
+//
+// Esta función produce HTML "seguro": solo tags y atributos en la allowlist,
+// URLs limitadas a http/https/mailto (nada de javascript:), y sin event
+// handlers inline.
+//
+// Esta es una sanitización en SERVIDOR (parte de la defensa). El frontend
+// también pasa DOMPurify antes de hacer innerHTML — belt and suspenders.
+//
+// Tradeoff: usamos regex en vez de un parser DOM real porque:
+//   - Deno no tiene DOM nativo (necesitaríamos linkedom / deno-dom)
+//   - Nuestro input es HTML editorial controlado, no HTML adversarial complejo
+//   - El cliente hace la sanitización "real" con DOMPurify
+//   - El servidor solo bloquea los vectores OBVIOS para que no lleguen al cliente
+//
+// Si el threat model cambia (ej. usuarios suben HTML), reemplazar por
+// un parser real (deno-dom + allowlist iterativa por nodos).
+
+// ─────────────────────────────────────────────────────────────────────
+// Allowlist
+// ─────────────────────────────────────────────────────────────────────
+
+const ALLOWED_TAGS = new Set([
+  // Estructura
+  "p", "br", "hr", "div", "span", "article", "section", "header", "footer",
+  // Encabezados
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  // Listas
+  "ul", "ol", "li",
+  // Énfasis
+  "strong", "em", "b", "i", "u", "s", "mark", "small", "sub", "sup",
+  // Cita / código
+  "blockquote", "code", "pre", "kbd",
+  // Multimedia / links
+  "a", "img", "figure", "figcaption",
+  // Tablas
+  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption",
+  // Otros
+  "details", "summary",
+]);
+
+// Atributos permitidos globalmente
+const GLOBAL_ATTRS = new Set(["class", "id", "title", "lang", "dir"]);
+
+// Atributos permitidos por tag (además de los globales)
+const TAG_SPECIFIC_ATTRS: Record<string, Set<string>> = {
+  a: new Set(["href", "target", "rel"]),
+  img: new Set(["src", "alt", "width", "height", "loading", "decoding"]),
+  table: new Set(["border", "cellpadding", "cellspacing"]),
+  td: new Set(["colspan", "rowspan", "headers"]),
+  th: new Set(["colspan", "rowspan", "scope", "headers"]),
+  ol: new Set(["start", "type", "reversed"]),
+  details: new Set(["open"]),
+};
+
+/**
+ * Decide si una URL es segura para href/src.
+ *
+ * Lógica: si hay un scheme (algo antes del primer `:`, sin que aparezcan
+ * `/`, `?` o `#` antes), el scheme DEBE ser http/https/mailto/tel, o ser
+ * `data:image/*`. Si no hay scheme → es path relativo/absoluto/fragmento
+ * y se permite.
+ *
+ * Esto cubre los vectores de la antigua regex (bloquea javascript:,
+ * vbscript:, file:, data: no-imagen) y además permite paths bare como
+ * `cat.jpg` y data:image/* que la regex anterior rechazaba por estricta.
+ */
+function isSafeUrl(rawValue: string): boolean {
+  // Decode entidades por si hay payloads ofuscados con &#x6A;avascript:
+  const decoded = decodeEntities(rawValue).trim().toLowerCase();
+  // Detectar scheme: "word:" antes de cualquier /, ?, #
+  const schemeMatch = decoded.match(/^([a-z][a-z0-9+.\-]*):/);
+  if (!schemeMatch) return true; // sin scheme → relativo/absoluto/fragment → ok
+  const scheme = schemeMatch[1];
+  if (scheme === "http" || scheme === "https" || scheme === "mailto" || scheme === "tel") return true;
+  if (scheme === "data" && decoded.startsWith("data:image/")) return true;
+  return false; // javascript:, vbscript:, file:, data:text/..., etc.
+}
+
+// Tags peligrosos: SE ELIMINAN COMPLETAMENTE (con su contenido)
+const DANGEROUS_TAGS = new Set([
+  "script", "style", "iframe", "object", "embed", "link", "meta",
+  "form", "input", "button", "select", "textarea", "option",
+  "base", "applet", "audio", "video", "source", "track", "noscript",
+  "frame", "frameset", "svg", "math",
+]);
+
+// ─────────────────────────────────────────────────────────────────────
+// Sanitizer principal
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Sanitiza un string de HTML aplicando una allowlist estricta de tags y
+ * atributos. Bloquea event handlers, javascript:, scripts, iframes, etc.
+ *
+ * @param html · HTML potencialmente inseguro (ej. de Airtable)
+ * @returns HTML sanitizado y seguro para insertar vía innerHTML
+ */
+function sanitizeHtml(html: string): string {
+  if (!html || typeof html !== "string") return "";
+
+  let out = html;
+
+  // 1) Eliminar comentarios HTML (pueden ocultar payloads en algunos parsers)
+  out = out.replace(/<!--[\s\S]*?-->/g, "");
+
+  // 2) Eliminar tags peligrosos CON su contenido. Usamos un regex robusto
+  //    que tolera atributos, whitespace, mayúsculas, y self-closing.
+  for (const tag of DANGEROUS_TAGS) {
+    // <tag ...>...</tag>
+    const blockRe = new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, "gi");
+    out = out.replace(blockRe, "");
+    // <tag ... /> o <tag ...> sin cierre (huérfano)
+    const selfRe = new RegExp(`<${tag}\\b[^>]*\\/?>`, "gi");
+    out = out.replace(selfRe, "");
   }
 
-  try {
-    const user = await requireAuth(req);
+  // 3) Recorrer cada tag restante y filtrar atributos
+  out = out.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9-]*)\b([^>]*)>/g, (_match, slash, tagName, attrs) => {
+    const tag = tagName.toLowerCase();
 
-    const url = new URL(req.url);
-    const leccionId = url.searchParams.get("id");
-    if (!leccionId) return errorResponse(req, "Missing id parameter", 400);
-
-    // 1. Fetch the lesson
-    const leccion = await getRecord(BASES.PORTAL, TABLES.LECCIONES, leccionId);
-    if (!leccion) throw new HttpError(404, "Lección not found");
-    const lf = leccion.fields;
-
-    // 2. Walk up: leccion -> modulo
-    const moduloLinks = (lf[FIELDS.LECCIONES.MODULO] as string[]) ?? [];
-    const moduloId = moduloLinks[0];
-    if (!moduloId) throw new HttpError(422, "Lección has no módulo");
-
-    const modulo = await getRecord(BASES.PORTAL, TABLES.MODULOS, moduloId);
-    if (!modulo) throw new HttpError(404, "Módulo not found");
-    const cf = modulo.fields;
-
-    // 3. Walk up: modulo -> curso
-    const cursoLinks = (cf[FIELDS.MODULOS.CURSO] as string[]) ?? [];
-    const cursoId = cursoLinks[0];
-    if (!cursoId) throw new HttpError(422, "Módulo has no curso");
-
-    // 4. Validate enrollment (filter client-side: Airtable can't match record
-    // IDs in linked-record fields via filterByFormula).
-    const allInscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {});
-    const inscripciones = allInscripciones.filter((ins) => {
-      const ps = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-      const cs = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-      return ps.includes(user.personaPortalId) && cs.includes(cursoId);
-    });
-    if (inscripciones.length === 0) {
-      throw new HttpError(403, "Not enrolled in this course");
+    // Tag no en allowlist → strip pero conservar contenido (texto)
+    if (!ALLOWED_TAGS.has(tag)) {
+      return "";
     }
-    const inscripcionId = inscripciones[0].id;
 
-    // 5. Sibling lessons (same chapter) for prev/next
-    const siblingIds = (cf[FIELDS.MODULOS.LECCIONES] as string[]) ?? [];
-    const sibRows = siblingIds.length
-      ? await listRecords(BASES.PORTAL, TABLES.LECCIONES, {
-          filterByFormula: `OR(${siblingIds.map((id) => `RECORD_ID()='${id}'`).join(",")})`,
-          fields: [FIELDS.LECCIONES.ORDEN],
-        })
-      : [];
-    sibRows.sort((a, b) => {
-      const oa = (a.fields[FIELDS.LECCIONES.ORDEN] as number) ?? 0;
-      const ob = (b.fields[FIELDS.LECCIONES.ORDEN] as number) ?? 0;
-      return oa - ob;
-    });
-    const idxHere = sibRows.findIndex((r) => r.id === leccionId);
-    const prevId = idxHere > 0 ? sibRows[idxHere - 1].id : null;
-    const nextId =
-      idxHere >= 0 && idxHere < sibRows.length - 1 ? sibRows[idxHere + 1].id : null;
+    // Closing tag: sin atributos
+    if (slash === "/") {
+      return `</${tag}>`;
+    }
 
-    // 6. Progreso for this lesson (filter client-side: Airtable can't match
-    // record IDs in linked-record fields via filterByFormula).
-    const allProgresos = await listRecords(BASES.PORTAL, TABLES.PROGRESO_LECCIONES, {
-      fields: [
-        FIELDS.PROGRESO_LECCIONES.INSCRIPCION,
-        FIELDS.PROGRESO_LECCIONES.LECCION,
-        FIELDS.PROGRESO_LECCIONES.COMPLETADO,
-        FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN,
-      ],
-    });
-    const progresos = allProgresos.filter((p) => {
-      const ins = (p.fields[FIELDS.PROGRESO_LECCIONES.INSCRIPCION] as string[]) ?? [];
-      const lec = (p.fields[FIELDS.PROGRESO_LECCIONES.LECCION] as string[]) ?? [];
-      return ins.includes(inscripcionId) && lec.includes(leccionId);
-    });
-    const completada = progresos[0]
-      ? Boolean(progresos[0].fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO])
-      : false;
-    const completadaEn = progresos[0]
-      ? ((progresos[0].fields[FIELDS.PROGRESO_LECCIONES.COMPLETADO_EN] as string) ??
-        null)
+    // Opening tag: limpiar atributos
+    const cleanedAttrs = sanitizeAttributes(tag, attrs);
+    return `<${tag}${cleanedAttrs}>`;
+  });
+
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Atributos
+// ─────────────────────────────────────────────────────────────────────
+
+function sanitizeAttributes(tagName: string, rawAttrs: string): string {
+  if (!rawAttrs || !rawAttrs.trim()) return "";
+
+  const allowedForTag = TAG_SPECIFIC_ATTRS[tagName] ?? new Set<string>();
+  const result: string[] = [];
+
+  // Regex para parsear atributos: name="value" | name='value' | name=value | name
+  const attrRe = /([a-zA-Z_:][a-zA-Z0-9_:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+  let m: RegExpExecArray | null;
+  while ((m = attrRe.exec(rawAttrs)) !== null) {
+    const name = m[1].toLowerCase();
+    const value = m[2] ?? m[3] ?? m[4] ?? "";
+
+    // BLOQUEAR: cualquier on* (onclick, onerror, onload, ...)
+    if (name.startsWith("on")) continue;
+    // BLOQUEAR: style (vector de CSS injection y expression())
+    if (name === "style") continue;
+    // BLOQUEAR: formaction, srcdoc, sandbox (vectores menos comunes)
+    if (name === "formaction" || name === "srcdoc" || name === "background") continue;
+
+    // VALIDAR allowlist
+    const isAllowed = GLOBAL_ATTRS.has(name) || allowedForTag.has(name);
+    if (!isAllowed) continue;
+
+    // VALIDAR URLs en href/src — scheme-based, ver isSafeUrl()
+    if (name === "href" || name === "src") {
+      if (!isSafeUrl(value)) continue;
+    }
+
+    // Forzar target="_blank" → agregar rel="noopener noreferrer"
+    if (name === "target" && tagName === "a" && value.toLowerCase() === "_blank") {
+      result.push(`target="_blank"`);
+      // Se agregará rel="noopener noreferrer" abajo si no hay rel propio
+      continue;
+    }
+
+    // Sanitizar el valor (escape de comillas dobles)
+    const escapedValue = value
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    if (value === "" && !m[0].includes("=")) {
+      // Atributo booleano: <details open>
+      result.push(name);
+    } else {
+      result.push(`${name}="${escapedValue}"`);
+    }
+  }
+
+  // Si el tag tiene target="_blank" y no tiene rel, agregar uno seguro
+  const hasTargetBlank = result.some(a => a === `target="_blank"`);
+  const hasRel = result.some(a => a.startsWith("rel="));
+  if (hasTargetBlank && !hasRel && tagName === "a") {
+    result.push(`rel="noopener noreferrer"`);
+  }
+
+  return result.length > 0 ? " " + result.join(" ") : "";
+}
+
+function decodeEntities(s: string): string {
+  // Decode mínimo de entidades HTML para detectar payloads ofuscados como
+  // javascript&#58;alert(1) o &#x6A;avascript:...
+  return s
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+// SOPHIA Portal · get-leccion (Postgres)
+// Returns full lesson content + prev/next IDs within the same chapter.
+// Validates enrollment in the parent course.
+//
+// GET /get-leccion?id=<leccionId>
+//   id puede ser UUID o un airtable_id (recXXX) para compatibilidad con
+//   bookmarks viejos.
+// Headers: Authorization: Bearer <supabase_jwt>
+//
+// Returns 200: { leccion, modulo, cursoId, inscripcionId, prevId, nextId }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const KNOWN_AUTOEVAL_IDS: Record<string, "felicidad" | "autoconocimiento"> = {
+  "recjMR4P4TFLvFQ4A": "felicidad",
+  "recDLCMOgTZChS6Yf": "autoconocimiento",
+};
+const AIRTABLE_RE = /^rec[A-Za-z0-9]{14,}$/;
+
+Deno.serve(async (req) => {
+  const cors = handleOptions(req);
+  if (cors) return cors;
+
+  if (req.method !== "GET") {
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use GET"));
+  }
+
+  const span = startSpan("get-leccion");
+
+  try {
+    const url = new URL(req.url);
+    const idParam = url.searchParams.get("id")?.trim();
+    if (!idParam) {
+      throw new ApiError(400, "missing_id", "Falta parámetro id");
+    }
+
+    const persona = await requireUser(req);
+    const db = getDb();
+
+    // 1. Buscar lección por UUID o por airtable_id (compat con bookmarks)
+    let query = db
+      .from("lecciones")
+      .select(`
+        id, modulo_id, titulo, subtitulo, orden, tipo, etiqueta, estatus,
+        contenido_html, url_video, url_externa, archivo_url, archivo_nombre,
+        evaluacion_ref
+      `);
+    if (UUID_RE.test(idParam)) {
+      query = query.eq("id", idParam);
+    } else if (AIRTABLE_RE.test(idParam)) {
+      query = query.eq("airtable_id", idParam);
+    } else {
+      throw new ApiError(400, "invalid_id", "id debe ser UUID o recXXX");
+    }
+
+    const { data: leccion, error: lErr } = await query.maybeSingle();
+    if (lErr) throw new ApiError(500, "db_error", lErr.message);
+    if (!leccion) throw new ApiError(404, "leccion_not_found", "Lección no encontrada");
+
+    // 2. Módulo + curso
+    const { data: modulo, error: mErr } = await db
+      .from("modulos")
+      .select("id, titulo, orden, ponente, curso_id")
+      .eq("id", leccion.modulo_id)
+      .maybeSingle();
+    if (mErr) throw new ApiError(500, "db_error", mErr.message);
+    if (!modulo) throw new ApiError(500, "data_error", "Módulo huérfano");
+
+    // 3. Inscripción de la persona en este curso
+    const { data: inscripcion, error: iErr } = await db
+      .from("inscripciones")
+      .select("id")
+      .eq("persona_id", persona.id)
+      .eq("curso_id", modulo.curso_id)
+      .maybeSingle();
+    if (iErr) throw new ApiError(500, "db_error", iErr.message);
+    if (!inscripcion) {
+      throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
+    }
+
+    // 4. Prev/next dentro del mismo módulo (ordenado)
+    const { data: hermanas, error: hErr } = await db
+      .from("lecciones")
+      .select("id, orden")
+      .eq("modulo_id", modulo.id)
+      .neq("estatus", "archivada")
+      .order("orden", { ascending: true });
+    if (hErr) throw new ApiError(500, "db_error", hErr.message);
+
+    const idx = (hermanas ?? []).findIndex((h: any) => h.id === leccion.id);
+    const prevId = idx > 0 ? (hermanas as any[])[idx - 1].id : null;
+    const nextId = idx >= 0 && idx < (hermanas ?? []).length - 1
+      ? (hermanas as any[])[idx + 1].id
       : null;
 
-    // 7. Attachments / autoeval link
-    const arr = lf[FIELDS.LECCIONES.ARCHIVO] as
-      | { url: string; filename?: string }[]
-      | undefined;
-    const archivoUrl = arr?.[0]?.url ?? null;
-    const archivoNombre = arr?.[0]?.filename ?? null;
+    // 5. Progreso de esta lección
+    const { data: progreso, error: pErr } = await db
+      .from("progreso_lecciones")
+      .select("completado, completado_en")
+      .eq("inscripcion_id", inscripcion.id)
+      .eq("leccion_id", leccion.id)
+      .maybeSingle();
+    if (pErr) throw new ApiError(500, "db_error", pErr.message);
 
-    const autoevalLinks = (lf[FIELDS.LECCIONES.AUTOEVAL] as string[]) ?? [];
-    const autoevalId = autoevalLinks[0] ?? null;
-    const autoevalTipo = autoevalId ? (KNOWN_AUTOEVAL_IDS[autoevalId] ?? null) : null;
-
+    span.end({ persona: persona.id, leccion: leccion.id });
     return jsonResponse(req, {
       leccion: {
         id: leccion.id,
-        titulo: (lf[FIELDS.LECCIONES.TITULO] as string) ?? "",
-        orden: (lf[FIELDS.LECCIONES.ORDEN] as number) ?? 0,
-        tipo: (lf[FIELDS.LECCIONES.TIPO] as string) ?? "texto",
-        etiqueta: (lf[FIELDS.LECCIONES.ETIQUETA] as string) ?? "",
-        contenidoHTML: sanitizeHtml((lf[FIELDS.LECCIONES.CONTENIDO_HTML] as string) ?? ""),
-        urlVideo: (lf[FIELDS.LECCIONES.URL_VIDEO] as string) ?? null,
-        urlExterna: (lf[FIELDS.LECCIONES.URL_EXTERNA] as string) ?? null,
-        archivoUrl,
-        archivoNombre,
-        autoevalId,
-        autoevalTipo,
-        completada,
-        completadaEn,
+        titulo: leccion.titulo ?? "",
+        subtitulo: leccion.subtitulo ?? "",
+        orden: leccion.orden ?? 0,
+        tipo: leccion.tipo ?? "texto",
+        etiqueta: leccion.etiqueta ?? "",
+        contenidoHTML: sanitizeHtml(leccion.contenido_html ?? ""),
+        urlVideo: leccion.url_video ?? null,
+        urlExterna: leccion.url_externa ?? leccion.archivo_url ?? null,
+        archivoUrl: leccion.archivo_url ?? null,
+        archivoNombre: leccion.archivo_nombre ?? null,
+        autoevalId: leccion.evaluacion_ref ?? null,
+        autoevalTipo: leccion.evaluacion_ref ? (KNOWN_AUTOEVAL_IDS[leccion.evaluacion_ref] ?? null) : null,
+        completada: Boolean(progreso?.completado),
+        completadaEn: progreso?.completado_en ?? null,
       },
-      moduloId,
+      moduloId: modulo.id,
       modulo: {
-        id: moduloId,
-        titulo: (cf[FIELDS.MODULOS.TITULO] as string) ?? "",
-        orden: (cf[FIELDS.MODULOS.ORDEN] as number) ?? 0,
-        ponente: (cf[FIELDS.MODULOS.PONENTE] as string) ?? "",
+        id: modulo.id,
+        titulo: modulo.titulo ?? "",
+        orden: modulo.orden ?? 0,
+        ponente: modulo.ponente ?? "",
       },
-      cursoId,
-      inscripcionId,
+      cursoId: modulo.curso_id,
+      inscripcionId: inscripcion.id,
       prevId,
       nextId,
     });
-  } catch (e) {
-    if (e instanceof HttpError) {
-      return errorResponse(req, e.message, e.status);
-    }
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-leccion error:", msg);
-    return errorResponse(req, msg, 500);
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

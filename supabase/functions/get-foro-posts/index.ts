@@ -1,148 +1,17 @@
-// SOPHIA Portal · get-foro-posts
-// Devuelve los posts del foro de un curso, con sus comentarios anidados.
-// Solo lo ven los inscritos al curso (verificación vía Inscripciones).
-//
-// GET /get-foro-posts?cursoId=recXXXXXXXX
-// Headers: Authorization: Bearer <supabase_jwt>
-//
-// Returns 200:
-// {
-//   posts: [
-//     {
-//       id, contenido, imagenUrl, fechaISO, esAutor,
-//       autor: { id, nombre, apellidos, iniciales },
-//       comentarios: [ { id, contenido, fechaISO, esAutor, autor: {...} } ]
-//     }, ...
-//   ],
-//   yo: { personaPortalId, nombre, apellidos, iniciales, esAdmin }
-// }
-//
-// Errors:
-//   401 invalid/missing JWT
-//   403 no enrolled in course
-//   404 course not found
-//   500 unexpected
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// Mantener sincronizado con _shared/ si en algún momento se usa CLI deploy.
+// ════════════════════════════════════════════════════════════════════
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// ============================================================================
-// AIRTABLE CONSTANTS
-// Ver docs/foro-airtable-schema.md
-// ============================================================================
-
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-  CRM: "app1SbOC98k2OP5m1",
-} as const;
-
-const TABLES = {
-  PERSONAS_CRM: "tbl5XKtg0mRfLeFYH",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  CURSOS: "tblJpUGeBsLNkk9UO",
-  POSTS: "tblmLVl9ySzTXb2OK",
-} as const;
-
-const FIELDS = {
-  PERSONAS_CRM: {
-    AUTH_USER_ID: "fldg3kYs6c4xOoYkq",
-    EMAIL: "fldJlxMp6NKCpvAuv",
-    ROL: "fldOF0bnjfErxEOCO",
-  },
-  PERSONAS_PORTAL: {
-    NOMBRE: "fldhTiwmmXtIIS8dD",
-    APELLIDOS: "fldvZE8Y5Y4rVCOKa",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-    AVATAR_URL: "fldvi4xBiYc6tPbar",
-    ROL: "fldRcBDK58Mu2tkWj",
-  },
-  INSCRIPCIONES: {
-    PERSONA: "fldsgcanUDaXzX20x",
-    CURSO: "fldTjcS2GiOe3Q9N0",
-    ESTATUS: "flduEWS1l327elsD6",
-  },
-  POSTS: {
-    AUTOR: "fldjOVXCAkwoNENnX",
-    CURSO: "fldFiySrT6wjout5k",
-    CONTENIDO: "fldPmHX3Pt0f4r1pv",
-    ADJUNTO_URL: "fldmMwKgVz0lP3BO8",
-    ADJUNTO_TIPO: "fldoKoSJCdGjZnhyD",
-    ADJUNTO_NOMBRE: "fldpswnHcsl5He8M2",
-    POST_PADRE: "fldq82v7aJfKlu6i1",
-    ESTATUS: "fldy88bnFeG7QEIQN",
-    FECHA: "fldPzXu1gkRN4YSYQ",
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
+// ── ApiError + CORS + responses ─────────────────────────────────────
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+  }
 }
-
-interface AirtableListResponse {
-  records: AirtableRecord[];
-  offset?: string;
-}
-
-// ============================================================================
-// AIRTABLE HELPERS
-// ============================================================================
-
-function getAirtablePAT(): string {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT not configured");
-  return pat;
-}
-
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  options: { filterByFormula?: string; fields?: string[]; maxRecords?: number; sort?: { field: string; direction: "asc" | "desc" }[] } = {},
-): Promise<AirtableRecord[]> {
-  const pat = getAirtablePAT();
-  const params = new URLSearchParams();
-  params.set("returnFieldsByFieldId", "true");
-  if (options.filterByFormula) params.set("filterByFormula", options.filterByFormula);
-  if (options.maxRecords) params.set("maxRecords", String(options.maxRecords));
-  options.fields?.forEach((f) => params.append("fields[]", f));
-  options.sort?.forEach((s, i) => {
-    params.append(`sort[${i}][field]`, s.field);
-    params.append(`sort[${i}][direction]`, s.direction);
-  });
-
-  const all: AirtableRecord[] = [];
-  let offset: string | undefined = undefined;
-  do {
-    const url = new URL(`${AIRTABLE_API}/${baseId}/${tableId}`);
-    params.forEach((v, k) => url.searchParams.append(k, v));
-    if (offset) url.searchParams.set("offset", offset);
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${pat}` } });
-    if (!res.ok) {
-      throw new Error(`Airtable list failed (${res.status}): ${await res.text()}`);
-    }
-    const data = (await res.json()) as AirtableListResponse;
-    all.push(...data.records);
-    offset = data.offset;
-  } while (offset);
-  return all;
-}
-
-function eqFormula(fieldId: string, value: string): string {
-  const escaped = value.replace(/'/g, "\\'");
-  return `{${fieldId}} = '${escaped}'`;
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-// ============================================================================
-// CORS
-// ============================================================================
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
@@ -154,8 +23,7 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin =
-    ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -179,13 +47,133 @@ function jsonResponse(req: Request, body: unknown, status = 200): Response {
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400, code?: string): Response {
-  return jsonResponse(req, { error: message, code }, status);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
+// ── DB singleton (service_role, bypassa RLS) ────────────────────────
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
+  });
+  return _db;
+}
+
+// ── Persona + JWT validation ─────────────────────────────────────────
+type Persona = {
+  id: string;
+  auth_user_id: string;
+  email: string;
+  nombre: string;
+  apellidos: string;
+  rol: string;
+  avatar_url: string | null;
+};
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
+
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
+
+  const authUserId = user.id;
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
+
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email)
+      .maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: authUserId }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = authUserId;
+    } else if (byEmail.auth_user_id !== authUserId) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
+    }
+    persona = byEmail;
+  }
+  return persona as Persona;
+}
+
+// ── Observability ────────────────────────────────────────────────────
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
+  return {
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════
+// END OF SHARED HELPERS — handler de la función comienza abajo
+// ════════════════════════════════════════════════════════════════════
+
+// SOPHIA Portal · get-foro-posts (Postgres)
+// Devuelve los posts del foro de un curso, con sus comentarios anidados.
+// Solo lo ven los inscritos al curso.
+//
+// GET /get-foro-posts?cursoId=<UUID>
+// Headers: Authorization: Bearer <supabase_jwt>
+//
+// Returns 200:
+// {
+//   posts: [
+//     { id, contenido, adjuntoUrl, adjuntoTipo, adjuntoNombre, fechaISO,
+//       eliminado, esAutor,
+//       autor: { id, nombre, apellidos, iniciales, avatarUrl, rol },
+//       comentarios: [ same shape ] },
+//     ...
+//   ],
+//   yo: { personaPortalId, nombre, apellidos, iniciales, avatarUrl, esAdmin }
+// }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function iniciales(nombre: string, apellidos: string): string {
   const a = (nombre || "").trim()[0] || "";
@@ -193,242 +181,133 @@ function iniciales(nombre: string, apellidos: string): string {
   return (a + b).toUpperCase() || "S";
 }
 
-interface AuthedUser {
-  authUserId: string;
-  email: string;
-  personaPortalId: string;
-  nombre: string;
-  apellidos: string;
-  avatarUrl: string;
-  rol: string;
-}
-
-async function authenticate(req: Request): Promise<AuthedUser> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing Authorization header");
-  }
-  const jwt = authHeader.slice("Bearer ".length);
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey =
-    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { data: userData, error } = await supabase.auth.getUser(jwt);
-  if (error || !userData.user) throw new HttpError(401, "Invalid JWT");
-
-  const authUserId = userData.user.id;
-  const email = normalizeEmail(userData.user.email ?? "");
-  if (!email) throw new HttpError(401, "User has no email");
-
-  // Lookup PersonaPortal (lo necesitamos para Inscripciones y como autor de posts)
-  let personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_PORTAL.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  if (personasPortal.length === 0) {
-    personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.replace(/'/g, "\\'")}'`,
-      maxRecords: 1,
-    });
-  }
-  if (personasPortal.length === 0) {
-    throw new HttpError(403, "Persona no encontrada en sync de Portal. Vuelve a intentar en unos segundos.");
-  }
-  const pp = personasPortal[0];
-
-  // Lookup persona CRM solo para obtener el rol
-  const personasCRM = await listRecords(BASES.CRM, TABLES.PERSONAS_CRM, {
-    filterByFormula: eqFormula(FIELDS.PERSONAS_CRM.AUTH_USER_ID, authUserId),
-    maxRecords: 1,
-  });
-  const rol = (personasCRM[0]?.fields[FIELDS.PERSONAS_CRM.ROL] as string) ?? "participante";
-
-  return {
-    authUserId,
-    email,
-    personaPortalId: pp.id,
-    nombre: (pp.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "",
-    apellidos: (pp.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "",
-    avatarUrl: (pp.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "",
-    rol,
-  };
-}
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
-
-async function verifyEnrollment(personaPortalId: string, cursoId: string): Promise<void> {
-  // Lista las inscripciones del usuario, filtra en JS por cursoId
-  const inscripciones = await listRecords(BASES.PORTAL, TABLES.INSCRIPCIONES, {
-    fields: [FIELDS.INSCRIPCIONES.PERSONA, FIELDS.INSCRIPCIONES.CURSO, FIELDS.INSCRIPCIONES.ESTATUS],
-  });
-  const enrolled = inscripciones.some((ins) => {
-    const personas = (ins.fields[FIELDS.INSCRIPCIONES.PERSONA] as string[]) ?? [];
-    const cursos = (ins.fields[FIELDS.INSCRIPCIONES.CURSO] as string[]) ?? [];
-    return personas.includes(personaPortalId) && cursos.includes(cursoId);
-  });
-  if (!enrolled) {
-    throw new HttpError(403, "No estás inscrito a este curso");
-  }
-}
-
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
-
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
+  const cors = handleOptions(req);
+  if (cors) return cors;
 
   if (req.method !== "GET") {
-    return errorResponse(req, "Method not allowed", 405);
+    return errorResponse(req, new ApiError(405, "method_not_allowed", "Use GET"));
   }
+
+  const span = startSpan("get-foro-posts");
 
   try {
     const url = new URL(req.url);
-    const cursoId = url.searchParams.get("cursoId");
-    if (!cursoId || !/^rec[A-Za-z0-9]{14,}$/.test(cursoId)) {
-      return errorResponse(req, "cursoId inválido o faltante", 400, "invalid_curso_id");
+    const cursoId = url.searchParams.get("cursoId")?.trim();
+    if (!cursoId || !UUID_RE.test(cursoId)) {
+      throw new ApiError(400, "invalid_curso_id", "cursoId inválido (debe ser UUID)");
     }
 
-    const me = await authenticate(req);
-    await verifyEnrollment(me.personaPortalId, cursoId);
+    const persona = await requireUser(req);
+    const db = getDb();
 
-    // 1. Cargar posts del foro (cualquier curso) con estatus activo o eliminado.
-    //    NOTA: filtramos por cursoId en JS, no en formula. ARRAYJOIN({Curso})
-    //    devuelve los display names ("Happiness Workshop"), no los record IDs,
-    //    así que SEARCH(cursoId, ARRAYJOIN(...)) nunca matchea. Mejor cargar
-    //    todos los activos+eliminados y filtrar en memoria. Si el volumen
-    //    crece >1000 records, agregar un lookup field "Curso ID" y filtrar
-    //    por ahí.
-    const allPostsRaw = await listRecords(BASES.PORTAL, TABLES.POSTS, {
-      filterByFormula: `OR({${FIELDS.POSTS.ESTATUS}} = 'activo', {${FIELDS.POSTS.ESTATUS}} = 'eliminado')`,
-      sort: [{ field: FIELDS.POSTS.FECHA, direction: "desc" }],
-    });
-
-    const allPosts = allPostsRaw.filter((rec) => {
-      const links = (rec.fields[FIELDS.POSTS.CURSO] as string[]) ?? [];
-      return links.includes(cursoId);
-    });
-
-    // 2. Obtener IDs de autores únicos (solo de posts activos; en eliminados
-    //    no exponemos al autor)
-    const autorIds = new Set<string>();
-    for (const p of allPosts) {
-      const estatusRaw = p.fields[FIELDS.POSTS.ESTATUS] as string | { name?: string } | undefined;
-      const estatusName = typeof estatusRaw === "string" ? estatusRaw : estatusRaw?.name;
-      if (estatusName === "eliminado") continue;
-      const links = (p.fields[FIELDS.POSTS.AUTOR] as string[]) ?? [];
-      links.forEach((id) => autorIds.add(id));
+    // 1. Verificar inscripción al curso
+    const { data: inscripcion, error: insErr } = await db
+      .from("inscripciones")
+      .select("id")
+      .eq("persona_id", persona.id)
+      .eq("curso_id", cursoId)
+      .maybeSingle();
+    if (insErr) throw new ApiError(500, "db_error", insErr.message);
+    if (!inscripcion) {
+      throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
     }
 
-    // 3. Cargar info de autores en batch
-    const autoresById = new Map<string, { nombre: string; apellidos: string; iniciales: string; avatarUrl: string; rol: string }>();
-    if (autorIds.size > 0) {
-      const idsArray = Array.from(autorIds);
-      const personas = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-        fields: [FIELDS.PERSONAS_PORTAL.NOMBRE, FIELDS.PERSONAS_PORTAL.APELLIDOS, FIELDS.PERSONAS_PORTAL.AVATAR_URL, FIELDS.PERSONAS_PORTAL.ROL],
-      });
-      for (const p of personas) {
-        if (idsArray.includes(p.id)) {
-          const nombre = (p.fields[FIELDS.PERSONAS_PORTAL.NOMBRE] as string) ?? "";
-          const apellidos = (p.fields[FIELDS.PERSONAS_PORTAL.APELLIDOS] as string) ?? "";
-          const avatarUrl = (p.fields[FIELDS.PERSONAS_PORTAL.AVATAR_URL] as string) ?? "";
-          // Rol es singleSelect: viene como { name, color, id }
-          const rolRaw = p.fields[FIELDS.PERSONAS_PORTAL.ROL] as string | { name?: string } | undefined;
-          const rol = typeof rolRaw === "string" ? rolRaw : rolRaw?.name ?? "participante";
-          autoresById.set(p.id, {
-            nombre,
-            apellidos,
-            iniciales: iniciales(nombre, apellidos),
-            avatarUrl,
-            rol,
-          });
-        }
-      }
-    }
+    // 2. Posts del curso (activos + eliminados, para mostrar tombstones)
+    //    join a personas para obtener info del autor en una sola query
+    const { data: rawPosts, error: pErr } = await db
+      .from("posts")
+      .select(`
+        id, contenido, fecha, estatus, post_padre_id,
+        adjunto_url, adjunto_tipo, adjunto_nombre,
+        autor:personas!autor_id (
+          id, nombre, apellidos, avatar_url, rol
+        )
+      `)
+      .eq("curso_id", cursoId)
+      .in("estatus", ["activo", "eliminado"])
+      .order("fecha", { ascending: false });
+    if (pErr) throw new ApiError(500, "db_error", pErr.message);
 
-    // 4. Mapear cada post a la forma frontend.
-    //    Los eliminados pierden contenido/autor (privacy) pero conservan
-    //    fechaISO y un flag `eliminado: true` para que el frontend renderice
-    //    el tombstone.
-    function mapPost(rec: AirtableRecord) {
-      const estatusRaw = rec.fields[FIELDS.POSTS.ESTATUS] as string | { name?: string } | undefined;
-      const estatusName = typeof estatusRaw === "string" ? estatusRaw : estatusRaw?.name;
-      const eliminado = estatusName === "eliminado";
+    const posts = rawPosts ?? [];
 
-      const autorLinks = (rec.fields[FIELDS.POSTS.AUTOR] as string[]) ?? [];
-      const autorId = autorLinks[0];
-      const autor = autorId ? autoresById.get(autorId) : null;
-      const parentLinks = (rec.fields[FIELDS.POSTS.POST_PADRE] as string[]) ?? [];
+    // 3. Mapear a la forma del frontend
+    type Mapped = {
+      id: string;
+      contenido: string;
+      adjuntoUrl: string;
+      adjuntoTipo: string;
+      adjuntoNombre: string;
+      fechaISO: string;
+      eliminado: boolean;
+      esAutor: boolean;
+      parentId: string | null;
+      autor: {
+        id: string; nombre: string; apellidos: string;
+        iniciales: string; avatarUrl: string; rol: string;
+      };
+    };
+
+    function mapPost(p: any): Mapped {
+      const eliminado = p.estatus === "eliminado";
+      const autor = p.autor || {};
 
       if (eliminado) {
+        // Privacy: tombstone sin contenido ni autor
         return {
-          id: rec.id,
-          eliminado: true,
+          id: p.id,
           contenido: "",
           adjuntoUrl: "",
           adjuntoTipo: "",
           adjuntoNombre: "",
-          fechaISO: (rec.fields[FIELDS.POSTS.FECHA] as string) ?? rec.createdTime ?? "",
+          fechaISO: p.fecha ?? "",
+          eliminado: true,
           esAutor: false,
-          parentId: parentLinks[0] ?? null,
+          parentId: p.post_padre_id ?? null,
           autor: { id: "", nombre: "", apellidos: "", iniciales: "·", avatarUrl: "", rol: "" },
         };
       }
 
-      // Adjunto tipo es singleSelect: viene como objeto { name, color, id }
-      const adjuntoTipoRaw = rec.fields[FIELDS.POSTS.ADJUNTO_TIPO] as string | { name?: string } | undefined;
-      const adjuntoTipo = typeof adjuntoTipoRaw === "string" ? adjuntoTipoRaw : adjuntoTipoRaw?.name ?? "";
-
       return {
-        id: rec.id,
+        id: p.id,
+        contenido: p.contenido ?? "",
+        adjuntoUrl: p.adjunto_url ?? "",
+        adjuntoTipo: p.adjunto_tipo ?? "",
+        adjuntoNombre: p.adjunto_nombre ?? "",
+        fechaISO: p.fecha ?? "",
         eliminado: false,
-        contenido: (rec.fields[FIELDS.POSTS.CONTENIDO] as string) ?? "",
-        adjuntoUrl: (rec.fields[FIELDS.POSTS.ADJUNTO_URL] as string) ?? "",
-        adjuntoTipo,
-        adjuntoNombre: (rec.fields[FIELDS.POSTS.ADJUNTO_NOMBRE] as string) ?? "",
-        fechaISO: (rec.fields[FIELDS.POSTS.FECHA] as string) ?? rec.createdTime ?? "",
-        esAutor: autorId === me.personaPortalId,
-        parentId: parentLinks[0] ?? null,
+        esAutor: autor.id === persona.id,
+        parentId: p.post_padre_id ?? null,
         autor: {
-          id: autorId ?? "",
-          nombre: autor?.nombre ?? "",
-          apellidos: autor?.apellidos ?? "",
-          iniciales: autor?.iniciales ?? "?",
-          avatarUrl: autor?.avatarUrl ?? "",
-          rol: autor?.rol ?? "",
+          id: autor.id ?? "",
+          nombre: autor.nombre ?? "",
+          apellidos: autor.apellidos ?? "",
+          iniciales: iniciales(autor.nombre ?? "", autor.apellidos ?? ""),
+          avatarUrl: autor.avatar_url ?? "",
+          rol: autor.rol ?? "",
         },
       };
     }
 
-    const mapped = allPosts.map(mapPost);
+    const mapped = posts.map(mapPost);
 
-    // 5. Separar top-level y comentarios, anidar.
-    //    Comentarios eliminados: se ocultan completamente.
-    //    Posts top-level eliminados: se conservan SOLO si tienen comentarios
-    //    activos (para mostrar el tombstone como contexto del hilo).
+    // 4. Separar top-level y comentarios; comentarios eliminados se ocultan,
+    //    top-level eliminados se conservan solo si tienen comentarios vivos.
     const topLevel = mapped.filter((p) => !p.parentId);
-    const comentariosPorPadre = new Map<string, ReturnType<typeof mapPost>[]>();
+    const comentariosPorPadre = new Map<string, Mapped[]>();
     for (const c of mapped) {
       if (c.parentId && !c.eliminado) {
-        if (!comentariosPorPadre.has(c.parentId)) {
-          comentariosPorPadre.set(c.parentId, []);
-        }
-        comentariosPorPadre.get(c.parentId)!.push(c);
+        const arr = comentariosPorPadre.get(c.parentId) ?? [];
+        arr.push(c);
+        comentariosPorPadre.set(c.parentId, arr);
       }
     }
-    // Comentarios ordenados oldest-first (lectura natural de hilo)
+    // Comentarios oldest-first (lectura natural de hilo)
     for (const arr of comentariosPorPadre.values()) {
       arr.sort((a, b) => (a.fechaISO ?? "").localeCompare(b.fechaISO ?? ""));
     }
 
-    const posts = topLevel
+    const out = topLevel
       .map((p) => ({
         ...p,
         parentId: undefined,
@@ -437,26 +316,22 @@ Deno.serve(async (req) => {
           parentId: undefined,
         })),
       }))
-      // Drop tombstones huérfanos (eliminados sin comentarios vivos)
       .filter((p) => !p.eliminado || p.comentarios.length > 0);
 
+    span.end({ persona: persona.id, curso: cursoId, posts: out.length });
     return jsonResponse(req, {
-      posts,
+      posts: out,
       yo: {
-        personaPortalId: me.personaPortalId,
-        nombre: me.nombre,
-        apellidos: me.apellidos,
-        iniciales: iniciales(me.nombre, me.apellidos),
-        avatarUrl: me.avatarUrl,
-        esAdmin: me.rol === "admin",
+        personaPortalId: persona.id,
+        nombre: persona.nombre,
+        apellidos: persona.apellidos,
+        iniciales: iniciales(persona.nombre, persona.apellidos),
+        avatarUrl: persona.avatar_url ?? "",
+        esAdmin: persona.rol === "admin",
       },
     });
-  } catch (e) {
-    if (e instanceof HttpError) {
-      return errorResponse(req, e.message, e.status);
-    }
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("get-foro-posts fatal:", msg);
-    return errorResponse(req, msg, 500);
+  } catch (err) {
+    span.end({ error: true });
+    return errorResponse(req, err);
   }
 });

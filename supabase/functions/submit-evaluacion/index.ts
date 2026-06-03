@@ -1,91 +1,53 @@
-// SOPHIA Portal · submit-evaluacion
+// SOPHIA Portal · submit-evaluacion (Postgres, inlined)
 //
-// Recibe las respuestas del wizard de evaluación de sesión y las escribe
-// en la tabla "Evaluaciones Sesión" de Airtable.
+// Guarda la evaluación de la sesión en `evaluaciones_sesion`.
+// Idempotente por (leccion_id + inscripcion_id): si ya existe, devuelve el ID
+// existente sin crear duplicado.
 //
-// Endpoint:   POST /submit-evaluacion
-// Headers:    Authorization: Bearer <jwt>
-// Body:
-//   {
-//     leccionId:     "recXXX",                // Lección de tipo Evaluación
-//     inscripcionId: "recXXX",                // Inscripción al curso
-//     respuestas: {
-//       profesor_preparado:    1..5,
-//       contenido_relevante:   1..5,
-//       fomento_participacion: 1..5,
-//       ideas_aplicables:      1..5,
-//       profesor_general:      1..5,
-//       comentarios:           "string"       // opcional
-//     }
+// POST /submit-evaluacion
+// Body: {
+//   leccionId: <UUID>,
+//   inscripcionId: <UUID>,
+//   respuestas: {
+//     profesor_preparado:    1..5,
+//     contenido_relevante:   1..5,
+//     fomento_participacion: 1..5,
+//     ideas_aplicables:      1..5,
+//     profesor_general:      1..5,
+//     comentarios:           "string"  // opcional, max 2000 chars
 //   }
-//
-// Response 200: { ok: true, evaluacionId }
+// }
+// Response 200: { ok: true, evaluacionId, alreadySubmitted? }
 // Response 4xx/5xx: { ok: false, error, code? }
-//
-// Idempotencia: si ya existe una evaluación para esta (Lección + Persona),
-// devolvemos { ok: true, evaluacionId } sin crear duplicado.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+// ════════════════════════════════════════════════════════════════════
+// SHARED HELPERS (inlined for dashboard deploy)
+// ════════════════════════════════════════════════════════════════════
 
-// ============================================================================
-// AIRTABLE CONSTANTS
-// ============================================================================
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const BASES = {
-  PORTAL: "app0S6GrJQ8YatvCc",
-} as const;
-
-const TABLES = {
-  EVALUACIONES: "tblkXSuFWbvkDVSo2",
-  PERSONAS_PORTAL: "tblwo4xOFhmx2TznJ",
-  INSCRIPCIONES: "tblIT40GILMUHhLKK",
-  LECCIONES: "tblBjfch6rc5ey7nn",
-} as const;
-
-const FIELDS = {
-  EVALUACIONES: {
-    ID: "fldciMYIbhIscjdHW",
-    LECCION: "fldOoKIe9bXY2QHrf",
-    INSCRIPCION: "fld9cQHSYtGC04RFI",
-    PERSONA_PORTAL: "fldpjGURyFV8NhL4y",
-    PROFESOR_PREPARADO: "fldK7aTyiN15BFoZA",
-    CONTENIDO_RELEVANTE: "fldrSYlol0BbhpyD9",
-    FOMENTO_PARTICIPACION: "fldgs8y6OZLf08c0w",
-    IDEAS_APLICABLES: "fldytK60Kj9XmxLGy",
-    PROFESOR_GENERAL: "fldPqhuz1K959i8Sg",
-    COMENTARIOS: "flduq0TEXgqAfGFKD",
-    RESPUESTAS_JSON: "fldaikLfvoouzLHi9",
-    COMPLETADO_EN: "fldPtR0AOMM3yHoKg",
-  },
-  PERSONAS_PORTAL: {
-    AUTH_USER_ID: "fldSKACBNXloxYRBc",
-    EMAIL: "fldnRbi4mJRtfuAmV",
-  },
-} as const;
-
-const AIRTABLE_API = "https://api.airtable.com/v0";
-
-// ============================================================================
-// CORS
-// ============================================================================
+class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
 const ALLOWED_ORIGINS = [
   "https://portal.sophiamx.org",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:5500",
+  "http://localhost:3000", "http://localhost:5173",
+  "http://127.0.0.1:3000", "http://127.0.0.1:5500",
 ];
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const isVercelPreview = /^https:\/\/sophia-portal-[a-z0-9-]+\.vercel\.app$/.test(origin);
-  const allowed = ALLOWED_ORIGINS.includes(origin) || isVercelPreview ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
+    Vary: "Origin",
   };
 }
 
@@ -98,91 +60,101 @@ function handleOptions(req: Request): Response | null {
 
 function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+    status, headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(req: Request, message: string, status = 400, code?: string): Response {
-  return jsonResponse(req, { ok: false, error: message, code }, status);
-}
-
-// ============================================================================
-// AIRTABLE HELPERS
-// ============================================================================
-
-interface AirtableRecord {
-  id: string;
-  createdTime?: string;
-  fields: Record<string, unknown>;
-}
-
-async function airtableFetch(path: string, init?: RequestInit) {
-  const pat = Deno.env.get("AIRTABLE_PAT");
-  if (!pat) throw new Error("AIRTABLE_PAT env var missing");
-  const res = await fetch(`${AIRTABLE_API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${pat}`,
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Airtable error ${res.status}: ${txt}`);
+function errorResponse(req: Request, err: unknown): Response {
+  if (err instanceof ApiError) {
+    return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
   }
-  return res.json();
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[edge] unhandled error:", msg, err);
+  return jsonResponse(req, { error: msg, code: "internal_error" }, 500);
 }
 
-async function listRecords(
-  baseId: string,
-  tableId: string,
-  opts: { filterByFormula?: string; fields?: string[]; pageSize?: number } = {},
-): Promise<AirtableRecord[]> {
-  const params = new URLSearchParams();
-  params.set("returnFieldsByFieldId", "true");
-  if (opts.filterByFormula) params.set("filterByFormula", opts.filterByFormula);
-  if (opts.fields) opts.fields.forEach((f) => params.append("fields[]", f));
-  if (opts.pageSize) params.set("pageSize", String(opts.pageSize));
-  const data = await airtableFetch(`/${baseId}/${tableId}?${params}`);
-  return data.records as AirtableRecord[];
-}
-
-async function createRecord(baseId: string, tableId: string, fields: Record<string, unknown>): Promise<AirtableRecord> {
-  const data = await airtableFetch(`/${baseId}/${tableId}?returnFieldsByFieldId=true`, {
-    method: "POST",
-    body: JSON.stringify({ fields, typecast: true }),
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  _db = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
   });
-  return data as AirtableRecord;
+  return _db;
 }
 
-// ============================================================================
-// VALIDATION
-// ============================================================================
+type Persona = {
+  id: string; auth_user_id: string; email: string;
+  nombre: string; apellidos: string; rol: string; avatar_url: string | null;
+};
 
-interface RespuestasBody {
-  profesor_preparado?: number;
-  contenido_relevante?: number;
-  fomento_participacion?: number;
-  ideas_aplicables?: number;
-  profesor_general?: number;
-  comentarios?: string;
+function normalizeEmail(email: string): string { return email.trim().toLowerCase(); }
+
+async function requireUser(req: Request): Promise<Persona> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new ApiError(401, "missing_auth", "Falta header Authorization");
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !publicKey) throw new ApiError(500, "config_error", "Supabase env no configurado");
+
+  const authClient = createClient(url, publicKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: { user }, error: authErr } = await authClient.auth.getUser();
+  if (authErr || !user) throw new ApiError(401, "invalid_token", "Token inválido o expirado");
+
+  const email = normalizeEmail(user.email ?? "");
+  if (!email) throw new ApiError(401, "no_email", "El usuario no tiene email");
+
+  const db = getDb();
+  let { data: persona, error: pErr } = await db
+    .from("personas")
+    .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+    .eq("auth_user_id", user.id).maybeSingle();
+  if (pErr) throw new ApiError(500, "db_error", pErr.message);
+
+  if (!persona) {
+    const { data: byEmail, error: eErr } = await db
+      .from("personas")
+      .select("id, auth_user_id, email, nombre, apellidos, rol, avatar_url")
+      .eq("email", email).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+    if (!byEmail) throw new ApiError(403, "no_persona", "No hay persona vinculada a este email");
+    if (!byEmail.auth_user_id) {
+      const { error: uErr } = await db.from("personas").update({ auth_user_id: user.id }).eq("id", byEmail.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      byEmail.auth_user_id = user.id;
+    } else if (byEmail.auth_user_id !== user.id) {
+      throw new ApiError(409, "email_conflict", "Email ya vinculado a otra cuenta");
+    }
+    persona = byEmail;
+  }
+  return persona as Persona;
 }
 
-interface Body {
-  leccionId?: string;
-  inscripcionId?: string;
-  respuestas?: RespuestasBody;
+const SLOW_THRESHOLD_MS = 2000;
+function startSpan(name: string, extra: Record<string, unknown> = {}) {
+  const t0 = performance.now();
+  return {
+    end(more: Record<string, unknown> = {}) {
+      const ms = Math.round(performance.now() - t0);
+      const slow = ms > SLOW_THRESHOLD_MS;
+      console.log(JSON.stringify({
+        span: name, ms, ...(slow ? { slow: true } : {}),
+        ts: new Date().toISOString(), ...extra, ...more,
+      }));
+      return ms;
+    },
+  };
 }
 
-function isValidRecordId(s: unknown): s is string {
-  return typeof s === "string" && /^rec[A-Za-z0-9]{14,}$/.test(s);
-}
-
-function isValidRating(n: unknown): n is number {
-  return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 5;
-}
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const REQUIRED_RATINGS = [
   "profesor_preparado",
@@ -194,113 +166,130 @@ const REQUIRED_RATINGS = [
 
 const MAX_COMENTARIOS_LEN = 2000;
 
-// ============================================================================
-// MAIN
-// ============================================================================
+interface RespuestasBody {
+  profesor_preparado?: number;
+  contenido_relevante?: number;
+  fomento_participacion?: number;
+  ideas_aplicables?: number;
+  profesor_general?: number;
+  comentarios?: string;
+}
+
+function validateRespuestas(r: RespuestasBody): { ok: true } | { ok: false; error: string } {
+  for (const k of REQUIRED_RATINGS) {
+    const v = (r as any)[k];
+    if (typeof v !== "number" || v < 1 || v > 5 || !Number.isInteger(v)) {
+      return { ok: false, error: `Respuesta inválida o faltante: ${k}` };
+    }
+  }
+  if (r.comentarios !== undefined && r.comentarios !== null) {
+    if (typeof r.comentarios !== "string") {
+      return { ok: false, error: "comentarios debe ser string" };
+    }
+    if (r.comentarios.length > MAX_COMENTARIOS_LEN) {
+      return { ok: false, error: `comentarios excede ${MAX_COMENTARIOS_LEN} caracteres` };
+    }
+  }
+  return { ok: true };
+}
+
+function errorOk(req: Request, message: string, status = 400, code?: string): Response {
+  return jsonResponse(req, { ok: false, error: message, code }, status);
+}
 
 Deno.serve(async (req) => {
-  const optionsRes = handleOptions(req);
-  if (optionsRes) return optionsRes;
-
+  const cors = handleOptions(req);
+  if (cors) return cors;
   if (req.method !== "POST") {
-    return errorResponse(req, "Method not allowed", 405);
+    return errorOk(req, "Use POST", 405, "method_not_allowed");
   }
+  const span = startSpan("submit-evaluacion");
 
   try {
-    // ── Auth ─────────────────────────────────────────────────────────
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return errorResponse(req, "Missing Authorization header", 401, "no_auth");
-    }
-    const jwt = authHeader.slice("Bearer ".length);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseAuth = createClient(supabaseUrl, anonKey);
-    const { data: userData, error: authErr } = await supabaseAuth.auth.getUser(jwt);
-    if (authErr || !userData.user) {
-      return errorResponse(req, "Invalid JWT", 401, "invalid_jwt");
-    }
-    const authUserId = userData.user.id;
-    const email = userData.user.email ?? "";
-
-    // ── Parse body ───────────────────────────────────────────────────
-    const body: Body = await req.json().catch(() => ({}));
-    const leccionId = body.leccionId;
-    const inscripcionId = body.inscripcionId;
-    const respuestas = body.respuestas ?? {};
-
-    if (!isValidRecordId(leccionId)) {
-      return errorResponse(req, "leccionId inválido", 400, "invalid_leccion_id");
-    }
-    if (inscripcionId !== undefined && !isValidRecordId(inscripcionId)) {
-      return errorResponse(req, "inscripcionId inválido", 400, "invalid_inscripcion_id");
-    }
-
-    // Validar las 5 ratings obligatorias
-    for (const key of REQUIRED_RATINGS) {
-      if (!isValidRating(respuestas[key])) {
-        return errorResponse(req, `respuesta inválida para ${key} (debe ser 1-5)`, 400, "invalid_rating");
-      }
-    }
-
-    const comentariosRaw = (respuestas.comentarios ?? "").trim().slice(0, MAX_COMENTARIOS_LEN);
-
-    // ── Resolver Persona Portal del usuario autenticado ──────────────
-    let personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-      filterByFormula: `{${FIELDS.PERSONAS_PORTAL.AUTH_USER_ID}} = '${authUserId.replace(/'/g, "\\'")}'`,
-      fields: [FIELDS.PERSONAS_PORTAL.AUTH_USER_ID],
-      pageSize: 1,
-    });
-    if (personasPortal.length === 0 && email) {
-      personasPortal = await listRecords(BASES.PORTAL, TABLES.PERSONAS_PORTAL, {
-        filterByFormula: `LOWER(TRIM({${FIELDS.PERSONAS_PORTAL.EMAIL}})) = '${email.toLowerCase().replace(/'/g, "\\'")}'`,
-        fields: [FIELDS.PERSONAS_PORTAL.EMAIL],
-        pageSize: 1,
-      });
-    }
-    if (personasPortal.length === 0) {
-      return errorResponse(req, "No encontramos tu perfil. Cierra sesión y vuelve a entrar.", 404, "no_persona");
-    }
-    const personaPortalId = personasPortal[0].id;
-
-    // ── Idempotencia: ya hay evaluación de esta lección por esta persona? ───
-    const existing = await listRecords(BASES.PORTAL, TABLES.EVALUACIONES, {
-      filterByFormula: `AND(SEARCH('${leccionId}', ARRAYJOIN({${FIELDS.EVALUACIONES.LECCION}})), SEARCH('${personaPortalId}', ARRAYJOIN({${FIELDS.EVALUACIONES.PERSONA_PORTAL}})))`,
-      fields: [FIELDS.EVALUACIONES.ID],
-      pageSize: 1,
-    });
-    if (existing.length > 0) {
-      return jsonResponse(req, { ok: true, evaluacionId: existing[0].id, alreadySubmitted: true });
-    }
-
-    // ── Crear el record ──────────────────────────────────────────────
-    const nowISO = new Date().toISOString();
-    const idValue = `${leccionId}-${personaPortalId}-${Date.now()}`;
-
-    const fields: Record<string, unknown> = {
-      [FIELDS.EVALUACIONES.ID]: idValue,
-      [FIELDS.EVALUACIONES.LECCION]: [leccionId],
-      [FIELDS.EVALUACIONES.PERSONA_PORTAL]: [personaPortalId],
-      [FIELDS.EVALUACIONES.PROFESOR_PREPARADO]: respuestas.profesor_preparado,
-      [FIELDS.EVALUACIONES.CONTENIDO_RELEVANTE]: respuestas.contenido_relevante,
-      [FIELDS.EVALUACIONES.FOMENTO_PARTICIPACION]: respuestas.fomento_participacion,
-      [FIELDS.EVALUACIONES.IDEAS_APLICABLES]: respuestas.ideas_aplicables,
-      [FIELDS.EVALUACIONES.PROFESOR_GENERAL]: respuestas.profesor_general,
-      [FIELDS.EVALUACIONES.COMENTARIOS]: comentariosRaw,
-      [FIELDS.EVALUACIONES.RESPUESTAS_JSON]: JSON.stringify(respuestas),
-      [FIELDS.EVALUACIONES.COMPLETADO_EN]: nowISO,
+    const body = await req.json().catch(() => ({})) as {
+      leccionId?: string;
+      inscripcionId?: string;
+      respuestas?: RespuestasBody;
     };
-    if (inscripcionId) {
-      fields[FIELDS.EVALUACIONES.INSCRIPCION] = [inscripcionId];
+    const { leccionId, inscripcionId, respuestas } = body;
+
+    if (!leccionId || !UUID_RE.test(leccionId)) {
+      return errorOk(req, "leccionId inválido", 400, "invalid_leccion_id");
+    }
+    if (!inscripcionId || !UUID_RE.test(inscripcionId)) {
+      return errorOk(req, "inscripcionId inválido", 400, "invalid_inscripcion_id");
+    }
+    if (!respuestas) {
+      return errorOk(req, "respuestas requerido", 400, "missing_respuestas");
+    }
+    const valid = validateRespuestas(respuestas);
+    if (!valid.ok) {
+      return errorOk(req, valid.error, 400, "invalid_respuestas");
     }
 
-    const created = await createRecord(BASES.PORTAL, TABLES.EVALUACIONES, fields);
+    const persona = await requireUser(req);
+    const db = getDb();
 
+    // Validar ownership: la inscripción debe ser del user
+    const { data: insc, error: iErr } = await db
+      .from("inscripciones").select("id, persona_id")
+      .eq("id", inscripcionId).maybeSingle();
+    if (iErr) return errorOk(req, iErr.message, 500, "db_error");
+    if (!insc) return errorOk(req, "Inscripción no encontrada", 404, "inscripcion_not_found");
+    if (insc.persona_id !== persona.id) {
+      return errorOk(req, "Esta inscripción no es tuya", 403, "not_owner");
+    }
+
+    // Validar que la lección existe
+    const { data: lec, error: lErr } = await db
+      .from("lecciones").select("id, tipo, etiqueta")
+      .eq("id", leccionId).maybeSingle();
+    if (lErr) return errorOk(req, lErr.message, 500, "db_error");
+    if (!lec) return errorOk(req, "Lección no encontrada", 404, "leccion_not_found");
+
+    // Idempotencia: si ya existe evaluación para esta (lección + inscripción), devolver el ID existente
+    const { data: existing, error: eErr } = await db
+      .from("evaluaciones_sesion")
+      .select("id")
+      .eq("leccion_id", leccionId)
+      .eq("inscripcion_id", inscripcionId)
+      .limit(1).maybeSingle();
+    if (eErr) return errorOk(req, eErr.message, 500, "db_error");
+    if (existing) {
+      span.end({ persona: persona.id, evaluacion: existing.id, idempotent: true });
+      return jsonResponse(req, { ok: true, evaluacionId: existing.id, alreadySubmitted: true });
+    }
+
+    // Insertar
+    const completadoEn = new Date().toISOString();
+    const comentarios = (respuestas.comentarios ?? "").trim();
+    const insertPayload: Record<string, unknown> = {
+      inscripcion_id: inscripcionId,
+      leccion_id: leccionId,
+      respuestas: respuestas,
+      profesor_preparado: respuestas.profesor_preparado,
+      fomento_participacion: respuestas.fomento_participacion,
+      ideas_aplicables: respuestas.ideas_aplicables,
+      profesor_general: respuestas.profesor_general,
+      resumen: comentarios || null,
+      completado_en: completadoEn,
+    };
+
+    const { data: created, error: cErr } = await db
+      .from("evaluaciones_sesion")
+      .insert(insertPayload)
+      .select("id").single();
+    if (cErr) return errorOk(req, cErr.message, 500, "db_error");
+
+    span.end({ persona: persona.id, evaluacion: created.id, inscripcion: inscripcionId });
     return jsonResponse(req, { ok: true, evaluacionId: created.id });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("submit-evaluacion fatal:", msg);
-    return errorResponse(req, msg, 500, "fatal");
+  } catch (err) {
+    span.end({ error: true });
+    if (err instanceof ApiError) {
+      return errorOk(req, err.message, err.status, err.code);
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[submit-evaluacion] unhandled:", msg);
+    return errorOk(req, msg, 500, "internal_error");
   }
 });

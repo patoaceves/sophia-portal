@@ -1,17 +1,16 @@
-// SOPHIA Portal · proxy-inscripcion
+// SOPHIA Portal · proxy-inscripcion (Postgres)
 //
-// Proxy server-side para el webhook de Airtable Automations.
-// El browser NO puede llamar hooks.airtable.com directamente porque
-// Airtable no incluye headers CORS — este edge function actúa de puente.
+// Crea invitaciones directamente en `invitaciones` Postgres en vez de
+// reenviar a webhook de Airtable Automations. Para cada participante:
+// - crea/encuentra persona por email (sin auth_user_id, queda pendiente de login)
+// - crea invitación con token único, estatus='activa', origen='alta-ventas'
 //
 // POST /proxy-inscripcion
 // Body: { token, enviadoEn, cohorteId, cohorteNombre, participantes[] }
-// Response 200: { ok: true, mensaje: "N participantes recibidos" }
-//
-// Seguridad: valida IMPORT_PUBLIC_TOKEN antes de reenviar.
-// No requiere JWT de Supabase Auth (equipo de ventas no tiene login).
+//   participantes[]: { nombre, apellidos, email, telefono? }
+// Response 200: { ok: true, mensaje, invitaciones: [{email, token}], errors: [] }
 
-const AIRTABLE_WEBHOOK_URL = Deno.env.get("AIRTABLE_INSCRIPCION_WEBHOOK") ?? "";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 function corsHeaders(): Record<string, string> {
   return {
@@ -23,10 +22,35 @@ function corsHeaders(): Record<string, string> {
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders(), "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
+}
+
+let _db: SupabaseClient | null = null;
+function getDb(): SupabaseClient {
+  if (_db) return _db;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing SUPABASE env");
+  _db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "public" } });
+  return _db;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function newInvitationToken(): string {
+  const hex = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+  return `inv_${hex}`;
+}
+
+function normalizeEmail(s: string): string { return s.trim().toLowerCase(); }
+
+interface Participante {
+  nombre?: string;
+  apellidos?: string;
+  email?: string;
+  telefono?: string;
+  telefonoPais?: string;
+  telefonoNumero?: string;
 }
 
 Deno.serve(async (req) => {
@@ -34,61 +58,105 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return jsonResponse({ ok: false, error: "Método no permitido" }, 405);
 
   try {
-    // ── 1. Leer y parsear body ──────────────────────────────────────────
-    let body: Record<string, unknown>;
-    try {
-      body = await req.json();
-    } catch {
-      return jsonResponse({ ok: false, error: "Body inválido – se esperaba JSON" }, 400);
+    let body: any;
+    try { body = await req.json(); } catch {
+      return jsonResponse({ ok: false, error: "Body inválido — se esperaba JSON" }, 400);
     }
 
-    // ── 2. Validar token estático ───────────────────────────────────────
     const expectedToken = Deno.env.get("IMPORT_PUBLIC_TOKEN");
     if (!expectedToken) {
-      console.error("IMPORT_PUBLIC_TOKEN no configurado en Supabase secrets");
       return jsonResponse({ ok: false, error: "Configuración incompleta del servidor" }, 500);
     }
     if (body.token !== expectedToken) {
-      console.warn("proxy-inscripcion: token inválido recibido");
       return jsonResponse({ ok: false, error: "Token inválido" }, 401);
     }
 
-    // ── 3. Validar que vengan participantes ────────────────────────────
-    const participantes = body.participantes;
-    if (!Array.isArray(participantes) || participantes.length === 0) {
+    const cohorteId = String(body.cohorteId ?? "");
+    if (!UUID_RE.test(cohorteId)) {
+      return jsonResponse({ ok: false, error: "cohorteId inválido" }, 400);
+    }
+
+    const participantes: Participante[] = Array.isArray(body.participantes) ? body.participantes : [];
+    if (participantes.length === 0) {
       return jsonResponse({ ok: false, error: "No se recibieron participantes" }, 400);
     }
     if (participantes.length > 15) {
       return jsonResponse({ ok: false, error: "Máximo 15 participantes por envío" }, 400);
     }
 
-    // ── 4. Validar que exista webhook destino ──────────────────────────
-    if (!AIRTABLE_WEBHOOK_URL) {
-      console.error("AIRTABLE_INSCRIPCION_WEBHOOK no configurado en Supabase secrets");
-      return jsonResponse({ ok: false, error: "Webhook de destino no configurado" }, 500);
+    const db = getDb();
+
+    // Verificar que la cohorte existe
+    const { data: cohorte, error: cErr } = await db
+      .from("cohortes").select("id, curso_id, estatus").eq("id", cohorteId).maybeSingle();
+    if (cErr) return jsonResponse({ ok: false, error: cErr.message }, 500);
+    if (!cohorte) return jsonResponse({ ok: false, error: "Cohorte no encontrada" }, 404);
+
+    const invitaciones: Array<{ email: string; token: string }> = [];
+    const errors: string[] = [];
+
+    for (const p of participantes) {
+      const email = normalizeEmail(String(p.email ?? ""));
+      const nombre = String(p.nombre ?? "").trim();
+      const apellidos = String(p.apellidos ?? "").trim();
+      if (!email || !email.includes("@")) {
+        errors.push(`Email inválido: ${p.email ?? "(vacío)"}`);
+        continue;
+      }
+
+      // 1) Buscar/crear persona por email
+      const { data: existingPersona } = await db
+        .from("personas").select("id").eq("email", email).maybeSingle();
+
+      let personaId: string | null = existingPersona?.id ?? null;
+      if (!personaId) {
+        const { data: created, error: pErr } = await db.from("personas").insert({
+          email,
+          nombre: nombre || "",
+          apellidos: apellidos || "",
+          rol: "participante",
+          estatus: "activo",
+          origen: "manual",
+          telefono_numero: p.telefonoNumero ?? p.telefono ?? null,
+          telefono_pais: p.telefonoPais ?? null,
+          perfil_completado: false,
+        }).select("id").single();
+        if (pErr) {
+          errors.push(`No se pudo crear persona ${email}: ${pErr.message}`);
+          continue;
+        }
+        personaId = created.id;
+      }
+
+      // 2) ¿Ya existe invitación activa para esta (cohorte+email)?
+      const { data: existingInv } = await db
+        .from("invitaciones").select("id, token, estatus")
+        .eq("cohorte_id", cohorteId).eq("email_destinatario", email)
+        .in("estatus", ["activa", "pendiente"])
+        .limit(1).maybeSingle();
+      if (existingInv) {
+        invitaciones.push({ email, token: existingInv.token });
+        continue;
+      }
+
+      // 3) Crear invitación nueva
+      const token = newInvitationToken();
+      const { error: iErr } = await db.from("invitaciones").insert({
+        token, cohorte_id: cohorteId, email_destinatario: email,
+        origen: "alta-ventas", estatus: "activa", persona_id: personaId,
+      });
+      if (iErr) {
+        errors.push(`No se pudo crear invitación para ${email}: ${iErr.message}`);
+        continue;
+      }
+      invitaciones.push({ email, token });
     }
 
-    // ── 5. Reenviar a Airtable (server-side, sin CORS issues) ──────────
-    const forwardRes = await fetch(AIRTABLE_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (!forwardRes.ok) {
-      const errText = await forwardRes.text().catch(() => "(sin respuesta)");
-      console.error(`proxy-inscripcion: Airtable devolvió ${forwardRes.status}: ${errText}`);
-      return jsonResponse(
-        { ok: false, error: `Error del servidor de destino (${forwardRes.status})` },
-        502,
-      );
-    }
-
-    const count = participantes.length;
-    console.log(`proxy-inscripcion: ${count} participante(s) enviados a Airtable OK`);
+    const count = invitaciones.length;
     return jsonResponse({
       ok: true,
-      mensaje: `${count} participante${count !== 1 ? "s" : ""} recibido${count !== 1 ? "s" : ""} correctamente`,
+      mensaje: `${count} invitación${count !== 1 ? "es" : ""} creada${count !== 1 ? "s" : ""}`,
+      invitaciones, errors,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
