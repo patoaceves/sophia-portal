@@ -213,23 +213,61 @@ Deno.serve(async (req) => {
       throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
     }
 
-    // 2. Posts del curso (activos + eliminados, para mostrar tombstones)
-    //    join a personas para obtener info del autor en una sola query
-    const { data: rawPosts, error: pErr } = await db
-      .from("posts")
-      .select(`
-        id, contenido, fecha, estatus, post_padre_id,
-        adjunto_url, adjunto_tipo, adjunto_nombre,
-        autor:personas!autor_id (
-          id, nombre, apellidos, avatar_url, rol
-        )
-      `)
-      .eq("curso_id", cursoId)
-      .in("estatus", ["activo", "eliminado"])
-      .order("fecha", { ascending: false });
-    if (pErr) throw new ApiError(500, "db_error", pErr.message);
+    // Paginación: cursor por `fecha` sobre los posts TOP-LEVEL.
+    //   ?limit=<n>   (default 50, máx 100)
+    //   ?before=<ISO> (trae top-level con fecha < cursor → página más vieja)
+    const PAGE_DEFAULT = 50;
+    const PAGE_MAX = 100;
+    let limit = parseInt(url.searchParams.get("limit") ?? "", 10);
+    if (!Number.isFinite(limit) || limit <= 0) limit = PAGE_DEFAULT;
+    limit = Math.min(limit, PAGE_MAX);
+    const before = url.searchParams.get("before")?.trim() || null;
 
-    const posts = rawPosts ?? [];
+    const SELECT_POST = `
+      id, contenido, fecha, estatus, post_padre_id,
+      adjunto_url, adjunto_tipo, adjunto_nombre,
+      autor:personas!autor_id (
+        id, nombre, apellidos, avatar_url, rol
+      )
+    `;
+
+    // 2a. Página de posts TOP-LEVEL (post_padre_id IS NULL), fecha desc.
+    //     Pedimos limit+1 para saber si hay más páginas (evita un count extra).
+    let topQuery = db
+      .from("posts")
+      .select(SELECT_POST)
+      .eq("curso_id", cursoId)
+      .is("post_padre_id", null)
+      .in("estatus", ["activo", "eliminado"])
+      .order("fecha", { ascending: false })
+      .limit(limit + 1);
+    if (before) topQuery = topQuery.lt("fecha", before);
+
+    const { data: topRaw, error: tErr } = await topQuery;
+    if (tErr) throw new ApiError(500, "db_error", tErr.message);
+
+    const topAll = topRaw ?? [];
+    const hasMore = topAll.length > limit;
+    const topPage = topAll.slice(0, limit);
+    const nextCursor = topPage.length > 0
+      ? (topPage[topPage.length - 1].fecha ?? null)
+      : null;
+
+    // 2b. Comentarios SOLO de los posts top-level de esta página.
+    const topIds = topPage.map((p: any) => p.id);
+    let comentariosRaw: any[] = [];
+    if (topIds.length > 0) {
+      const { data: cRaw, error: cErr } = await db
+        .from("posts")
+        .select(SELECT_POST)
+        .eq("curso_id", cursoId)
+        .in("post_padre_id", topIds)
+        .in("estatus", ["activo", "eliminado"]);
+      if (cErr) throw new ApiError(500, "db_error", cErr.message);
+      comentariosRaw = cRaw ?? [];
+    }
+
+    const posts = [...topPage, ...comentariosRaw];
 
     // 3. Mapear a la forma del frontend
     type Mapped = {
@@ -318,9 +356,11 @@ Deno.serve(async (req) => {
       }))
       .filter((p) => !p.eliminado || p.comentarios.length > 0);
 
-    span.end({ persona: persona.id, curso: cursoId, posts: out.length });
+    span.end({ persona: persona.id, curso: cursoId, posts: out.length, hasMore });
     return jsonResponse(req, {
       posts: out,
+      hasMore,
+      nextCursor,
       yo: {
         personaPortalId: persona.id,
         nombre: persona.nombre,

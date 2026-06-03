@@ -2,7 +2,7 @@
 //
 // Wizard reflexivo para actividades en clase tipo `quiz` (ej. Gnóthi Seautón).
 // A diferencia de las autoevaluaciones, NO puntúa: solo registra y guarda las
-// respuestas del alumno en la tabla Airtable "Actividades en Clase".
+// respuestas del alumno en Postgres (tabla respuestas_quiz) vía submit-quiz.
 //
 // Flujo:
 //   intro (-1) → preguntas (0..n) → submit → pantalla de resumen
@@ -177,11 +177,13 @@ function renderPregunta(state, idx) {
   let body = "";
   if (p.tipo === "choice") {
     body = renderChoiceList(p, value);
+  } else if (p.tipo === "escala") {
+    body = renderEscala(p, value);
   } else if (p.tipo === "texto") {
     body = renderTextArea(p, value);
   }
 
-  // Botón "Siguiente / Enviar": para choice aparece al responder; para
+  // Botón "Siguiente / Enviar": para choice/escala aparece al responder; para
   // texto siempre visible (porque puede ser opcional o requerir confirmar).
   const showNext = p.tipo === "texto" || isAnswered || !p.obligatoria;
   const nextLabel = isLast ? "Completar" : "Siguiente";
@@ -233,6 +235,35 @@ function renderChoiceList(p, value) {
   return `<div class="quiz-choice-list ${isBinary ? "quiz-choice-list--binary" : ""}">${opts}</div>`;
 }
 
+// Pregunta tipo escala Likert 1–5 con las "bolitas" (mismas clases CSS que la
+// autoevaluación: .dot-scale / .dot-option / .dot-option__circle--N). Guarda
+// el valor numérico 1–5. parseInt tolera respuestas previas tipo "2 · ...".
+function renderEscala(p, value) {
+  const labels = p.escalaLabels || { min: "Totalmente en desacuerdo", max: "Totalmente de acuerdo" };
+  const sel = parseInt(value, 10);
+  const dots = [1, 2, 3, 4, 5].map((v) => {
+    const active = sel === v;
+    return `
+      <button
+        class="dot-option ${active ? "is-active" : ""}"
+        data-quiz-action="escala"
+        data-value="${v}"
+        type="button"
+        aria-label="${v} - ${v === 1 ? escapeHtml(labels.min) : v === 5 ? escapeHtml(labels.max) : ""}"
+      >
+        <span class="dot-option__circle dot-option__circle--${v}"></span>
+      </button>
+    `;
+  }).join("");
+  return `
+    <div class="dot-scale">
+      <span class="dot-scale__label dot-scale__label--min">${escapeHtml(labels.min)}</span>
+      <div class="dot-scale__dots">${dots}</div>
+      <span class="dot-scale__label dot-scale__label--max">${escapeHtml(labels.max)}</span>
+    </div>
+  `;
+}
+
 function renderTextArea(p, value) {
   return `
     <div class="eval-textarea-wrap">
@@ -257,6 +288,9 @@ function renderTextArea(p, value) {
  *     correctas/incorrectas + botón para reintentar.
  */
 function renderResumen(state) {
+  if (hasAnalisis(state.def)) {
+    return renderResumenAnalisis(state);
+  }
   if (hasScoring(state.def)) {
     return renderResumenConScore(state);
   }
@@ -392,6 +426,76 @@ function hasScoring(def) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Análisis por puntaje (escala Likert) para la actividad previa
+// ─────────────────────────────────────────────────────────────────────
+
+function hasAnalisis(def) {
+  return Array.isArray(def?.analisis) && def.analisis.length > 0;
+}
+
+// Suma el puntaje de las preguntas tipo escala (1–5 c/u). parseInt tolera
+// tanto valores numéricos como respuestas previas tipo "2 · En desacuerdo".
+function computeEscalaTotal(def, respuestas) {
+  const escalaQs = (def.preguntas || []).filter((p) => p.tipo === "escala");
+  let total = 0;
+  let answered = 0;
+  for (const p of escalaQs) {
+    const n = parseInt(respuestas[p.id], 10);
+    if (Number.isInteger(n) && n >= 1 && n <= 5) {
+      total += n;
+      answered += 1;
+    }
+  }
+  return { total, max: escalaQs.length * 5, count: escalaQs.length, answered };
+}
+
+// Banda de análisis a partir del total. `def.analisis` es un arreglo de
+// { minTotal, label, texto, color? }; se elige la primera (de mayor a menor
+// minTotal) cuyo umbral se alcanza.
+function bandaForAnalisis(def, total) {
+  const bands = [...(def.analisis || [])].sort((a, b) => b.minTotal - a.minTotal);
+  for (const b of bands) {
+    if (total >= b.minTotal) return b;
+  }
+  return bands[bands.length - 1] || null;
+}
+
+// Pantalla final de la actividad previa: NO lista las respuestas (no es un
+// quiz). Muestra el puntaje y un análisis breve según la banda.
+function renderResumenAnalisis(state) {
+  const def = state.def;
+  const titulo = def.doneTitle || "Diagnóstico completado";
+  const lead = def.doneLead || "Gracias por tu honestidad.";
+  const { total, max } = computeEscalaTotal(def, state.respuestas);
+  const banda = bandaForAnalisis(def, total);
+  const color = banda?.color || "var(--color-accent, #2E7D32)";
+
+  return `
+    <div class="quiz-resumen quiz-resumen--reflexivo">
+      <div class="quiz-resumen__head">
+        <div class="quiz-resumen__icon">${icon("check")}</div>
+        <h2 class="quiz-resumen__title">${escapeHtml(titulo)}</h2>
+        <p class="quiz-resumen__lead">${escapeHtml(lead)}</p>
+      </div>
+      <div style="margin-top:var(--s-4, 16px); padding:var(--s-5, 20px); border-radius:12px; background:var(--color-surface-2, #faf7f2); border-left:4px solid ${color};">
+        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+          <span style="font-size:2.25rem; font-weight:700; color:${color}; line-height:1;">${total}</span>
+          <span style="color:var(--color-text-muted, #8a8478); font-size:0.95rem;">de ${max}</span>
+          ${banda ? `<span style="margin-left:auto; font-weight:600; color:${color};">${escapeHtml(banda.label)}</span>` : ""}
+        </div>
+        ${banda ? `<p style="margin:0; color:var(--color-text, #2b2b2b); line-height:1.55;">${escapeHtml(banda.texto)}</p>` : ""}
+      </div>
+      <div class="quiz-resumen__actions">
+        <button class="btn btn-secondary" data-quiz-action="retry" type="button">
+          ${icon("refresh")}
+          <span>Volver a contestar</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Handlers
 // ─────────────────────────────────────────────────────────────────────
 
@@ -412,7 +516,7 @@ function clickHandler(state, e) {
 
   if (action === "retry") {
     // Reintentar quiz scored: limpia respuestas y vuelve a la intro.
-    // No borramos el record en Airtable — submit-quiz lo sobrescribe (idempotente).
+    // No borramos el registro en la base de datos; submit-quiz lo sobrescribe (idempotente).
     state.respuestas = {};
     state.currentIndex = -1;
     state.submitted = false;
@@ -439,6 +543,33 @@ function clickHandler(state, e) {
       setTimeout(() => render(state), 220);
     } else {
       // Auto-advance
+      setTimeout(() => {
+        state.currentIndex += 1;
+        persistState(state);
+        render(state);
+      }, 300);
+    }
+    return;
+  }
+
+  if (action === "escala") {
+    const v = parseInt(btn.getAttribute("data-value"), 10);
+    // Guardamos como string: submit-quiz valida que cada respuesta sea string,
+    // y todo el cálculo de puntaje usa parseInt, así que "4" funciona igual.
+    state.respuestas[p.id] = String(v);
+    persistState(state);
+
+    // Feedback inmediato
+    const allDots = btn.parentElement?.querySelectorAll(".dot-option");
+    if (allDots) {
+      allDots.forEach((d) => d.classList.remove("is-active"));
+      btn.classList.add("is-active");
+    }
+
+    const isLast = idx === state.preguntas.length - 1;
+    if (isLast) {
+      setTimeout(() => render(state), 220);
+    } else {
       setTimeout(() => {
         state.currentIndex += 1;
         persistState(state);
@@ -533,6 +664,10 @@ async function submit(state) {
 function isAnswerValid(pregunta, value) {
   if (pregunta.tipo === "choice") {
     return typeof value === "string" && (pregunta.opciones || []).includes(value);
+  }
+  if (pregunta.tipo === "escala") {
+    const n = parseInt(value, 10);
+    return Number.isInteger(n) && n >= 1 && n <= 5;
   }
   if (pregunta.tipo === "texto") {
     return typeof value === "string" && value.trim().length > 0;

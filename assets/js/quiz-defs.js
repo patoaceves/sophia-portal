@@ -1,7 +1,7 @@
 // SOPHIA Portal · Definiciones de quizzes (actividades en clase)
 //
 // Cada quiz es una actividad reflexiva tipo wizard. Las respuestas se guardan
-// en la tabla Airtable "Actividades en Clase".
+// en Postgres (tabla respuestas_quiz) vía submit-quiz.
 //
 // La lección tipo `quiz` referencia un quiz por su clave (en Url_Externa).
 // Para agregar una actividad nueva: añade una entrada a QUIZZES y crea la
@@ -661,66 +661,38 @@ export const QUIZZES = {
     introEyebrow: "Actividad previa · Bienestar Emocional",
     introTitle: "Test de diagnóstico breve: Bienestar Emocional",
     introLead: [
-      "Antes de la sesión en vivo, tómate un par de minutos para este breve autodiagnóstico. Para cada enunciado, indica qué tan de acuerdo estás en una escala del 1 al 5.",
+      "Antes de la sesión en vivo, tómate un par de minutos para este breve autodiagnóstico. Para cada enunciado, marca qué tan de acuerdo estás en una escala del 1 al 5.",
       "No hay respuestas correctas ni incorrectas: es una foto de tu momento actual. Tus respuestas se guardan y son confidenciales; las retomaremos en la sesión.",
     ],
     doneTitle: "¡Listo! Diagnóstico completado",
-    doneLead: "Gracias por tu honestidad. Tu autodiagnóstico quedó registrado y será nuestro punto de partida en la sesión de Bienestar Emocional.",
+    doneLead: "Gracias por tu honestidad. Esto es solo una foto de tu momento actual y será nuestro punto de partida en la sesión de Bienestar Emocional.",
     preguntas: [
       {
         id: "conciencia_emocional",
-        tipo: "choice",
+        tipo: "escala",
         eyebrow: "Conciencia y Manejo Emocional",
-        texto: "¿Qué tan de acuerdo estás? \u201cLogro identificar qué emoción estoy sintiendo (tristeza, enojo, frustración) en el momento en que ocurre\u201d.",
-        opciones: [
-          "1 · Totalmente en desacuerdo",
-          "2 · En desacuerdo",
-          "3 · Neutral",
-          "4 · De acuerdo",
-          "5 · Totalmente de acuerdo",
-        ],
+        texto: "Logro identificar qué emoción estoy sintiendo (tristeza, enojo, frustración) en el momento en que ocurre.",
         obligatoria: true,
       },
       {
         id: "autocuidado",
-        tipo: "choice",
+        tipo: "escala",
         eyebrow: "Autocuidado y Estilo de Vida",
-        texto: "¿Qué tan de acuerdo estás? \u201cConsigo desconectarme de mis obligaciones diarias (trabajo, pendientes) para disfrutar tiempo para mí\u201d.",
-        opciones: [
-          "1 · Totalmente en desacuerdo",
-          "2 · En desacuerdo",
-          "3 · Neutral",
-          "4 · De acuerdo",
-          "5 · Totalmente de acuerdo",
-        ],
+        texto: "Consigo desconectarme de mis obligaciones diarias (trabajo, pendientes) para disfrutar tiempo para mí.",
         obligatoria: true,
       },
       {
         id: "relaciones_entorno",
-        tipo: "choice",
+        tipo: "escala",
         eyebrow: "Relaciones y Entorno",
-        texto: "¿Qué tan de acuerdo estás? \u201cSiento que cuento con el apoyo emocional de amigos o familiares cuando lo necesito\u201d.",
-        opciones: [
-          "1 · Totalmente en desacuerdo",
-          "2 · En desacuerdo",
-          "3 · Neutral",
-          "4 · De acuerdo",
-          "5 · Totalmente de acuerdo",
-        ],
+        texto: "Siento que cuento con el apoyo emocional de amigos o familiares cuando lo necesito.",
         obligatoria: true,
       },
       {
         id: "proposito_mentalidad",
-        tipo: "choice",
+        tipo: "escala",
         eyebrow: "Propósito y Mentalidad",
-        texto: "¿Qué tan de acuerdo estás? \u201cEncuentro satisfacción o sentido a las actividades que realizo durante el día\u201d.",
-        opciones: [
-          "1 · Totalmente en desacuerdo",
-          "2 · En desacuerdo",
-          "3 · Neutral",
-          "4 · De acuerdo",
-          "5 · Totalmente de acuerdo",
-        ],
+        texto: "Encuentro satisfacción o sentido a las actividades que realizo durante el día.",
         obligatoria: true,
       },
       {
@@ -732,7 +704,35 @@ export const QUIZZES = {
         obligatoria: false,
       },
     ],
-  },
+    // Análisis por puntaje: 4 enunciados Likert (1-5) = total 4 a 20.
+    // Se muestra al final, sin listar las respuestas.
+    analisis: [
+      {
+        minTotal: 17,
+        label: "Bienestar emocional sólido",
+        color: "#2E7D32",
+        texto: "Tu autopercepción de bienestar emocional es alta en los cuatro frentes: reconoces lo que sientes, te das tiempo para ti, te sientes acompañado y encuentras sentido en tu día. Llega a la sesión a profundizar y a sostener lo que ya funciona.",
+      },
+      {
+        minTotal: 13,
+        label: "Buen punto de partida",
+        color: "#1565C0",
+        texto: "Tienes una base emocional favorable, con algún frente por reforzar. Fíjate en cuál de las cuatro áreas (conciencia, autocuidado, vínculos, propósito) puntuó más bajo: ahí está tu mayor oportunidad para la sesión.",
+      },
+      {
+        minTotal: 9,
+        label: "Área de atención",
+        color: "#C88D2D",
+        texto: "Aparecen señales de desgaste en varios frentes de tu bienestar emocional. No es un diagnóstico, es una foto de hoy. Identifica el área más floja y llévala a la sesión para trabajarla con herramientas concretas.",
+      },
+      {
+        minTotal: 4,
+        label: "Área vulnerable",
+        color: "#B00020",
+        texto: "Tu bienestar emocional está pidiendo atención en casi todos los frentes. Date permiso de priorizarte. Llega a la sesión con apertura: veremos primeros pasos pequeños y sostenibles, y considera apoyarte en alguien de confianza.",
+      },
+    ],
+  }
 };
 
 export function getQuizDef(key) {

@@ -222,12 +222,16 @@ export const api = {
   // ── Foro ────────────────────────────────────────────────────────────────
 
   /**
-   * GET /get-foro-posts?cursoId=recXXX
-   * → { posts: [...], yo: { personaPortalId, nombre, apellidos, iniciales, esAdmin } }
-   * NO se cachea (el feed cambia constantemente).
+   * GET /get-foro-posts?cursoId=<uuid>[&limit=<n>][&before=<ISO>]
+   * → { posts: [...], hasMore, nextCursor, yo: {...} }
+   * Paginación: top-level por página (default 50). `before` = nextCursor de la
+   * página anterior para traer posts más viejos. NO se cachea (el feed cambia).
    */
-  async foroPosts(cursoId) {
-    const { data } = await callEdge("get-foro-posts", { query: { cursoId } });
+  async foroPosts(cursoId, { limit, before } = {}) {
+    const query = { cursoId };
+    if (limit) query.limit = String(limit);
+    if (before) query.before = before;
+    const { data } = await callEdge("get-foro-posts", { query });
     return data;
   },
 

@@ -131,6 +131,12 @@ function renderFeed(container, cursoId, data) {
            </div>`
         : posts.map((p) => renderPost(p, yo)).join("")}
     </div>
+    ${data.hasMore ? `
+      <div class="foro-load-more" data-foro-load-more style="display:flex; justify-content:center; margin-top:var(--s-4, 16px);">
+        <button class="btn btn-secondary" data-action="foro-load-more" data-before="${escapeHtml(data.nextCursor || "")}" type="button">
+          ${icon("refresh")}<span>Cargar publicaciones anteriores</span>
+        </button>
+      </div>` : ""}
   `;
 
   // Top composer (pill compartido con /resumen)
@@ -601,6 +607,36 @@ function wireFeedActions(root, cursoId, yo) {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
     const action = btn.dataset.action;
+
+    if (action === "foro-load-more") {
+      const before = btn.dataset.before;
+      if (!before) return;
+      btn.disabled = true;
+      const labelEl = btn.querySelector("span");
+      const prevLabel = labelEl ? labelEl.textContent : "";
+      if (labelEl) labelEl.textContent = "Cargando…";
+      try {
+        const data = await api.foroPosts(cursoId, { before });
+        const older = (data?.posts ?? []).filter((p) => !p.eliminado);
+        const feed = root.querySelector("#foroFeed");
+        if (feed && older.length) {
+          feed.insertAdjacentHTML("beforeend", older.map((p) => renderPost(p, yo)).join(""));
+        }
+        if (data?.hasMore && data?.nextCursor) {
+          btn.dataset.before = data.nextCursor;
+          btn.disabled = false;
+          if (labelEl) labelEl.textContent = prevLabel;
+        } else {
+          const wrap = btn.closest("[data-foro-load-more]");
+          if (wrap) wrap.remove(); else btn.remove();
+        }
+      } catch (err) {
+        console.error("foro load-more failed:", err);
+        btn.disabled = false;
+        if (labelEl) labelEl.textContent = prevLabel;
+      }
+      return;
+    }
 
     if (action === "open-lightbox") {
       const postId = btn.dataset.postId;

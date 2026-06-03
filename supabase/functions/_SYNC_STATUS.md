@@ -26,6 +26,13 @@ submit-test-felicidad, upload-asset.
 - `submit-tarea` está en v6 (guard de Content-Length + topes de archivos).
 - `get-entrega-tarea` es nueva (lee entregas_tarea; arregla el bug de tareas
   que desaparecían al recargar).
+- `upload-asset` v8: valida `cursoId` como UUID (ya no `rec` de Airtable),
+  guard de Content-Length (413 si > 55 MB) antes de parsear el body, y sube el
+  File directo a Storage (sin copia extra en memoria por arrayBuffer).
+- `get-foro-posts` v11: paginación real. `?limit` (default 50, máx 100) y
+  cursor `?before=<ISO>` sobre los posts top-level; devuelve `hasMore` y
+  `nextCursor`. Trae los comentarios solo de la página. El frontend (foro.js)
+  usa un botón "Cargar más" para traer páginas más viejas.
 - Funciones con `verify_jwt: false` en prod (autenticación propia, no JWT):
   `cleanup-orphan-uploads` (CLEANUP_SECRET), `list-cursos-publico` y
   `proxy-inscripcion` (IMPORT_PUBLIC_TOKEN). Tenerlo en cuenta al redeployar.
@@ -39,6 +46,6 @@ submit-test-felicidad, upload-asset.
 
 ## Nota sobre `_shared`
 
-Las funciones desplegadas son self-contained (helpers inlined). La carpeta
-`_shared/` quedó del diseño anterior y ninguna función de prod importa de ahí.
-Se puede retirar sin afectar nada.
+La carpeta `_shared/` fue **eliminada**: las funciones desplegadas son
+self-contained (helpers inlined) y ninguna importaba de ahí. Quedaba muerta del
+diseño anterior.

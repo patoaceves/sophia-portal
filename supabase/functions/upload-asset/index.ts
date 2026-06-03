@@ -2,7 +2,7 @@
 //
 // Recibe un archivo (multipart/form-data), valida tamaño + MIME según
 // `kind`, y lo sube a Supabase Storage usando la service role key.
-// Devuelve la URL pública lista para guardar en Airtable.
+// Devuelve la URL pública lista para guardar en la base de datos (Postgres).
 //
 // Kinds soportados:
 //   - "avatar"            · foto de perfil (imagen, max 5 MB)
@@ -27,6 +27,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // ============================================================================
 
 const STORAGE_BUCKET = "sophia-portal-uploads";
+
+// UUID v4 (Postgres). Los cursoId ahora son UUID, ya no rec... de Airtable.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Guard de Content-Length: rechazo temprano (413) antes de materializar el body.
+// El máximo real por tipo se valida después con file.size; este tope cubre el
+// caso más grande (video 50 MB) más el overhead del multipart.
+const MAX_REQUEST_BYTES = 55 * 1024 * 1024;   // 55 MB
 
 // Límites por tipo
 const LIMITS = {
@@ -141,6 +149,13 @@ Deno.serve(async (req) => {
     return errorResponse(req, "Method not allowed", 405);
   }
 
+  // Guard de Content-Length: rechazo temprano antes de materializar el body.
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+    const maxMB = Math.round(MAX_REQUEST_BYTES / 1024 / 1024);
+    return errorResponse(req, `La petición excede ${maxMB} MB`, 413, "request_too_large");
+  }
+
   try {
     // ── Auth ─────────────────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
@@ -208,8 +223,8 @@ Deno.serve(async (req) => {
       const ext = extname(file.name) || ".jpg";
       storagePath = `avatars/${crypto.randomUUID()}${ext}`;
     } else if (kind === "foro-attachment") {
-      if (!cursoId || !cursoId.startsWith("rec")) {
-        return errorResponse(req, "Falta cursoId para adjuntos del foro.", 400, "no_curso");
+      if (!cursoId || !UUID_RE.test(cursoId)) {
+        return errorResponse(req, "Falta cursoId válido para adjuntos del foro.", 400, "no_curso");
       }
       const classified = classifyMime(file.type);
       if (!classified) {
@@ -245,13 +260,15 @@ Deno.serve(async (req) => {
     }
 
     // ── Upload con service role ──────────────────────────────────────
+    // Pasamos el File (Blob) directo en vez de file.arrayBuffer() para no
+    // crear una segunda copia completa en memoria. El guard de Content-Length
+    // de arriba acota el peor caso (mismo enfoque que submit-tarea).
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-    const arrayBuffer = await file.arrayBuffer();
 
     const { error: uploadErr } = await supabaseAdmin
       .storage
       .from(STORAGE_BUCKET)
-      .upload(storagePath, arrayBuffer, {
+      .upload(storagePath, file, {
         contentType: file.type,
         cacheControl: "31536000", // 1 año
         upsert: false,

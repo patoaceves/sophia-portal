@@ -161,8 +161,8 @@ function startSpan(name: string, extra: Record<string, unknown> = {}) {
 
 // SOPHIA Portal · HTML sanitizer (server-side, Deno)
 //
-// Defensa contra XSS almacenado en `contenidoHTML` que viene de Airtable.
-// Cualquier persona con acceso a Airtable podría inyectar:
+// Defensa contra XSS almacenado en `contenidoHTML` que viene de la base de datos.
+// Cualquier persona con acceso de escritura al contenido podría inyectar:
 //   <script>steal_jwt()</script>
 //   <img src=x onerror="...">
 //   <a href="javascript:...">
@@ -261,7 +261,7 @@ const DANGEROUS_TAGS = new Set([
  * Sanitiza un string de HTML aplicando una allowlist estricta de tags y
  * atributos. Bloquea event handlers, javascript:, scripts, iframes, etc.
  *
- * @param html · HTML potencialmente inseguro (ej. de Airtable)
+ * @param html · HTML potencialmente inseguro (ej. del contenido editorial)
  * @returns HTML sanitizado y seguro para insertar vía innerHTML
  */
 function sanitizeHtml(html: string): string {
