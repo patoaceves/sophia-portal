@@ -33,6 +33,14 @@ submit-test-felicidad, upload-asset.
   cursor `?before=<ISO>` sobre los posts top-level; devuelve `hasMore` y
   `nextCursor`. Trae los comentarios solo de la página. El frontend (foro.js)
   usa un botón "Cargar más" para traer páginas más viejas.
+- `proxy-inscripcion` v3: paridad completa con la automation de Airtable
+  "Alta participantes desde ventas" (ya retirable). Crea persona (respetando
+  el `rol` del embed) + invitación en Postgres y manda el webhook a GHL con
+  el mismo payload del script viejo (link de invitación, fecha/hora de
+  primera sesión y datos del facilitador desde `cohortes`). GHL no bloquea
+  el alta; fallas van en `warnings`. URL de GHL hardcodeada con override
+  opcional vía secret `GHL_WEBHOOK_URL`. Re-importar a alguien re-manda su
+  link (reusa la invitación activa).
 - Funciones con `verify_jwt: false` en prod (autenticación propia, no JWT):
   `cleanup-orphan-uploads` (CLEANUP_SECRET), `list-cursos-publico` y
   `proxy-inscripcion` (IMPORT_PUBLIC_TOKEN). Tenerlo en cuenta al redeployar.
