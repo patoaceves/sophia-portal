@@ -154,14 +154,29 @@ function startSpan(name: string, extra: Record<string, unknown> = {}) {
 // END OF SHARED HELPERS — handler de la función comienza abajo
 // ════════════════════════════════════════════════════════════════════
 
-// SOPHIA Portal · get-curso (Postgres)
+// SOPHIA Portal · get-curso (Postgres) — v2 RPC
 // Returns full course detail (by slug): modules, lessons, user's enrollment,
 // per-lesson completion state.
+//
+// v2: las 5 queries (curso, inscripción, módulos, lecciones, progresos) y el
+// armado del árbol se colapsaron en UNA llamada a public.rpc_get_curso
+// (migración 20260603_003_rpc_lectura.sql). El RPC ya devuelve el payload
+// final en camelCase; aquí solo se mapean los errores de negocio y se relay.
+//
+// v2 también agrega Cache-Control: private, max-age=60 al 200 (con
+// Vary: Authorization para que el HTTP cache del browser no cruce sesiones).
+// El frontend (api.js) hace fetch con cache:"reload" tras marcar-leccion
+// para no servir progreso stale.
 //
 // GET /get-curso?slug=happiness-workshop
 // Headers: Authorization: Bearer <supabase_jwt>
 //
 // Returns 200: { curso, inscripcion, modulos: [{ id, titulo, orden, lecciones: [...] }] }
+
+const CACHE_HEADERS = {
+  "Cache-Control": "private, max-age=60",
+  Vary: "Origin, Authorization",
+};
 
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
@@ -183,88 +198,28 @@ Deno.serve(async (req) => {
     const persona = await requireUser(req);
     const db = getDb();
 
-    // Una sola llamada: el RPC get_curso_payload regresa curso + inscripción
-    // + módulos + lecciones + progreso en un round-trip (antes 4 queries).
-    // El RPC replica los filtros: lecciones con estatus <> 'archivada',
-    // módulos y lecciones ordenados por orden.
-    const { data: payload, error: rpcErr } = await db
-      .rpc("get_curso_payload", { p_slug: slug, p_persona_id: persona.id });
+    // Una sola llamada: el RPC arma curso + inscripción + módulos→lecciones
+    // (con progreso) + progresoPct en Postgres.
+    const { data, error: rpcErr } = await db.rpc("rpc_get_curso", {
+      p_persona_id: persona.id,
+      p_slug: slug,
+    });
     if (rpcErr) throw new ApiError(500, "db_error", rpcErr.message);
 
-    const curso = payload?.curso ?? null;
-    if (!curso) throw new ApiError(404, "curso_not_found", `No existe curso con slug=${slug}`);
-
-    const inscripcion = payload?.inscripcion ?? null;
-    if (!inscripcion) {
+    if (data?.error === "curso_not_found") {
+      throw new ApiError(404, "curso_not_found", `No existe curso con slug=${slug}`);
+    }
+    if (data?.error === "not_enrolled") {
       throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
     }
-
-    const modulos = payload?.modulos ?? [];
-    const lecciones = payload?.lecciones ?? [];
-    const progresos = payload?.progresos ?? [];
-
-    const progresoPorLeccion = new Map<string, { completada: boolean; completadaEn: string | null }>();
-    for (const p of progresos || []) {
-      progresoPorLeccion.set((p as any).leccion_id, {
-        completada: Boolean((p as any).completado),
-        completadaEn: (p as any).completado_en ?? null,
-      });
+    if (!data?.curso) {
+      throw new ApiError(500, "rpc_error", "Respuesta inesperada de rpc_get_curso");
     }
 
-    // 6. Construir árbol módulos → lecciones
-    const leccionesPorModulo = new Map<string, any[]>();
-    for (const l of lecciones || []) {
-      const arr = leccionesPorModulo.get((l as any).modulo_id) ?? [];
-      const prog = progresoPorLeccion.get((l as any).id);
-      arr.push({
-        id: (l as any).id,
-        titulo: (l as any).titulo ?? "",
-        orden: (l as any).orden ?? 0,
-        tipo: (l as any).tipo ?? "texto",
-        etiqueta: (l as any).etiqueta ?? "",
-        completada: prog?.completada ?? false,
-        completadaEn: prog?.completadaEn ?? null,
-      });
-      leccionesPorModulo.set((l as any).modulo_id, arr);
-    }
-
-    const modulosOut = (modulos ?? []).map((m: any) => ({
-      id: m.id,
-      titulo: m.titulo ?? "",
-      descripcion: m.descripcion ?? "",
-      orden: m.orden ?? 0,
-      ponente: m.ponente ?? "",
-      lecciones: leccionesPorModulo.get(m.id) ?? [],
-    }));
-
-    // Computar progresoPct on-the-fly
-    const totalLecc = (lecciones ?? []).length;
-    const completadas = (progresos ?? []).filter((p: any) => p.completado).length;
-    const progresoPct = totalLecc > 0 ? Math.round((completadas / totalLecc) * 100) : 0;
-
-    span.end({ persona: persona.id, curso: curso.id, lecciones: totalLecc });
-    return jsonResponse(req, {
-      curso: {
-        id: curso.id,
-        slug: curso.slug,
-        titulo: curso.titulo ?? "",
-        descripcionCorta: curso.descripcion_corta ?? "",
-        descripcionLarga: curso.descripcion_larga ?? "",
-        coverUrl: curso.cover_image ?? null,
-        instructor: curso.instructor ?? "",
-        colorPrimario: curso.color_primario ?? "",
-        modalidad: curso.modalidad ?? "",
-        fechaInicio: curso.fecha_inicio ?? null,
-        fechaFin: curso.fecha_fin ?? null,
-        estatus: curso.estatus ?? "",
-      },
-      inscripcion: {
-        id: inscripcion.id,
-        estatus: inscripcion.estatus ?? "",
-        fechaInscripcion: inscripcion.fecha_inscripcion ?? null,
-        progresoPct,
-      },
-      modulos: modulosOut,
+    span.end({ persona: persona.id, curso: data.curso.id });
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { ...corsHeaders(req), "Content-Type": "application/json", ...CACHE_HEADERS },
     });
   } catch (err) {
     span.end({ error: true });

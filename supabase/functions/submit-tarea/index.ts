@@ -16,7 +16,11 @@
 //   - Tope de cantidad de archivos (MAX_FILES) y de tamano total (MAX_TOTAL_BYTES),
 //     ademas del limite por archivo (MAX_FILE_BYTES).
 //   Nota: req.formData() aun materializa el body; el guard acota el peor caso.
-// v7: File (Blob) directo a Storage, sin copia extra en memoria por arrayBuffer.
+//
+// Memoria (v7):
+//   - El upload a Storage pasa el File (Blob) directo, sin f.arrayBuffer().
+//     Antes cada archivo existia DOS veces en memoria (formData + buffer);
+//     ahora solo una. Mismo patron que upload-asset v8.
 //
 // Response 200: { ok: true, respuestaId, archivos: [{id,url,filename,size},...], comentario }
 // Response 4xx/5xx: { ok: false, error, code? }
@@ -210,9 +214,9 @@ Deno.serve(async (req) => {
       const safeName = sanitizeFilename(f.name || "archivo");
       const fileId = crypto.randomUUID();
       const storagePath = `tareas/${leccionId}/${persona.id}/${fileId}-${safeName}`;
-      // File (Blob) directo a Storage, sin copia extra en memoria por
-      // arrayBuffer. El guard de Content-Length de arriba acota el peor caso
-      // (mismo patrón que upload-asset).
+      // v7: pasamos el File (Blob) directo en vez de f.arrayBuffer() para no
+      // duplicar el archivo completo en memoria. Mismo patrón que
+      // upload-asset v8. El SDK de storage acepta Blob y lo streamea.
       const { error: uploadErr } = await db.storage
         .from(STORAGE_BUCKET)
         .upload(storagePath, f, {

@@ -154,14 +154,32 @@ function startSpan(name: string, extra: Record<string, unknown> = {}) {
 // END OF SHARED HELPERS — handler de la función comienza abajo
 // ════════════════════════════════════════════════════════════════════
 
-// SOPHIA Portal · get-mis-cursos (Postgres)
-// Returns the list of courses the authenticated user is enrolled in,
-// with computed progress %.
+// SOPHIA Portal · get-mis-cursos (Postgres) — v2 RPC
+// Lists the user's enrollments with course info + progress counts.
+//
+// v2: las 3 queries (inscripciones+curso, totales de lecciones, progresos)
+// y los conteos en JS se colapsaron en UNA llamada a
+// public.rpc_get_mis_cursos (migración 20260603_003_rpc_lectura.sql).
+// Los conteos ahora son agregados SQL — ya no se traen filas de
+// lecciones/progreso_lecciones solo para contarlas.
+//
+// Nota: el total de lecciones ahora EXCLUYE las archivadas, igual que
+// get-curso. Antes este endpoint las incluía y el progresoPct del listado
+// podía diferir del detalle.
+//
+// v2 también agrega Cache-Control: private, max-age=60 al 200 (con
+// Vary: Authorization). El frontend hace fetch con cache:"reload" tras
+// marcar-leccion.
 //
 // GET /get-mis-cursos
 // Headers: Authorization: Bearer <supabase_jwt>
 //
 // Returns 200: { cursos: [{ id, inscripcionId, slug, titulo, ..., progresoPct, ... }] }
+
+const CACHE_HEADERS = {
+  "Cache-Control": "private, max-age=60",
+  Vary: "Origin, Authorization",
+};
 
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
@@ -177,51 +195,18 @@ Deno.serve(async (req) => {
     const persona = await requireUser(req);
     const db = getDb();
 
-    // Una sola llamada: el RPC get_mis_cursos_payload regresa inscripciones
-    // + curso + conteos (total de lecciones por curso y completadas por
-    // inscripción) calculados en SQL con LATERAL counts (antes 3 queries
-    // y conteo fila por fila en JS).
-    const { data: rows, error: rpcErr } = await db
-      .rpc("get_mis_cursos_payload", { p_persona_id: persona.id });
+    const { data, error: rpcErr } = await db.rpc("rpc_get_mis_cursos", {
+      p_persona_id: persona.id,
+    });
     if (rpcErr) throw new ApiError(500, "db_error", rpcErr.message);
 
-    const inscripciones: any[] = Array.isArray(rows) ? rows : [];
-    if (!inscripciones.length) {
-      span.end({ persona: persona.id, cursos: 0 });
-      return jsonResponse(req, { cursos: [] });
-    }
-
-    const cursos = inscripciones.map((r: any) => {
-      const c = r.curso ?? {};
-      const totalLecciones = r.total_lecciones ?? 0;
-      const completadas = r.lecciones_completadas ?? 0;
-      const progresoPct = totalLecciones > 0
-        ? Math.round((completadas / totalLecciones) * 100)
-        : 0;
-
-      return {
-        id: c.id,
-        inscripcionId: r.inscripcion_id,
-        slug: c.slug ?? "",
-        titulo: c.titulo ?? "",
-        descripcionCorta: c.descripcion_corta ?? "",
-        coverUrl: c.cover_image ?? null,
-        instructor: c.instructor ?? "",
-        colorPrimario: c.color_primario ?? "",
-        modalidad: c.modalidad ?? "",
-        fechaInicio: c.fecha_inicio ?? null,
-        fechaFin: c.fecha_fin ?? null,
-        estatus: c.estatus ?? "",
-        inscripcionEstatus: r.inscripcion_estatus ?? "",
-        fechaInscripcion: r.fecha_inscripcion ?? null,
-        progresoPct,
-        totalLecciones,
-        leccionesCompletadas: completadas,
-      };
-    });
+    const cursos = Array.isArray(data?.cursos) ? data.cursos : [];
 
     span.end({ persona: persona.id, cursos: cursos.length });
-    return jsonResponse(req, { cursos });
+    return new Response(JSON.stringify({ cursos }), {
+      status: 200,
+      headers: { ...corsHeaders(req), "Content-Type": "application/json", ...CACHE_HEADERS },
+    });
   } catch (err) {
     span.end({ error: true });
     return errorResponse(req, err);
