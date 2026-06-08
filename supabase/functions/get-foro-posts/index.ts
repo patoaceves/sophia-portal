@@ -154,17 +154,11 @@ function startSpan(name: string, extra: Record<string, unknown> = {}) {
 // END OF SHARED HELPERS — handler de la función comienza abajo
 // ════════════════════════════════════════════════════════════════════
 
-// SOPHIA Portal · get-foro-posts (Postgres) — v12
+// SOPHIA Portal · get-foro-posts (Postgres)
 // Devuelve los posts del foro de un curso, con sus comentarios anidados.
 // Solo lo ven los inscritos al curso.
 //
-// v12: cursor compuesto `fecha|id`. El cursor v11 era solo `fecha`, lo que
-// podía saltarse o duplicar posts creados en el mismo instante exacto.
-// Ahora el orden es (fecha desc, id desc) con el id como tiebreak.
-// Compat: un `before` con formato viejo (solo fecha ISO) sigue funcionando.
-// Index: posts_curso_toplevel_fecha_id_visible_idx (migración 005).
-//
-// GET /get-foro-posts?cursoId=<UUID>[&limit=<n>][&before=<fecha>|<id>]
+// GET /get-foro-posts?cursoId=<UUID>
 // Headers: Authorization: Bearer <supabase_jwt>
 //
 // Returns 200:
@@ -219,40 +213,15 @@ Deno.serve(async (req) => {
       throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
     }
 
-    // Paginación: cursor COMPUESTO `fecha|id` sobre los posts TOP-LEVEL.
-    //   ?limit=<n>    (default 50, máx 100)
-    //   ?before=<fecha ISO>|<uuid>  → página más vieja: (fecha, id) < cursor
-    //
-    // v12: el cursor era solo `fecha`, lo que podía saltarse o duplicar
-    // posts creados en el mismo instante exacto. Ahora el orden es
-    // (fecha desc, id desc) y el cursor incluye el id como tiebreak.
-    // Compat: un `before` sin `|` (formato viejo, solo fecha) sigue
-    // funcionando con el comportamiento anterior.
+    // Paginación: cursor por `fecha` sobre los posts TOP-LEVEL.
+    //   ?limit=<n>   (default 50, máx 100)
+    //   ?before=<ISO> (trae top-level con fecha < cursor → página más vieja)
     const PAGE_DEFAULT = 50;
     const PAGE_MAX = 100;
     let limit = parseInt(url.searchParams.get("limit") ?? "", 10);
     if (!Number.isFinite(limit) || limit <= 0) limit = PAGE_DEFAULT;
     limit = Math.min(limit, PAGE_MAX);
     const before = url.searchParams.get("before")?.trim() || null;
-
-    // Parsear y VALIDAR el cursor (sus partes se interpolan en un .or() de
-    // PostgREST, así que nada pasa sin validación estricta).
-    const ISO_RE = /^\d{4}-\d{2}-\d{2}[T ][0-9:.+\-Z]+$/;
-    let beforeFecha: string | null = null;
-    let beforeId: string | null = null;
-    if (before) {
-      const [f, i] = before.split("|");
-      if (!ISO_RE.test(f)) {
-        throw new ApiError(400, "bad_cursor", "Cursor `before` inválido");
-      }
-      beforeFecha = f;
-      if (i !== undefined) {
-        if (!UUID_RE.test(i)) {
-          throw new ApiError(400, "bad_cursor", "Cursor `before` inválido");
-        }
-        beforeId = i;
-      }
-    }
 
     const SELECT_POST = `
       id, contenido, fecha, estatus, post_padre_id,
@@ -262,7 +231,7 @@ Deno.serve(async (req) => {
       )
     `;
 
-    // 2a. Página de posts TOP-LEVEL (post_padre_id IS NULL), (fecha, id) desc.
+    // 2a. Página de posts TOP-LEVEL (post_padre_id IS NULL), fecha desc.
     //     Pedimos limit+1 para saber si hay más páginas (evita un count extra).
     let topQuery = db
       .from("posts")
@@ -271,19 +240,8 @@ Deno.serve(async (req) => {
       .is("post_padre_id", null)
       .in("estatus", ["activo", "eliminado"])
       .order("fecha", { ascending: false })
-      .order("id", { ascending: false })
       .limit(limit + 1);
-    if (beforeFecha && beforeId) {
-      // (fecha, id) < (beforeFecha, beforeId) — row comparison vía .or().
-      // Valores entre comillas porque el timestamp trae ':' y '+'.
-      // beforeFecha/beforeId ya fueron validados con regex arriba.
-      topQuery = topQuery.or(
-        `fecha.lt."${beforeFecha}",and(fecha.eq."${beforeFecha}",id.lt."${beforeId}")`,
-      );
-    } else if (beforeFecha) {
-      // Cursor legacy (solo fecha)
-      topQuery = topQuery.lt("fecha", beforeFecha);
-    }
+    if (before) topQuery = topQuery.lt("fecha", before);
 
     const { data: topRaw, error: tErr } = await topQuery;
     if (tErr) throw new ApiError(500, "db_error", tErr.message);
@@ -291,9 +249,8 @@ Deno.serve(async (req) => {
     const topAll = topRaw ?? [];
     const hasMore = topAll.length > limit;
     const topPage = topAll.slice(0, limit);
-    const lastTop = topPage.length > 0 ? topPage[topPage.length - 1] : null;
-    const nextCursor = lastTop && lastTop.fecha
-      ? `${lastTop.fecha}|${lastTop.id}`
+    const nextCursor = topPage.length > 0
+      ? (topPage[topPage.length - 1].fecha ?? null)
       : null;
 
     // 2b. Comentarios SOLO de los posts top-level de esta página.

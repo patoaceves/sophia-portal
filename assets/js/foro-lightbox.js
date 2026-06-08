@@ -19,8 +19,10 @@
 //   - ESC
 //   - Botón ×
 
+import { icon } from "./icons.js";
 import { escapeHtml } from "./ui-shell.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
+import { api } from "./api.js";
 
 let activeOverlay = null;
 
@@ -77,24 +79,26 @@ export function openForoLightbox({ post, cursoId, yo, onChange }) {
     wireComposerPill(pillForm, {
       cursoId,
       parentPostId: post.id,
-      onPublished: (nuevo) => {
-        // v2: create-foro-post devuelve el comentario completo (autor,
-        // fechaISO, esAutor), así que lo agregamos LOCALMENTE al post.
-        // Antes se re-fetcheaba la página 1 del foro y, si el post venía
-        // de "Cargar más", no se encontraba y los comentarios no se
-        // refrescaban.
-        if (nuevo?.id) {
-          post.comentarios = [...(post.comentarios || []), nuevo];
-          const commentsEl = overlay.querySelector("[data-comments-list]");
-          if (commentsEl) {
-            commentsEl.innerHTML = renderComments(post.comentarios);
-            // Scroll al final para ver el comentario nuevo
-            commentsEl.scrollTop = commentsEl.scrollHeight;
+      onPublished: async () => {
+        // Re-fetchear y actualizar la lista de comentarios in-modal
+        try {
+          const data = await api.foroPosts(cursoId);
+          const fresh = (data?.posts ?? []).find(p => p.id === post.id);
+          if (fresh) {
+            const commentsEl = overlay.querySelector("[data-comments-list]");
+            if (commentsEl) {
+              commentsEl.innerHTML = renderComments(fresh.comentarios);
+              // Scroll al final para ver el comentario nuevo
+              commentsEl.scrollTop = commentsEl.scrollHeight;
+            }
+            // Actualizar el post local (para futuras refrescos)
+            post.comentarios = fresh.comentarios;
           }
+          // Notificar al caller para que actualice el feed externo
+          if (typeof onChange === "function") onChange();
+        } catch (e) {
+          console.warn("lightbox refresh failed:", e);
         }
-        // Notificar al caller para que actualice el feed externo.
-        // Recibe el comentario nuevo para inserción quirúrgica (foro.js).
-        if (typeof onChange === "function") onChange(nuevo);
       },
     });
   }

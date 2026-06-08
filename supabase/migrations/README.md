@@ -18,23 +18,6 @@ con `'alumno'`).
   habilita RLS en las 14 tablas, y crea las 13 políticas de SELECT del patrón
   híbrido. SIN políticas de INSERT/UPDATE/DELETE: las escrituras pasan por Edge
   Functions con `service_role` (que hace bypass de RLS).
-- **`20260603_003_rpc_lectura.sql`** — RPCs de lectura `rpc_get_curso` y
-  `rpc_get_mis_cursos` para colapsar los round-trips de las Edge Functions
-  homónimas en una sola llamada. EXECUTE solo para `service_role` (las
-  funciones reciben el `persona_id` ya validado por `requireUser`; no deben
-  ser invocables por `anon`/`authenticated`). Aplicada en prod 2026-06-03.
-- **`20260603_004_indices_foro_visibles.sql`** — índices parciales de `posts`
-  que matchean el filtro real de `get-foro-posts`
-  (`estatus in ('activo','eliminado')`): top-level por
-  `(curso_id, fecha desc)` y comentarios por `(curso_id, post_padre_id)`.
-  El índice viejo `posts_curso_toplevel_fecha_idx` (solo `activo`) queda
-  redundante y puede retirarse después. Aplicada en prod 2026-06-03.
-- **`20260603_005_rpc_leccion_y_cursor_foro.sql`** — RPC `rpc_get_leccion`
-  (colapsa las 5 queries de get-leccion; regresa `contenidoHtmlRaw`, la
-  sanitización vive en el edge; EXECUTE solo `service_role`) e índice
-  `(curso_id, fecha desc, id desc)` para el cursor compuesto de
-  get-foro-posts v12 (reemplaza al índice de la 004, que dropea). Aplicada
-  en prod 2026-06-03.
 
 ## Estado del modelo (vivo, 2026-06-01)
 

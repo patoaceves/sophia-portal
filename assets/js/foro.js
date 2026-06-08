@@ -21,39 +21,6 @@ import { openForoLightbox } from "./foro-lightbox.js";
 
 const MAX_LEN = 4000;
 
-// ── Cache local de posts (id → post) ─────────────────────────────────
-// Evita re-fetchear la página 1 del foro para resolver un post por id
-// (ej. al abrir el lightbox de una imagen). Se alimenta del load inicial,
-// de "Cargar más" y de los posts nuevos. Sin esto, un post cargado con
-// "Cargar más" no se encontraba al abrir su imagen (el lightbox solo
-// buscaba en la primera página).
-const postsById = new Map();
-
-function cachePosts(posts) {
-  for (const p of posts || []) {
-    if (p?.id) postsById.set(p.id, p);
-  }
-}
-
-/**
- * Resuelve un post por id: primero del cache local; si no está, pagina
- * get-foro-posts hacia atrás (máx 5 páginas) hasta encontrarlo.
- */
-async function resolvePost(cursoId, postId) {
-  const hit = postsById.get(postId);
-  if (hit) return hit;
-  let before;
-  for (let i = 0; i < 5; i++) {
-    const data = await api.foroPosts(cursoId, before ? { before } : {});
-    cachePosts(data?.posts ?? []);
-    const found = postsById.get(postId);
-    if (found) return found;
-    if (!data?.hasMore || !data?.nextCursor) return null;
-    before = data.nextCursor;
-  }
-  return null;
-}
-
 /**
  * Render avatar HTML — uses photo if `avatarUrl` exists, else initials.
  * @param {object} actor · expects { avatarUrl, iniciales }
@@ -123,7 +90,6 @@ function renderAttachment(p) {
 export async function mountForo({ container, cursoId }) {
   if (!container) return;
   container.innerHTML = renderSkeleton();
-  postsById.clear();
 
   let data;
   try {
@@ -133,7 +99,6 @@ export async function mountForo({ container, cursoId }) {
     return;
   }
 
-  cachePosts(data?.posts ?? []);
   renderFeed(container, cursoId, data);
 }
 
@@ -179,13 +144,23 @@ function renderFeed(container, cursoId, data) {
   if (pillForm) {
     wireComposerPill(pillForm, {
       cursoId,
-      onPublished: (post) => {
-        // v2: inserción quirúrgica del post nuevo (create-foro-post lo
-        // devuelve completo: autor, adjunto, fechaISO). Antes se
-        // re-fetcheaba la página 1 y se reemplazaba TODO el feed, borrando
-        // visualmente los posts cargados con "Cargar más".
-        if (post?.id) {
-          insertNewPost(container, post, yo, null);
+      onPublished: async (post) => {
+        // Re-fetch del feed para reflejar el post nuevo (incluye autor + adjunto)
+        try {
+          const data = await api.foroPosts(cursoId);
+          const fresh = (data?.posts ?? []).filter(p => !p.eliminado);
+          const feed = container.querySelector("#foroFeed");
+          if (feed) {
+            feed.innerHTML = fresh.length === 0
+              ? `<div class="foro-empty">
+                   <div class="foro-empty__icon">${icon("mensajes")}</div>
+                   <h4>Aún no hay publicaciones</h4>
+                   <p>Sé la primera persona en comenzar la conversación.</p>
+                 </div>`
+              : fresh.map((p) => renderPost(p, yo)).join("");
+          }
+        } catch (e) {
+          console.warn("foro feed reload failed:", e);
         }
       },
     });
@@ -592,23 +567,6 @@ function formatBytes(bytes) {
 }
 
 function insertNewPost(root, post, yo, parentPostId) {
-  // Mantener el cache local en sync: post top-level nuevo se cachea;
-  // comentario nuevo se agrega al array del padre cacheado (para que el
-  // lightbox lo muestre si se abre después).
-  if (parentPostId) {
-    const padre = postsById.get(parentPostId);
-    if (padre) {
-      // Dedupe por id: el lightbox ya pudo haber agregado este comentario
-      // al mismo objeto cacheado antes de invocar onChange.
-      const ya = (padre.comentarios || []).some((c) => c.id === post.id);
-      if (!ya) {
-        padre.comentarios = [...(padre.comentarios || []), { ...post, esAutor: true }];
-      }
-    }
-  } else if (post?.id) {
-    postsById.set(post.id, { ...post, esAutor: true, comentarios: post.comentarios || [] });
-  }
-
   if (parentPostId) {
     // Insertar al final de la lista de comentarios del padre
     const slot = root.querySelector(`[data-comments-of="${cssAttr(parentPostId)}"]`);
@@ -659,7 +617,6 @@ function wireFeedActions(root, cursoId, yo) {
       if (labelEl) labelEl.textContent = "Cargando…";
       try {
         const data = await api.foroPosts(cursoId, { before });
-        cachePosts(data?.posts ?? []);
         const older = (data?.posts ?? []).filter((p) => !p.eliminado);
         const feed = root.querySelector("#foroFeed");
         if (feed && older.length) {
@@ -684,22 +641,24 @@ function wireFeedActions(root, cursoId, yo) {
     if (action === "open-lightbox") {
       const postId = btn.dataset.postId;
       if (!postId) return;
-      // v2: resolver del cache local (o paginando hacia atrás) en vez de
-      // re-fetchear solo la página 1 — los posts de "Cargar más" no se
-      // encontraban y el lightbox fallaba en silencio.
+      // Buscar el post completo en el feed actual para tener comentarios
       try {
-        const post = await resolvePost(cursoId, postId);
+        const data = await api.foroPosts(cursoId);
+        const post = (data?.posts ?? []).find(p => p.id === postId);
         if (post) {
           openForoLightbox({
             post,
             cursoId,
             yo,
-            onChange: (nuevoComentario) => {
-              // Inserción quirúrgica del comentario nuevo en el feed.
-              // Antes se re-fetcheaba la página 1 y se re-renderizaba TODO
-              // el feed, lo que borraba los posts traídos con "Cargar más".
-              if (nuevoComentario?.id) {
-                insertNewPost(root, nuevoComentario, yo, post.id);
+            onChange: async () => {
+              // Re-renderear el feed para reflejar el nuevo conteo de comments
+              const data2 = await api.foroPosts(cursoId);
+              const fresh = (data2?.posts ?? []).filter(p => !p.eliminado);
+              const feed = root.querySelector("#foroFeed");
+              if (feed) {
+                feed.innerHTML = fresh.length === 0
+                  ? `<div class="foro-empty"><div class="foro-empty__icon">${icon("mensajes")}</div><h4>Aún no hay publicaciones</h4></div>`
+                  : fresh.map((p) => renderPost(p, yo)).join("");
               }
             },
           });
@@ -717,20 +676,6 @@ function wireFeedActions(root, cursoId, yo) {
       btn.disabled = true;
       try {
         await api.borrarForoPost(postId);
-
-        // Sync del cache local: tombstone si es top-level, remoción si es
-        // comentario (el mountForo del caso con comentarios lo limpia solo).
-        const cached = postsById.get(postId);
-        if (cached) {
-          cached.eliminado = true;
-        } else {
-          for (const p of postsById.values()) {
-            if (Array.isArray(p.comentarios)) {
-              const c = p.comentarios.find((x) => x.id === postId);
-              if (c) { c.eliminado = true; break; }
-            }
-          }
-        }
 
         const article = root.querySelector(`article[data-post-id="${cssAttr(postId)}"]`);
         const isTopLevel = article?.classList.contains("foro-post") && !article.closest(".foro-comments");

@@ -47,20 +47,6 @@ function jsonResponse(req: Request, body: unknown, status = 200): Response {
   });
 }
 
-// Igual que jsonResponse pero con Cache-Control para que el browser pueda
-// reutilizar la respuesta en recargas/navegación (solo para 200 de lectura).
-function jsonCacheableResponse(req: Request, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-      "Cache-Control": "private, max-age=60",
-      Vary: "Origin, Authorization",
-    },
-  });
-}
-
 function errorResponse(req: Request, err: unknown): Response {
   if (err instanceof ApiError) {
     return jsonResponse(req, { error: err.message, code: err.code, details: err.details }, err.status);
@@ -397,17 +383,9 @@ function decodeEntities(s: string): string {
     .replace(/&#39;/g, "'");
 }
 
-// SOPHIA Portal · get-leccion (Postgres) — v3 RPC
+// SOPHIA Portal · get-leccion (Postgres)
 // Returns full lesson content + prev/next IDs within the same chapter.
 // Validates enrollment in the parent course.
-//
-// v3: las 5 queries (lección, módulo, inscripción, hermanas, progreso) se
-// colapsaron en UNA llamada a public.rpc_get_leccion (migración
-// 20260603_005_rpc_leccion_y_cursor_foro.sql). El RPC regresa el HTML
-// crudo (contenidoHtmlRaw); la sanitización XSS se queda AQUÍ en el edge.
-// Prev/next ahora ordenan por (orden, id) — estable con órdenes duplicados.
-//
-// v2 agregó Cache-Control: private, max-age=60 al 200 (jsonCacheableResponse).
 //
 // GET /get-leccion?id=<leccionId>
 //   id puede ser UUID o un airtable_id (recXXX) para compatibilidad con
@@ -416,10 +394,13 @@ function decodeEntities(s: string): string {
 //
 // Returns 200: { leccion, modulo, cursoId, inscripcionId, prevId, nextId }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const KNOWN_AUTOEVAL_IDS: Record<string, "felicidad" | "autoconocimiento"> = {
   "recjMR4P4TFLvFQ4A": "felicidad",
   "recDLCMOgTZChS6Yf": "autoconocimiento",
 };
+const AIRTABLE_RE = /^rec[A-Za-z0-9]{14,}$/;
 
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
@@ -441,61 +422,101 @@ Deno.serve(async (req) => {
     const persona = await requireUser(req);
     const db = getDb();
 
-    // Una sola llamada: el RPC resuelve lección (UUID o recXXX), módulo,
-    // inscripción, prev/next y progreso en Postgres.
-    const { data, error: rpcErr } = await db.rpc("rpc_get_leccion", {
-      p_persona_id: persona.id,
-      p_id: idParam,
-    });
-    if (rpcErr) throw new ApiError(500, "db_error", rpcErr.message);
-
-    if (data?.error === "invalid_id") {
+    // 1. Buscar lección por UUID o por airtable_id (compat con bookmarks)
+    let query = db
+      .from("lecciones")
+      .select(`
+        id, modulo_id, titulo, subtitulo, orden, tipo, etiqueta, estatus,
+        contenido_html, url_video, url_externa, archivo_url, archivo_nombre,
+        evaluacion_ref
+      `);
+    if (UUID_RE.test(idParam)) {
+      query = query.eq("id", idParam);
+    } else if (AIRTABLE_RE.test(idParam)) {
+      query = query.eq("airtable_id", idParam);
+    } else {
       throw new ApiError(400, "invalid_id", "id debe ser UUID o recXXX");
     }
-    if (data?.error === "leccion_not_found") {
-      throw new ApiError(404, "leccion_not_found", "Lección no encontrada");
-    }
-    if (data?.error === "not_enrolled") {
+
+    const { data: leccion, error: lErr } = await query.maybeSingle();
+    if (lErr) throw new ApiError(500, "db_error", lErr.message);
+    if (!leccion) throw new ApiError(404, "leccion_not_found", "Lección no encontrada");
+
+    // 2. Módulo + curso
+    const { data: modulo, error: mErr } = await db
+      .from("modulos")
+      .select("id, titulo, orden, ponente, curso_id")
+      .eq("id", leccion.modulo_id)
+      .maybeSingle();
+    if (mErr) throw new ApiError(500, "db_error", mErr.message);
+    if (!modulo) throw new ApiError(500, "data_error", "Módulo huérfano");
+
+    // 3. Inscripción de la persona en este curso
+    const { data: inscripcion, error: iErr } = await db
+      .from("inscripciones")
+      .select("id")
+      .eq("persona_id", persona.id)
+      .eq("curso_id", modulo.curso_id)
+      .maybeSingle();
+    if (iErr) throw new ApiError(500, "db_error", iErr.message);
+    if (!inscripcion) {
       throw new ApiError(403, "not_enrolled", "No estás inscrito a este curso");
     }
-    if (data?.error === "data_error") {
-      throw new ApiError(500, "data_error", "Módulo huérfano");
-    }
-    if (!data?.leccion) {
-      throw new ApiError(500, "rpc_error", "Respuesta inesperada de rpc_get_leccion");
-    }
 
-    // Sanitización XSS del contenido editorial — SIEMPRE en el edge, sobre
-    // el HTML crudo que regresa el RPC.
-    const l = data.leccion;
-    const evaluacionRef: string | null = l.evaluacionRef ?? null;
-    const leccion = {
-      id: l.id,
-      titulo: l.titulo ?? "",
-      subtitulo: l.subtitulo ?? "",
-      orden: l.orden ?? 0,
-      tipo: l.tipo ?? "texto",
-      etiqueta: l.etiqueta ?? "",
-      contenidoHTML: sanitizeHtml(l.contenidoHtmlRaw ?? ""),
-      urlVideo: l.urlVideo ?? null,
-      urlExterna: l.urlExterna ?? null,
-      archivoUrl: l.archivoUrl ?? null,
-      archivoNombre: l.archivoNombre ?? null,
-      autoevalId: evaluacionRef,
-      autoevalTipo: evaluacionRef ? (KNOWN_AUTOEVAL_IDS[evaluacionRef] ?? null) : null,
-      completada: Boolean(l.completada),
-      completadaEn: l.completadaEn ?? null,
-    };
+    // 4. Prev/next dentro del mismo módulo (ordenado)
+    const { data: hermanas, error: hErr } = await db
+      .from("lecciones")
+      .select("id, orden")
+      .eq("modulo_id", modulo.id)
+      .neq("estatus", "archivada")
+      .order("orden", { ascending: true });
+    if (hErr) throw new ApiError(500, "db_error", hErr.message);
+
+    const idx = (hermanas ?? []).findIndex((h: any) => h.id === leccion.id);
+    const prevId = idx > 0 ? (hermanas as any[])[idx - 1].id : null;
+    const nextId = idx >= 0 && idx < (hermanas ?? []).length - 1
+      ? (hermanas as any[])[idx + 1].id
+      : null;
+
+    // 5. Progreso de esta lección
+    const { data: progreso, error: pErr } = await db
+      .from("progreso_lecciones")
+      .select("completado, completado_en")
+      .eq("inscripcion_id", inscripcion.id)
+      .eq("leccion_id", leccion.id)
+      .maybeSingle();
+    if (pErr) throw new ApiError(500, "db_error", pErr.message);
 
     span.end({ persona: persona.id, leccion: leccion.id });
-    return jsonCacheableResponse(req, {
-      leccion,
-      moduloId: data.moduloId,
-      modulo: data.modulo,
-      cursoId: data.cursoId,
-      inscripcionId: data.inscripcionId,
-      prevId: data.prevId ?? null,
-      nextId: data.nextId ?? null,
+    return jsonResponse(req, {
+      leccion: {
+        id: leccion.id,
+        titulo: leccion.titulo ?? "",
+        subtitulo: leccion.subtitulo ?? "",
+        orden: leccion.orden ?? 0,
+        tipo: leccion.tipo ?? "texto",
+        etiqueta: leccion.etiqueta ?? "",
+        contenidoHTML: sanitizeHtml(leccion.contenido_html ?? ""),
+        urlVideo: leccion.url_video ?? null,
+        urlExterna: leccion.url_externa ?? leccion.archivo_url ?? null,
+        archivoUrl: leccion.archivo_url ?? null,
+        archivoNombre: leccion.archivo_nombre ?? null,
+        autoevalId: leccion.evaluacion_ref ?? null,
+        autoevalTipo: leccion.evaluacion_ref ? (KNOWN_AUTOEVAL_IDS[leccion.evaluacion_ref] ?? null) : null,
+        completada: Boolean(progreso?.completado),
+        completadaEn: progreso?.completado_en ?? null,
+      },
+      moduloId: modulo.id,
+      modulo: {
+        id: modulo.id,
+        titulo: modulo.titulo ?? "",
+        orden: modulo.orden ?? 0,
+        ponente: modulo.ponente ?? "",
+      },
+      cursoId: modulo.curso_id,
+      inscripcionId: inscripcion.id,
+      prevId,
+      nextId,
     });
   } catch (err) {
     span.end({ error: true });

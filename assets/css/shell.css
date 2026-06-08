@@ -8455,3 +8455,91 @@ button.foro-preview-item__thumb {
 .autoeval-cajita__link:hover svg {
   transform: translateX(3px);
 }
+
+/* ── Pestaña Recursos · tarjetas de material complementario ────────────── */
+.recursos-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.recurso-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.recurso-card:hover {
+  border-color: var(--color-accent-soft);
+  transform: translateY(-1px);
+}
+
+.recurso-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--color-accent-faint);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.recurso-card__icon svg { width: 22px; height: 22px; }
+
+.recurso-card__body { flex: 1; min-width: 0; }
+
+.recurso-card__meta {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.recurso-card__title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 2px 0 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+}
+
+.recurso-card__author {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.recurso-card__desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+  margin: var(--s-2) 0 0;
+  line-height: 1.45;
+}
+
+.recurso-card__action {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  align-self: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.recurso-card:hover .recurso-card__action {
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+}
+
+.recurso-card__action svg { width: 20px; height: 20px; }
