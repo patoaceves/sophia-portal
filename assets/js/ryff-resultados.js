@@ -53,7 +53,7 @@ function resultadosHtml(data, { embedded = false } = {}) {
           <div class="ryff-dim__pct">${r.pct}%</div>
         </div>
         <div class="ryff-dim__bar"><div class="ryff-dim__bar-fill" style="width:${r.pct}%;"></div></div>
-        <div class="ryff-dim__band autoeval-band-tag" style="--band-color:${bandaColor(r.banda)};">
+        <div class="ryff-dim__band autoeval-band-tag" style="color:${bandaColor(r.banda)};">
           ${escapeHtml(bandaLabel(r.banda))}
         </div>
         <p class="ryff-dim__desc">${escapeHtml(d.descripcion)}</p>
@@ -78,7 +78,7 @@ function resultadosHtml(data, { embedded = false } = {}) {
           <div class="ryff-global__pct">${globalPct}%</div>
           <div class="ryff-global__label">Índice global de bienestar</div>
         </div>
-        <div class="autoeval-band-tag" style="--band-color:${bandaColor(globalBanda)};">
+        <div class="autoeval-band-tag" style="color:${bandaColor(globalBanda)};">
           ${escapeHtml(bandaLabel(globalBanda))}
         </div>
         <p class="ryff-overview__text">

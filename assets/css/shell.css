@@ -8603,26 +8603,35 @@ button.foro-preview-item__thumb {
 /* Card "ya contestado": indice global (izq) + 6 rueditas en fila + CTA (der) */
 .ryff-cajita--results { gap: var(--s-4); }
 
-.ryff-result-strip {
-  display: flex;
+/* Layout: info (titulo + indice global) a la izquierda, 6 rueditas a la derecha */
+.ryff-result-main {
+  display: grid;
+  grid-template-columns: minmax(220px, 290px) 1fr;
+  gap: var(--s-8);
   align-items: center;
-  gap: var(--s-7);
-  margin-top: var(--s-3);
-  flex-wrap: wrap;
+  margin-top: var(--s-2);
 }
 
-/* Indice global a la izquierda: % grande + label + banda, todo alineado izq */
+.ryff-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* Indice global + banda: bloque centrado consigo mismo, debajo del titulo */
 .ryff-result-global {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s-1);
-  flex-shrink: 0;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-2);
 }
+
+.ryff-result-global__index { display: flex; flex-direction: column; align-items: center; }
 
 .ryff-result-global__pct {
   font-family: var(--font-display);
-  font-size: 3rem;
+  font-size: 3.25rem;
   line-height: 0.95;
   font-weight: 500;
   color: #7A5BB0;
@@ -8636,13 +8645,14 @@ button.foro-preview-item__thumb {
   color: var(--color-text-muted);
 }
 
-/* Las 6 rueditas de progreso, una junto a otra, llenando la franja */
+.ryff-result-global .autoeval-band-tag { align-self: center; white-space: nowrap; }
+
+/* Las 6 rueditas de progreso: 2 filas de 3, con aire entre filas */
 .ryff-rings {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-5) var(--s-3);
-  flex: 1;
-  min-width: 300px;
+  gap: var(--s-7) var(--s-5);
+  justify-items: center;
 }
 
 .ryff-ring-item {
@@ -8661,8 +8671,8 @@ button.foro-preview-item__thumb {
 }
 
 .ryff-ring {
-  --size: 60px;
-  --ring: 7px;
+  --size: 74px;
+  --ring: 8px;
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
@@ -8687,14 +8697,15 @@ button.foro-preview-item__thumb {
 
 .ryff-ring__val {
   position: relative;
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--dim-color, var(--color-accent));
 }
 
 .ryff-ring__label {
-  font-size: 0.6875rem;
-  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
   text-align: center;
   line-height: 1.2;
 }
@@ -8749,9 +8760,12 @@ button.foro-preview-item__thumb {
 .ryff-ring__popup-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--s-2);
   margin-bottom: var(--s-2);
 }
+
+.ryff-ring__popup-meta .autoeval-band-tag { white-space: nowrap; }
 
 .ryff-ring__popup-pct {
   font-weight: 700;
@@ -8789,9 +8803,8 @@ button.foro-preview-item__thumb {
 .ryff-cajita__link svg { width: 16px; height: 16px; }
 
 @media (max-width: 720px) {
-  .ryff-result-strip { gap: var(--s-5); }
-  .ryff-result-global { flex-basis: 100%; flex-direction: row; align-items: baseline; gap: var(--s-3); }
-  .ryff-rings { min-width: 100%; }
+  .ryff-result-main { grid-template-columns: 1fr; gap: var(--s-6); }
+  .ryff-rings { gap: var(--s-6) var(--s-3); }
 }
 
 /* Wizard RYFF dentro de un contenedor (como las demás evaluaciones) */

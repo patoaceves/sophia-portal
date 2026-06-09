@@ -1063,7 +1063,7 @@ function renderRyffCajita(ctx) {
           <div class="ryff-ring__popup-name">${escapeHtml(d.nombreDisplay)}</div>
           <div class="ryff-ring__popup-meta">
             <span class="ryff-ring__popup-pct">${pct}%</span>
-            <span class="autoeval-band-tag" style="--band-color:${ryffBandaColor(banda)};">${escapeHtml(ryffBandaLabel(banda))}</span>
+            <span class="autoeval-band-tag" style="color:${ryffBandaColor(banda)};">${escapeHtml(ryffBandaLabel(banda))}</span>
           </div>
           ${txt.lead ? `<p class="ryff-ring__popup-lead">${escapeHtml(txt.lead)}</p>` : ""}
         </div>
@@ -1073,18 +1073,21 @@ function renderRyffCajita(ctx) {
 
   return `
     <section class="ryff-cajita ryff-cajita--results">
-      <div class="ryff-cajita__header">
-        <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar${fecha ? ` · ${escapeHtml(fecha)}` : ""}</span>
-        <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
-      </div>
-
-      <div class="ryff-result-strip">
-        <div class="ryff-result-global">
-          <span class="ryff-result-global__pct">${globalPct}%</span>
-          <span class="ryff-result-global__label">Índice global</span>
-          <span class="autoeval-band-tag" style="--band-color:${ryffBandaColor(globalBanda)};">
-            ${escapeHtml(ryffBandaLabel(globalBanda))}
-          </span>
+      <div class="ryff-result-main">
+        <div class="ryff-result-info">
+          <div class="ryff-cajita__header">
+            <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar${fecha ? ` · ${escapeHtml(fecha)}` : ""}</span>
+            <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
+          </div>
+          <div class="ryff-result-global">
+            <div class="ryff-result-global__index">
+              <span class="ryff-result-global__pct">${globalPct}%</span>
+              <span class="ryff-result-global__label">Índice global</span>
+            </div>
+            <span class="autoeval-band-tag" style="color:${ryffBandaColor(globalBanda)};">
+              ${escapeHtml(ryffBandaLabel(globalBanda))}
+            </span>
+          </div>
         </div>
         <div class="ryff-rings">${rings}</div>
       </div>
