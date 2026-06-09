@@ -228,6 +228,32 @@ export const api = {
   },
 
   /**
+   * POST /submit-ryff
+   * Escala RYFF de Bienestar Psicológico (18 reactivos Likert 1–6, a nivel
+   * persona). El backend invierte los reactivos negativos y calcula scores.
+   * → { respuestaId, dimensiones, global, completedAt }
+   */
+  async submitRyff(respuestas) {
+    const { data } = await callEdge("submit-ryff", {
+      method: "POST",
+      body: { respuestas },
+    });
+    return data;
+  },
+
+  /**
+   * GET /get-resultados-ryff
+   * - resultadosRyff()             → último intento del usuario
+   * - resultadosRyff(respuestaId)  → intento específico (param id=)
+   * → { tieneResultados, respuestaId, dimensiones, global, dimNombres, completedAt }
+   */
+  async resultadosRyff(respuestaId) {
+    const query = respuestaId ? { id: respuestaId } : undefined;
+    const { data } = await callEdge("get-resultados-ryff", { query });
+    return data;
+  },
+
+  /**
    * POST /claim-invitation, devuelve
    *   { ok, isNew, cohorteId, cursoSlug, inscripcionId, alreadyClaimed }
    *

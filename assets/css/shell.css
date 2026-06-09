@@ -2967,6 +2967,10 @@
 .dot-option__circle--4 { width: 36px; height: 36px; }
 .dot-option__circle--5 { width: 42px; height: 42px; }
 
+/* 6º punto: solo se usa en la escala RYFF (Likert 1-6). */
+.dot-option__circle--6 { width: 48px; height: 48px; }
+.dot-scale--six .dot-scale__dots { gap: var(--s-1); }
+
 .dot-option.is-active .dot-option__circle {
   background: var(--wizard-accent, var(--color-accent));
   border-color: var(--wizard-accent, var(--color-accent));
@@ -2990,6 +2994,9 @@
   .dot-option__circle--3 { width: 26px; height: 26px; }
   .dot-option__circle--4 { width: 32px; height: 32px; }
   .dot-option__circle--5 { width: 38px; height: 38px; }
+  .dot-option__circle--6 { width: 44px; height: 44px; }
+  .dot-scale--six { gap: var(--s-1); }
+  .dot-scale--six .dot-option { padding: var(--s-1); }
 }
 
 .test-question__nav {
@@ -8500,3 +8507,295 @@ button.foro-preview-item__thumb {
 }
 .recurso-card:hover .recurso-card__action { color: var(--color-accent); background: var(--color-accent-faint); }
 .recurso-card__action svg { width: 20px; height: 20px; }
+
+/* ════════════════════════════════════════════════════════════════════
+ * Escala RYFF de Bienestar Psicológico
+ *   - Cajita del Resumen (locked / results) con mini-radar
+ *   - Radar de 6 ejes (radar.js)
+ *   - Página de resultados (overview + desglose por dimensión)
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* ── Cajita del Resumen ───────────────────────────────────────────── */
+.ryff-cajita {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.ryff-cajita:hover { border-color: var(--color-border-strong); }
+
+.ryff-cajita::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(at 0% 0%, color-mix(in srgb, #7A5BB0 22%, transparent) 0%, transparent 38%),
+    radial-gradient(at 100% 10%, color-mix(in srgb, #66A3F4 20%, transparent) 0%, transparent 40%),
+    radial-gradient(at 95% 100%, color-mix(in srgb, #E0851B 18%, transparent) 0%, transparent 38%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.ryff-cajita > * { position: relative; z-index: 1; }
+
+.ryff-cajita__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.ryff-cajita__eyebrow {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.ryff-cajita__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  margin: 0;
+  font-variation-settings: "opsz" 144;
+}
+
+.ryff-cajita__lead {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 62ch;
+}
+
+.ryff-cajita__cta { align-self: flex-start; margin-top: var(--s-3); }
+
+/* Variante con resultados: radar + meta a un lado */
+.ryff-cajita__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) 1fr;
+  align-items: center;
+  gap: var(--s-5);
+  margin-top: var(--s-2);
+}
+
+.ryff-cajita__chart { display: grid; place-items: center; }
+
+.ryff-radar { width: 100%; height: auto; display: block; }
+.ryff-radar--preview { max-width: 220px; }
+
+.ryff-cajita__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.ryff-cajita__pct {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  line-height: 1;
+  font-weight: 500;
+  color: #7A5BB0;
+  font-variation-settings: "opsz" 144;
+}
+
+.ryff-cajita__pct-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  margin-top: calc(var(--s-1) * -1);
+}
+
+.ryff-cajita__link {
+  align-self: flex-end;
+  margin-top: var(--s-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.ryff-cajita__link svg { width: 16px; height: 16px; transition: transform 0.15s ease; }
+.ryff-cajita__link:hover svg { transform: translateX(3px); }
+
+@media (max-width: 700px) {
+  .ryff-cajita__grid { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .ryff-cajita__meta { align-items: center; }
+  .ryff-radar--preview { max-width: 260px; }
+}
+
+/* ── Página de resultados ─────────────────────────────────────────── */
+.ryff-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 1fr;
+  align-items: center;
+  gap: var(--s-7);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  margin-bottom: var(--s-6);
+}
+
+.ryff-overview__chart { display: grid; place-items: center; }
+.ryff-overview .ryff-radar { max-width: 420px; }
+
+.ryff-overview__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.ryff-global { display: flex; flex-direction: column; }
+.ryff-global__pct {
+  font-family: var(--font-display);
+  font-size: 3.25rem;
+  line-height: 1;
+  font-weight: 500;
+  color: #7A5BB0;
+  font-variation-settings: "opsz" 144;
+}
+.ryff-global__label {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.ryff-overview__text {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ryff-overview__fecha {
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+}
+
+@media (max-width: 760px) {
+  .ryff-overview { grid-template-columns: 1fr; }
+  .ryff-overview__summary { align-items: center; text-align: center; }
+}
+
+/* Desglose por dimensión */
+.ryff-dims {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+
+@media (max-width: 820px) { .ryff-dims { grid-template-columns: 1fr; } }
+
+.ryff-dim {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--dim-color, var(--color-accent));
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.ryff-dim__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.ryff-dim__name {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 144;
+}
+
+.ryff-dim__pct {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--dim-color, var(--color-accent));
+}
+
+.ryff-dim__bar {
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--color-bg-subtle);
+  overflow: hidden;
+}
+
+.ryff-dim__bar-fill {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--dim-color, var(--color-accent));
+  transition: width 0.6s ease;
+}
+
+.ryff-dim__band { align-self: flex-start; margin-top: var(--s-1); }
+
+.ryff-dim__desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+  margin: 0;
+  font-style: italic;
+}
+
+.ryff-dim__lead {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.ryff-dim__steps-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-top: var(--s-1);
+}
+
+.ryff-dim__steps {
+  margin: 0;
+  padding-left: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.ryff-dim__steps li {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.ryff-note {
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+  text-align: center;
+  max-width: 70ch;
+  margin: 0 auto var(--s-6);
+  font-style: italic;
+}
+
+.ryff-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--s-16);
+}

@@ -1,5 +1,13 @@
 # Estado de sincronización · Edge Functions (repo vs producción)
 
+**Actualizado: 2026-06-09 — Escala RYFF de Bienestar Psicológico añadida.**
+Nuevas funciones desplegadas vía MCP (project `ajvjyisplqsrjsessayo`):
+`submit-ryff` (v1, verify_jwt true) y `get-resultados-ryff` (v1, verify_jwt
+true, `Cache-Control: private, no-store`). Migración aplicada:
+`20260609_006_ryff.sql` (tabla `respuestas_ryff` a nivel persona, RLS propia).
+Pendiente solo el deploy del frontend (Vercel) que ya integra la cajita en el
+Resumen de todos los cursos.
+
 **Actualizado: 2026-06-03 — SINCRONIZACIÓN COMPLETA (27/27, perf v2+v3 deployada).**
 
 Migraciones aplicadas en prod: `20260603_003_rpc_lectura.sql` (rpc_get_curso,

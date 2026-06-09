@@ -28,6 +28,8 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda } from "./rueda.js";
+import { mountRadar } from "./radar.js";
+import { DIMS as RYFF_DIMS, bandaColor as ryffBandaColor, bandaLabel as ryffBandaLabel } from "./ryff-defs.js";
 import { mountForo } from "./foro.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 import { openForoLightbox } from "./foro-lightbox.js";
@@ -92,13 +94,14 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
     // otro tab, NO bloqueamos el primer load con esos requests: se cargan
     // lazy la primera vez que active Resumen (ensureResumenHydrated).
     const wantsResumen = tab === "resumen";
-    const [data, resultadoTest, resultadoAutoconocimiento] = await Promise.all([
+    const [data, resultadoTest, resultadoAutoconocimiento, resultadoRyff] = await Promise.all([
       api.curso(slug),
       wantsResumen ? api.resultadosTest().catch(() => null) : Promise.resolve(null),
       wantsResumen ? api.resultadosAutoeval("autoconocimiento").catch(() => null) : Promise.resolve(null),
+      wantsResumen ? api.resultadosRyff().catch(() => null) : Promise.resolve(null),
     ]);
     stopLoader();
-    renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento, wantsResumen);
+    renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento, resultadoRyff, wantsResumen);
   } catch (e) {
     stopLoader();
     console.error("get-curso failed:", e);
@@ -121,7 +124,7 @@ let currentCtx = null;
 let resumenHydrated = false;
 let resumenHydrating = false;
 
-function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento, hydrated = true) {
+function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento, resultadoRyff, hydrated = true) {
   const { curso, inscripcion, modulos } = payload;
 
   const totalLecc = modulos.reduce((s, c) => s + c.lecciones.length, 0);
@@ -136,7 +139,7 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
   const coverUrl = curso.coverUrl
     || (localExt ? `/assets/img/${slug}/portada.${localExt}` : null);
 
-  const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento };
+  const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento, resultadoRyff };
   currentCtx = ctx;
   resumenHydrated = hydrated;
   resumenHydrating = false;
@@ -210,6 +213,20 @@ function mountResumenWidgets(ctx) {
     }
   }
 
+  // Mount the preview radar inside the Ryff card (only if user has results).
+  if (ctx.resultadoRyff?.tieneResultados && ctx.resultadoRyff.dimensiones) {
+    const radarSvg = document.getElementById("dashboard-ryff-radar");
+    if (radarSvg) {
+      const dims = RYFF_DIMS.map((d) => ({
+        key: d.key,
+        nombre: d.nombreDisplay,
+        color: d.accentColor,
+        pct: ctx.resultadoRyff.dimensiones?.[d.key]?.pct ?? 0,
+      }));
+      mountRadar({ svg: radarSvg, dims, animate: true, labels: false, fill: "#7A5BB0" });
+    }
+  }
+
   // Sincronizar altura del foro con la del diagrama de felicidad.
   matchResumenColumnHeights();
 
@@ -240,12 +257,14 @@ async function ensureResumenHydrated() {
   if (resumenHydrated || resumenHydrating || !currentCtx) return;
   resumenHydrating = true;
   try {
-    const [rt, ra] = await Promise.all([
+    const [rt, ra, rr] = await Promise.all([
       api.resultadosTest().catch(() => null),
       api.resultadosAutoeval("autoconocimiento").catch(() => null),
+      api.resultadosRyff().catch(() => null),
     ]);
     currentCtx.resultadoTest = rt;
     currentCtx.resultadoAutoconocimiento = ra;
+    currentCtx.resultadoRyff = rr;
     const panel = document.getElementById("tab-resumen");
     if (panel) {
       panel.innerHTML = renderResumenTab(currentCtx);
@@ -556,6 +575,10 @@ function renderResumenTab(ctx) {
         ${renderForoPreviewCard(ctx)}
       </div>
     `}
+
+    <div class="resumen-row resumen-row--single">
+      ${renderRyffCajita(ctx)}
+    </div>
 
     ${isHappinessWorkshop ? `
       <section class="pillar-grid">
@@ -988,6 +1011,71 @@ function renderTestCajita(ctx) {
         </div>
       </div>
       <a class="test-cajita__link" href="/app/test-felicidad/resultados?id=${encodeURIComponent(resultadoTest.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}">
+        <span>Ver mis resultados</span>
+        ${icon("arrowRight")}
+      </a>
+    </section>
+  `;
+}
+
+/**
+ * Cajita de la Escala RYFF de Bienestar Psicológico en el Resumen.
+ *
+ * A nivel persona (no por curso): aparece en TODOS los cursos. Si no se ha
+ * tomado, invita con un botón "Tomar evaluación" que dirige a /app/ryff. Si
+ * ya se tomó, muestra un mini-radar de las 6 dimensiones + banda global + link
+ * "Ver mis resultados". El resultado es el mismo en todos los cursos del
+ * alumno (es de la persona).
+ */
+function renderRyffCajita(ctx) {
+  const r = ctx.resultadoRyff;
+  const taken = !!r?.tieneResultados;
+  const ctaHref = `/app/ryff?slug=${encodeURIComponent(ctx.slug)}`;
+
+  if (!taken) {
+    return `
+      <section class="ryff-cajita ryff-cajita--locked">
+        <div class="ryff-cajita__header">
+          <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar</span>
+          <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
+        </div>
+        <p class="ryff-cajita__lead">
+          18 afirmaciones para conocer cómo te encuentras hoy en las 6
+          dimensiones del bienestar psicológico de Carol Ryff. Tarda unos 4 minutos.
+        </p>
+        <a class="btn btn-accent ryff-cajita__cta" href="${ctaHref}">
+          <span>Tomar evaluación</span>
+          ${icon("arrowRight")}
+        </a>
+      </section>
+    `;
+  }
+
+  const fecha = r.completedAt
+    ? new Date(r.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+  const globalPct = r.global?.pct ?? 0;
+  const globalBanda = r.global?.banda ?? "";
+
+  return `
+    <section class="ryff-cajita ryff-cajita--results">
+      <div class="ryff-cajita__header">
+        <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar${fecha ? ` · ${escapeHtml(fecha)}` : ""}</span>
+        <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
+      </div>
+      <div class="ryff-cajita__grid">
+        <div class="ryff-cajita__chart">
+          <svg id="dashboard-ryff-radar" class="ryff-radar ryff-radar--preview"></svg>
+        </div>
+        <div class="ryff-cajita__meta">
+          <div class="ryff-cajita__pct">${globalPct}%</div>
+          <div class="ryff-cajita__pct-label">Índice global</div>
+          <div class="autoeval-band-tag" style="--band-color:${ryffBandaColor(globalBanda)};">
+            ${escapeHtml(ryffBandaLabel(globalBanda))}
+          </div>
+        </div>
+      </div>
+      <a class="ryff-cajita__link" href="/app/ryff/resultados?id=${encodeURIComponent(r.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}">
         <span>Ver mis resultados</span>
         ${icon("arrowRight")}
       </a>
