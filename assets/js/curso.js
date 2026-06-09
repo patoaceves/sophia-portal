@@ -28,7 +28,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda } from "./rueda.js";
-import { DIMS as RYFF_DIMS, bandaColor as ryffBandaColor, bandaLabel as ryffBandaLabel } from "./ryff-defs.js";
+import { DIMS as RYFF_DIMS, bandaColor as ryffBandaColor, bandaLabel as ryffBandaLabel, bandTextFor as ryffBandText } from "./ryff-defs.js";
 import { mountForo } from "./foro.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 import { openForoLightbox } from "./foro-lightbox.js";
@@ -1049,13 +1049,24 @@ function renderRyffCajita(ctx) {
   const resultadosHref = `/app/ryff/resultados?id=${encodeURIComponent(r.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}`;
 
   const rings = RYFF_DIMS.map((d) => {
-    const pct = r.dimensiones?.[d.key]?.pct ?? 0;
+    const dim = r.dimensiones?.[d.key] || { pct: 0, banda: "" };
+    const pct = dim.pct ?? 0;
+    const banda = dim.banda ?? "";
+    const txt = ryffBandText(d.key, banda);
     return `
-      <div class="ryff-ring-item">
+      <div class="ryff-ring-item" tabindex="0">
         <div class="ryff-ring" style="--dim-color:${d.accentColor}; --pct:${pct};">
           <span class="ryff-ring__val">${pct}%</span>
         </div>
         <span class="ryff-ring__label">${escapeHtml(d.nombreCorto || d.nombreDisplay)}</span>
+        <div class="ryff-ring__popup" role="tooltip" style="--dim-color:${d.accentColor};">
+          <div class="ryff-ring__popup-name">${escapeHtml(d.nombreDisplay)}</div>
+          <div class="ryff-ring__popup-meta">
+            <span class="ryff-ring__popup-pct">${pct}%</span>
+            <span class="autoeval-band-tag" style="--band-color:${ryffBandaColor(banda)};">${escapeHtml(ryffBandaLabel(banda))}</span>
+          </div>
+          ${txt.lead ? `<p class="ryff-ring__popup-lead">${escapeHtml(txt.lead)}</p>` : ""}
+        </div>
       </div>
     `;
   }).join("");
@@ -1079,7 +1090,7 @@ function renderRyffCajita(ctx) {
       </div>
 
       <div class="ryff-cajita__footer">
-        <a class="btn btn-accent" href="${resultadosHref}">
+        <a class="ryff-cajita__link" href="${resultadosHref}">
           <span>Ver mis resultados completos</span>
           ${icon("arrowRight")}
         </a>

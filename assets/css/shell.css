@@ -8525,7 +8525,7 @@ button.foro-preview-item__thumb {
   flex-direction: column;
   gap: var(--s-2);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 0.2s ease;
 }
 
@@ -8535,6 +8535,7 @@ button.foro-preview-item__thumb {
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: var(--r-lg);
   background:
     radial-gradient(at 0% 0%, color-mix(in srgb, #7A5BB0 22%, transparent) 0%, transparent 38%),
     radial-gradient(at 100% 10%, color-mix(in srgb, #66A3F4 20%, transparent) 0%, transparent 40%),
@@ -8637,12 +8638,11 @@ button.foro-preview-item__thumb {
 
 /* Las 6 rueditas de progreso, una junto a otra, llenando la franja */
 .ryff-rings {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s-3);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-5) var(--s-3);
   flex: 1;
-  min-width: 280px;
+  min-width: 300px;
 }
 
 .ryff-ring-item {
@@ -8650,12 +8650,18 @@ button.foro-preview-item__thumb {
   flex-direction: column;
   align-items: center;
   gap: var(--s-2);
-  flex: 1;
   min-width: 0;
+  position: relative;
+}
+
+/* Foco accesible sin recuadro feo (el popup ya da feedback) */
+.ryff-ring-item:focus { outline: none; }
+.ryff-ring-item:focus-visible .ryff-ring {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dim-color, var(--color-accent)) 30%, transparent);
 }
 
 .ryff-ring {
-  --size: 62px;
+  --size: 60px;
   --ring: 7px;
   width: var(--size);
   height: var(--size);
@@ -8665,7 +8671,11 @@ button.foro-preview-item__thumb {
   place-items: center;
   position: relative;
   flex-shrink: 0;
+  cursor: default;
+  transition: transform 0.15s ease;
 }
+
+.ryff-ring-item:hover .ryff-ring { transform: scale(1.06); }
 
 .ryff-ring::before {
   content: "";
@@ -8689,20 +8699,99 @@ button.foro-preview-item__thumb {
   line-height: 1.2;
 }
 
-/* Boton "Ver mis resultados completos": alineado a la derecha, no full width */
+/* Popup en hover/focus de cada ruedita */
+.ryff-ring__popup {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: 250px;
+  max-width: 80vw;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--r-md);
+  box-shadow: 0 14px 34px rgba(31, 26, 20, 0.16);
+  padding: var(--s-3) var(--s-4);
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 40;
+}
+
+.ryff-ring__popup::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--color-bg-elevated);
+  filter: drop-shadow(0 1px 0 var(--color-border-strong));
+}
+
+.ryff-ring-item:hover .ryff-ring__popup,
+.ryff-ring-item:focus-within .ryff-ring__popup {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ryff-ring__popup-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 144;
+  margin-bottom: var(--s-1);
+}
+
+.ryff-ring__popup-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+}
+
+.ryff-ring__popup-pct {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--dim-color, var(--color-accent));
+}
+
+.ryff-ring__popup-lead {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Link "Ver mis resultados completos": mismo formato que "Ver foro completo",
+   alineado a la derecha (no full width). */
 .ryff-cajita__footer {
   display: flex;
   justify-content: flex-end;
   margin-top: var(--s-3);
 }
 
+.ryff-cajita__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+  transition: gap 0.15s ease;
+}
+
+.ryff-cajita__link:hover { gap: var(--s-2); }
+.ryff-cajita__link svg { width: 16px; height: 16px; }
+
 @media (max-width: 720px) {
   .ryff-result-strip { gap: var(--s-5); }
   .ryff-result-global { flex-basis: 100%; flex-direction: row; align-items: baseline; gap: var(--s-3); }
-  .ryff-rings { min-width: 100%; flex-wrap: wrap; justify-content: flex-start; row-gap: var(--s-4); }
-  .ryff-ring-item { flex: 0 0 calc(33.333% - var(--s-2)); }
-  .ryff-cajita__footer { justify-content: stretch; }
-  .ryff-cajita__footer .btn { width: 100%; justify-content: center; }
+  .ryff-rings { min-width: 100%; }
 }
 
 /* Wizard RYFF dentro de un contenedor (como las demás evaluaciones) */
