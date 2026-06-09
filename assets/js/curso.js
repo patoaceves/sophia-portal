@@ -1044,8 +1044,6 @@ function renderRyffCajita(ctx) {
   const fecha = r.completedAt
     ? new Date(r.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
-  const globalPct = r.global?.pct ?? 0;
-  const globalBanda = r.global?.banda ?? "";
   const resultadosHref = `/app/ryff/resultados?id=${encodeURIComponent(r.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}`;
 
   const rings = RYFF_DIMS.map((d) => {
@@ -1073,24 +1071,12 @@ function renderRyffCajita(ctx) {
 
   return `
     <section class="ryff-cajita ryff-cajita--results">
-      <div class="ryff-result-main">
-        <div class="ryff-result-info">
-          <div class="ryff-cajita__header">
-            <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar${fecha ? ` · ${escapeHtml(fecha)}` : ""}</span>
-            <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
-          </div>
-          <div class="ryff-result-global">
-            <div class="ryff-result-global__index">
-              <span class="ryff-result-global__pct">${globalPct}%</span>
-              <span class="ryff-result-global__label">Índice global</span>
-            </div>
-            <span class="autoeval-band-tag" style="color:${ryffBandaColor(globalBanda)};">
-              ${escapeHtml(ryffBandaLabel(globalBanda))}
-            </span>
-          </div>
-        </div>
-        <div class="ryff-rings">${rings}</div>
+      <div class="ryff-cajita__header">
+        <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar${fecha ? ` · ${escapeHtml(fecha)}` : ""}</span>
+        <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
       </div>
+
+      <div class="ryff-rings">${rings}</div>
 
       <div class="ryff-cajita__footer">
         <a class="ryff-cajita__link" href="${resultadosHref}">

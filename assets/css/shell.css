@@ -8603,66 +8603,17 @@ button.foro-preview-item__thumb {
 /* Card "ya contestado": indice global (izq) + 6 rueditas en fila + CTA (der) */
 .ryff-cajita--results { gap: var(--s-4); }
 
-/* Layout: info (titulo + indice global) a la izquierda, 6 rueditas a la derecha */
-.ryff-result-main {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--s-8);
-  align-items: center;
-  margin-top: var(--s-2);
-}
-
-.ryff-result-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-5);
-}
-
-/* Eyebrow y titulo cada uno en un solo renglon (la columna auto crece para
-   alojarlos; las rueditas toman el resto a la derecha). */
-.ryff-result-info .ryff-cajita__eyebrow,
-.ryff-result-info .ryff-cajita__title { white-space: nowrap; }
-
-/* Indice global + banda DENTRO de un container, centrado consigo mismo */
-.ryff-result-global {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--s-2);
-  align-self: center;
-  background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
-  padding: var(--s-4) var(--s-7);
-}
-
-.ryff-result-global__index { display: flex; flex-direction: column; align-items: center; }
-
-.ryff-result-global__pct {
-  font-family: var(--font-display);
-  font-size: 3.25rem;
-  line-height: 0.95;
-  font-weight: 500;
-  color: #7A5BB0;
-  font-variation-settings: "opsz" 144;
-}
-
-.ryff-result-global__label {
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-muted);
-}
-
-.ryff-result-global .autoeval-band-tag { align-self: center; white-space: nowrap; }
-
-/* Las 6 rueditas de progreso: 2 filas de 3, con aire entre filas */
+/* Card "ya contestado": las 6 rueditas en UNA sola fila, debajo del titulo */
 .ryff-rings {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-7) var(--s-5);
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--s-4);
   justify-items: center;
+  margin-top: var(--s-5);
+}
+
+@media (max-width: 760px) {
+  .ryff-rings { grid-template-columns: repeat(3, 1fr); gap: var(--s-6) var(--s-3); }
 }
 
 .ryff-ring-item {
@@ -8814,14 +8765,6 @@ button.foro-preview-item__thumb {
 
 .ryff-cajita__link:hover { gap: var(--s-2); }
 .ryff-cajita__link svg { width: 16px; height: 16px; }
-
-@media (max-width: 720px) {
-  .ryff-result-main { grid-template-columns: 1fr; gap: var(--s-6); }
-  .ryff-result-info .ryff-cajita__eyebrow,
-  .ryff-result-info .ryff-cajita__title { white-space: normal; }
-  .ryff-result-global { align-self: stretch; }
-  .ryff-rings { gap: var(--s-6) var(--s-3); }
-}
 
 /* Wizard RYFF dentro de un contenedor (como las demás evaluaciones) */
 .ryff-wizard .test-wizard__body.ryff-card {
