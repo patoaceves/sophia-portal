@@ -28,7 +28,6 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountRueda } from "./rueda.js";
-import { mountRadar } from "./radar.js";
 import { DIMS as RYFF_DIMS, bandaColor as ryffBandaColor, bandaLabel as ryffBandaLabel } from "./ryff-defs.js";
 import { mountForo } from "./foro.js";
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
@@ -213,19 +212,8 @@ function mountResumenWidgets(ctx) {
     }
   }
 
-  // Mount the preview radar inside the Ryff card (only if user has results).
-  if (ctx.resultadoRyff?.tieneResultados && ctx.resultadoRyff.dimensiones) {
-    const radarSvg = document.getElementById("dashboard-ryff-radar");
-    if (radarSvg) {
-      const dims = RYFF_DIMS.map((d) => ({
-        key: d.key,
-        nombre: d.nombreDisplay,
-        color: d.accentColor,
-        pct: ctx.resultadoRyff.dimensiones?.[d.key]?.pct ?? 0,
-      }));
-      mountRadar({ svg: radarSvg, dims, animate: true, labels: false, fill: "#7A5BB0" });
-    }
-  }
+  // El preview del card RYFF (rueditas de progreso) es CSS puro: no requiere
+  // montaje JS. El radar completo solo vive en la página de resultados.
 
   // Sincronizar altura del foro con la del diagrama de felicidad.
   matchResumenColumnHeights();
@@ -1060,14 +1048,15 @@ function renderRyffCajita(ctx) {
   const globalBanda = r.global?.banda ?? "";
   const resultadosHref = `/app/ryff/resultados?id=${encodeURIComponent(r.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}`;
 
-  const miniDims = RYFF_DIMS.map((d) => {
+  const rings = RYFF_DIMS.map((d) => {
     const pct = r.dimensiones?.[d.key]?.pct ?? 0;
     return `
-      <li class="ryff-mini-dim" style="--dim-color:${d.accentColor};">
-        <span class="ryff-mini-dim__name">${escapeHtml(d.nombreDisplay)}</span>
-        <span class="ryff-mini-dim__bar"><i style="width:${pct}%;"></i></span>
-        <span class="ryff-mini-dim__pct">${pct}%</span>
-      </li>
+      <div class="ryff-ring-item">
+        <div class="ryff-ring" style="--dim-color:${d.accentColor}; --pct:${pct};">
+          <span class="ryff-ring__val">${pct}%</span>
+        </div>
+        <span class="ryff-ring__label">${escapeHtml(d.nombreCorto || d.nombreDisplay)}</span>
+      </div>
     `;
   }).join("");
 
@@ -1078,24 +1067,23 @@ function renderRyffCajita(ctx) {
         <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
       </div>
 
-      <div class="ryff-result-preview">
-        <div class="ryff-result-preview__chart">
-          <svg id="dashboard-ryff-radar" class="ryff-radar ryff-radar--preview"></svg>
-          <div class="ryff-result-preview__global">
-            <span class="ryff-result-preview__pct">${globalPct}%</span>
-            <span class="ryff-result-preview__pct-label">Índice global</span>
-            <span class="autoeval-band-tag" style="--band-color:${ryffBandaColor(globalBanda)};">
-              ${escapeHtml(ryffBandaLabel(globalBanda))}
-            </span>
-          </div>
+      <div class="ryff-result-strip">
+        <div class="ryff-result-global">
+          <span class="ryff-result-global__pct">${globalPct}%</span>
+          <span class="ryff-result-global__label">Índice global</span>
+          <span class="autoeval-band-tag" style="--band-color:${ryffBandaColor(globalBanda)};">
+            ${escapeHtml(ryffBandaLabel(globalBanda))}
+          </span>
         </div>
-        <ul class="ryff-mini-dims">${miniDims}</ul>
+        <div class="ryff-rings">${rings}</div>
       </div>
 
-      <a class="btn btn-accent btn-lg ryff-cajita__results-btn" href="${resultadosHref}">
-        <span>Ver mis resultados completos</span>
-        ${icon("arrowRight")}
-      </a>
+      <div class="ryff-cajita__footer">
+        <a class="btn btn-accent" href="${resultadosHref}">
+          <span>Ver mis resultados completos</span>
+          ${icon("arrowRight")}
+        </a>
+      </div>
     </section>
   `;
 }

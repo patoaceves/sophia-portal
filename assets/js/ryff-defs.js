@@ -25,6 +25,7 @@ export const DIMS = [
     key: "autoaceptacion",
     nombre: "Autoaceptacion",
     nombreDisplay: "Autoaceptación",
+    nombreCorto: "Autoaceptación",
     accentColor: "#C0112F",
     descripcion: "Actitud positiva hacia ti y hacia tu historia: reconocer tus cualidades y tus sombras, y estar en paz con lo vivido.",
     preguntas: [
@@ -37,6 +38,7 @@ export const DIMS = [
     key: "relaciones_positivas",
     nombre: "Relaciones positivas",
     nombreDisplay: "Relaciones positivas",
+    nombreCorto: "Relaciones",
     accentColor: "#E0851B",
     descripcion: "Vínculos cálidos, de confianza y mutuos con los demás: empatía, cercanía y capacidad de dar y recibir.",
     preguntas: [
@@ -49,6 +51,7 @@ export const DIMS = [
     key: "autonomia",
     nombre: "Autonomia",
     nombreDisplay: "Autonomía",
+    nombreCorto: "Autonomía",
     accentColor: "#66A3F4",
     descripcion: "Autodeterminación e independencia: pensar por ti mismo/a y resistir la presión social para evaluarte con tus propios criterios.",
     preguntas: [
@@ -61,6 +64,7 @@ export const DIMS = [
     key: "dominio_entorno",
     nombre: "Dominio del entorno",
     nombreDisplay: "Dominio del entorno",
+    nombreCorto: "Entorno",
     accentColor: "#2E8B6F",
     descripcion: "Sensación de competencia para manejar tu vida y tu entorno, y para aprovechar las oportunidades que se te presentan.",
     preguntas: [
@@ -73,6 +77,7 @@ export const DIMS = [
     key: "proposito_vida",
     nombre: "Proposito en la vida",
     nombreDisplay: "Propósito en la vida",
+    nombreCorto: "Propósito",
     accentColor: "#7A5BB0",
     descripcion: "Tener metas y un sentido de dirección: sentir que tu vida, presente y pasada, tiene significado.",
     preguntas: [
@@ -85,6 +90,7 @@ export const DIMS = [
     key: "crecimiento_personal",
     nombre: "Crecimiento personal",
     nombreDisplay: "Crecimiento personal",
+    nombreCorto: "Crecimiento",
     accentColor: "#8D9438",
     descripcion: "Sensación de desarrollo continuo: apertura a nuevas experiencias y mejora percibida de ti mismo/a con el tiempo.",
     preguntas: [

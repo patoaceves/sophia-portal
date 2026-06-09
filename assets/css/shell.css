@@ -8598,109 +8598,111 @@ button.foro-preview-item__thumb {
 }
 
 .ryff-radar { width: 100%; height: auto; display: block; }
-.ryff-radar--preview { max-width: 200px; }
 
-/* Card "ya contestado": radar + índice global + barras por dimensión + CTA */
+/* Card "ya contestado": indice global (izq) + 6 rueditas en fila + CTA (der) */
 .ryff-cajita--results { gap: var(--s-4); }
 
-.ryff-result-preview {
-  display: grid;
-  grid-template-columns: minmax(0, auto) 1fr;
+.ryff-result-strip {
+  display: flex;
   align-items: center;
   gap: var(--s-7);
-  margin-top: var(--s-2);
+  margin-top: var(--s-3);
+  flex-wrap: wrap;
 }
 
-.ryff-result-preview__chart {
+/* Indice global a la izquierda: % grande + label + banda, todo alineado izq */
+.ryff-result-global {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--s-2);
+  align-items: flex-start;
+  gap: var(--s-1);
+  flex-shrink: 0;
 }
 
-.ryff-result-preview__global {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.ryff-result-preview__pct {
+.ryff-result-global__pct {
   font-family: var(--font-display);
-  font-size: 2rem;
-  line-height: 1;
+  font-size: 3rem;
+  line-height: 0.95;
   font-weight: 500;
   color: #7A5BB0;
   font-variation-settings: "opsz" 144;
 }
 
-.ryff-result-preview__pct-label {
+.ryff-result-global__label {
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-muted);
-  margin-bottom: var(--s-1);
 }
 
-.ryff-mini-dims {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Las 6 rueditas de progreso, una junto a otra, llenando la franja */
+.ryff-rings {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex: 1;
+  min-width: 280px;
+}
+
+.ryff-ring-item {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-}
-
-.ryff-mini-dim {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 38px;
   align-items: center;
-  gap: var(--s-3);
+  gap: var(--s-2);
+  flex: 1;
+  min-width: 0;
 }
 
-.ryff-mini-dim__name {
-  font-size: 0.8125rem;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.ryff-ring {
+  --size: 62px;
+  --ring: 7px;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: conic-gradient(var(--dim-color, var(--color-accent)) calc(var(--pct, 0) * 1%), var(--color-bg-subtle) 0);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex-shrink: 0;
 }
 
-.ryff-mini-dim__bar {
-  height: 7px;
-  border-radius: var(--r-full);
-  background: var(--color-bg-subtle);
-  overflow: hidden;
+.ryff-ring::before {
+  content: "";
+  position: absolute;
+  inset: var(--ring);
+  background: var(--color-bg-elevated);
+  border-radius: 50%;
 }
 
-.ryff-mini-dim__bar > i {
-  display: block;
-  height: 100%;
-  border-radius: var(--r-full);
-  background: var(--dim-color, var(--color-accent));
-  transition: width 0.6s ease;
-}
-
-.ryff-mini-dim__pct {
+.ryff-ring__val {
+  position: relative;
   font-size: 0.8125rem;
   font-weight: 700;
   color: var(--dim-color, var(--color-accent));
-  text-align: right;
 }
 
-.ryff-cajita__results-btn {
-  align-self: stretch;
-  justify-content: center;
+.ryff-ring__label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Boton "Ver mis resultados completos": alineado a la derecha, no full width */
+.ryff-cajita__footer {
+  display: flex;
+  justify-content: flex-end;
   margin-top: var(--s-3);
-  padding-top: var(--s-3);
-  padding-bottom: var(--s-3);
-  font-size: 0.95rem;
-  font-weight: 600;
 }
 
-@media (max-width: 700px) {
-  .ryff-result-preview { grid-template-columns: 1fr; gap: var(--s-5); }
-  .ryff-radar--preview { max-width: 240px; }
+@media (max-width: 720px) {
+  .ryff-result-strip { gap: var(--s-5); }
+  .ryff-result-global { flex-basis: 100%; flex-direction: row; align-items: baseline; gap: var(--s-3); }
+  .ryff-rings { min-width: 100%; flex-wrap: wrap; justify-content: flex-start; row-gap: var(--s-4); }
+  .ryff-ring-item { flex: 0 0 calc(33.333% - var(--s-2)); }
+  .ryff-cajita__footer { justify-content: stretch; }
+  .ryff-cajita__footer .btn { width: 100%; justify-content: center; }
 }
 
 /* Wizard RYFF dentro de un contenedor (como las demás evaluaciones) */
