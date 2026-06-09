@@ -8606,7 +8606,7 @@ button.foro-preview-item__thumb {
 /* Layout: info (titulo + indice global) a la izquierda, 6 rueditas a la derecha */
 .ryff-result-main {
   display: grid;
-  grid-template-columns: minmax(220px, 290px) 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: var(--s-8);
   align-items: center;
   margin-top: var(--s-2);
@@ -8618,13 +8618,23 @@ button.foro-preview-item__thumb {
   gap: var(--s-5);
 }
 
-/* Indice global + banda: bloque centrado consigo mismo, debajo del titulo */
+/* Eyebrow y titulo cada uno en un solo renglon (la columna auto crece para
+   alojarlos; las rueditas toman el resto a la derecha). */
+.ryff-result-info .ryff-cajita__eyebrow,
+.ryff-result-info .ryff-cajita__title { white-space: nowrap; }
+
+/* Indice global + banda DENTRO de un container, centrado consigo mismo */
 .ryff-result-global {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: var(--s-2);
+  align-self: center;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-7);
 }
 
 .ryff-result-global__index { display: flex; flex-direction: column; align-items: center; }
@@ -8759,8 +8769,8 @@ button.foro-preview-item__thumb {
 
 .ryff-ring__popup-meta {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--s-2);
   margin-bottom: var(--s-2);
 }
@@ -8768,9 +8778,12 @@ button.foro-preview-item__thumb {
 .ryff-ring__popup-meta .autoeval-band-tag { white-space: nowrap; }
 
 .ryff-ring__popup-pct {
-  font-weight: 700;
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1;
+  font-weight: 500;
   color: var(--dim-color, var(--color-accent));
+  font-variation-settings: "opsz" 144;
 }
 
 .ryff-ring__popup-lead {
@@ -8804,6 +8817,9 @@ button.foro-preview-item__thumb {
 
 @media (max-width: 720px) {
   .ryff-result-main { grid-template-columns: 1fr; gap: var(--s-6); }
+  .ryff-result-info .ryff-cajita__eyebrow,
+  .ryff-result-info .ryff-cajita__title { white-space: normal; }
+  .ryff-result-global { align-self: stretch; }
   .ryff-rings { gap: var(--s-6) var(--s-3); }
 }
 
