@@ -70,9 +70,9 @@ function renderInto(state) {
 
   state.container.innerHTML = `
     ${progressBarHtml}
-    <div class="test-wizard">
+    <div class="test-wizard ryff-wizard">
       ${headerHtml}
-      <div class="test-wizard__body">${bodyHtml}</div>
+      <div class="test-wizard__body ryff-card">${bodyHtml}</div>
     </div>
   `;
 }

@@ -49,7 +49,16 @@ function polygonPoints(rValues) {
  */
 export function mountRadar({ svg, dims, animate = true, labels = true, fill = "#C0112F" }) {
   if (!svg || !Array.isArray(dims) || dims.length !== 6) return;
-  svg.setAttribute("viewBox", `0 0 ${VB} ${VB}`);
+  if (labels) {
+    svg.setAttribute("viewBox", `0 0 ${VB} ${VB}`);
+  } else {
+    // Sin etiquetas (preview): recorta el margen para que el radar llene el
+    // contenedor en vez de quedar chico con aire alrededor.
+    const pad = 14;
+    const min = CY - MAX_R - pad;
+    const span = (MAX_R + pad) * 2;
+    svg.setAttribute("viewBox", `${min} ${min} ${span} ${span}`);
+  }
   svg.innerHTML = "";
 
   // ── Anillos hexagonales de referencia (20%..100%) ──

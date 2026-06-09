@@ -1034,15 +1034,17 @@ function renderRyffCajita(ctx) {
 
   if (!taken) {
     return `
-      <section class="ryff-cajita ryff-cajita--locked">
-        <div class="ryff-cajita__header">
-          <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar</span>
-          <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
+      <section class="ryff-cajita ryff-cajita--locked ryff-cajita--row">
+        <div class="ryff-cajita__content">
+          <div class="ryff-cajita__header">
+            <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar</span>
+            <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
+          </div>
+          <p class="ryff-cajita__lead">
+            18 afirmaciones para conocer cómo te encuentras hoy en las 6
+            dimensiones del bienestar psicológico de Carol Ryff. Tarda unos 4 minutos.
+          </p>
         </div>
-        <p class="ryff-cajita__lead">
-          18 afirmaciones para conocer cómo te encuentras hoy en las 6
-          dimensiones del bienestar psicológico de Carol Ryff. Tarda unos 4 minutos.
-        </p>
         <a class="btn btn-accent ryff-cajita__cta" href="${ctaHref}">
           <span>Tomar evaluación</span>
           ${icon("arrowRight")}
@@ -1056,6 +1058,18 @@ function renderRyffCajita(ctx) {
     : "";
   const globalPct = r.global?.pct ?? 0;
   const globalBanda = r.global?.banda ?? "";
+  const resultadosHref = `/app/ryff/resultados?id=${encodeURIComponent(r.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}`;
+
+  const miniDims = RYFF_DIMS.map((d) => {
+    const pct = r.dimensiones?.[d.key]?.pct ?? 0;
+    return `
+      <li class="ryff-mini-dim" style="--dim-color:${d.accentColor};">
+        <span class="ryff-mini-dim__name">${escapeHtml(d.nombreDisplay)}</span>
+        <span class="ryff-mini-dim__bar"><i style="width:${pct}%;"></i></span>
+        <span class="ryff-mini-dim__pct">${pct}%</span>
+      </li>
+    `;
+  }).join("");
 
   return `
     <section class="ryff-cajita ryff-cajita--results">
@@ -1063,20 +1077,23 @@ function renderRyffCajita(ctx) {
         <span class="ryff-cajita__eyebrow">Tu evaluación de bienestar${fecha ? ` · ${escapeHtml(fecha)}` : ""}</span>
         <h3 class="ryff-cajita__title">Escala de Bienestar Psicológico (RYFF)</h3>
       </div>
-      <div class="ryff-cajita__grid">
-        <div class="ryff-cajita__chart">
+
+      <div class="ryff-result-preview">
+        <div class="ryff-result-preview__chart">
           <svg id="dashboard-ryff-radar" class="ryff-radar ryff-radar--preview"></svg>
-        </div>
-        <div class="ryff-cajita__meta">
-          <div class="ryff-cajita__pct">${globalPct}%</div>
-          <div class="ryff-cajita__pct-label">Índice global</div>
-          <div class="autoeval-band-tag" style="--band-color:${ryffBandaColor(globalBanda)};">
-            ${escapeHtml(ryffBandaLabel(globalBanda))}
+          <div class="ryff-result-preview__global">
+            <span class="ryff-result-preview__pct">${globalPct}%</span>
+            <span class="ryff-result-preview__pct-label">Índice global</span>
+            <span class="autoeval-band-tag" style="--band-color:${ryffBandaColor(globalBanda)};">
+              ${escapeHtml(ryffBandaLabel(globalBanda))}
+            </span>
           </div>
         </div>
+        <ul class="ryff-mini-dims">${miniDims}</ul>
       </div>
-      <a class="ryff-cajita__link" href="/app/ryff/resultados?id=${encodeURIComponent(r.respuestaId)}&slug=${encodeURIComponent(ctx.slug)}">
-        <span>Ver mis resultados</span>
+
+      <a class="btn btn-accent btn-lg ryff-cajita__results-btn" href="${resultadosHref}">
+        <span>Ver mis resultados completos</span>
         ${icon("arrowRight")}
       </a>
     </section>
