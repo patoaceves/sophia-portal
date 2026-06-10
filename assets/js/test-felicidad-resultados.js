@@ -75,7 +75,7 @@ function renderResultadosInline(container, data) {
             <span class="resultados-summary__pillar-value resultados-summary__pillar-value--weak">${escapeHtml(weakestPilar(scores, pilarNombres))}</span>
           </div>
         </div>
-        <p class="resultados-summary__lead">${escapeHtml(buildHolisticAnalysis(scores, pilarNombres))}</p>
+        <p class="resultados-summary__lead" style="text-align:left; align-self:stretch;">${escapeHtml(buildHolisticAnalysis(scores, pilarNombres))}</p>
       </div>
     </section>
 
@@ -86,10 +86,19 @@ function renderResultadosInline(container, data) {
 
   mountRueda({
     svg: document.getElementById(`rueda-svg-${uid}`),
+    tooltip: document.getElementById(`rueda-tooltip-${uid}`),
     scores,
-    pilarNombres,
-    tooltipEl: document.getElementById(`rueda-tooltip-${uid}`),
+    animate: true,
+    compact: false,
   });
+
+  // Revelar los bloques (Fortaleza / En crecimiento / Vulnerable). En CSS
+  // arrancan con opacity:0; si nunca les ponemos .show quedan invisibles
+  // pero ocupando su alto completo, que es lo que generaba el gap enorme
+  // debajo del overview. Hacemos el mismo stagger que la pagina standalone.
+  setTimeout(() => container.querySelector("#col-fortaleza")?.classList.add("show"), 1800);
+  setTimeout(() => container.querySelector("#col-crecimiento")?.classList.add("show"), 2200);
+  setTimeout(() => container.querySelector("#col-vulnerable")?.classList.add("show"), 2600);
 }
 
 // ────────────────────────────────────────────────────────────────────
