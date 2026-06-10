@@ -78,7 +78,7 @@ export const DIMS = [
     nombre: "Proposito en la vida",
     nombreDisplay: "Propósito en la vida",
     nombreCorto: "Propósito",
-    accentColor: "#7A5BB0",
+    accentColor: "#2C8C99",
     descripcion: "Tener metas y un sentido de dirección: sentir que tu vida, presente y pasada, tiene significado.",
     preguntas: [
       { id: "PV1", reverse: false, texto: "Algunas personas van por la vida sin rumbo, pero yo no soy una de ellas." },

@@ -14,7 +14,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon } from "./icons.js";
 import { preguntasPlanas, ESCALA_LABELS, SCALE, DIMS } from "./ryff-defs.js";
 
-const ACCENT = "#7A5BB0"; // morado de bienestar, tine el wizard
+const ACCENT = "#C0112F"; // rojo SOPHIA (igual que el sitio publico de ryff)
 
 // Valores de la escala 1..6
 const SCALE_VALUES = Array.from({ length: SCALE.max - SCALE.min + 1 }, (_, i) => SCALE.min + i);
@@ -70,13 +70,22 @@ function renderInto(state) {
     </div>
   `;
 
-  state.container.innerHTML = `
-    ${progressBarHtml}
-    <div class="test-wizard ryff-wizard">
-      ${headerHtml}
-      <div class="${bodyClass}">${bodyHtml}</div>
-    </div>
-  `;
+  state.container.innerHTML = isIntro
+    ? `
+      <div class="test-wizard ryff-wizard">
+        ${headerHtml}
+        <div class="${bodyClass}">${bodyHtml}</div>
+      </div>
+    `
+    : `
+      <div class="ryff-wizard-shell">
+        ${progressBarHtml}
+        <div class="test-wizard ryff-wizard ryff-wizard--split">
+          ${headerHtml}
+          <div class="${bodyClass}">${bodyHtml}</div>
+        </div>
+      </div>
+    `;
 }
 
 // Avance por dimension: cuantas de las 3 preguntas de cada dimension van
