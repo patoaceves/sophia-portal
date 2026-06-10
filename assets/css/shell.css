@@ -8807,7 +8807,8 @@ button.foro-preview-item__thumb {
   font-weight: 600;
 }
 .ryff-quiz-main { flex: 1; min-width: 0; padding: var(--s-7); display: flex; flex-direction: column; }
-.ryff-quiz-main .test-question { padding: 0; }
+.ryff-quiz-main .test-question { padding: 0; flex: 1; display: flex; flex-direction: column; }
+.ryff-quiz-main .test-question__nav { margin-top: auto; }
 .ryff-quiz-main .test-question__pilar { text-align: left; }
 /* Botones del wizard igual que el sitio publico de ryff: pill + ghost con borde */
 .ryff-quiz-main .btn { border-radius: var(--r-full); }
