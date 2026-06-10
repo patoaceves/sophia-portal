@@ -8591,7 +8591,7 @@ button.foro-preview-item__thumb {
   flex: 1;
   min-width: 0;
 }
-.ryff-cajita--row .ryff-cajita__cta { margin-top: 0; flex-shrink: 0; }
+.ryff-cajita--row .ryff-cajita__cta { margin-top: 0; flex-shrink: 0; align-self: center; }
 
 @media (max-width: 640px) {
   .ryff-cajita--row { flex-direction: column; align-items: stretch; }
