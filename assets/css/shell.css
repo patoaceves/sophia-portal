@@ -8783,8 +8783,9 @@ button.foro-preview-item__thumb {
 
 /* Wizard RYFF con sidebar de dimensiones (palomitas por dimension) */
 .ryff-wizard-shell { max-width: 880px; margin: 0 auto; }
-.ryff-wizard-shell .test-progress { margin-bottom: var(--s-5); }
 .ryff-wizard--split { max-width: 100%; }
+.ryff-wizard--split .test-wizard__header { margin-bottom: var(--s-4); }
+.ryff-wizard--split .test-progress { margin-bottom: var(--s-5); padding: 0; }
 .ryff-wizard .test-wizard__body.ryff-card--split {
   padding: 0;
   display: block;

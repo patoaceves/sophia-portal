@@ -66,7 +66,6 @@ function renderInto(state) {
       <div class="test-progress__bar">
         <div class="test-progress__fill" style="width: ${pct}%; background: ${curColor};"></div>
       </div>
-      <div class="test-progress__label">${state.currentIndex + 1} de ${total}</div>
     </div>
   `;
 
@@ -79,9 +78,9 @@ function renderInto(state) {
     `
     : `
       <div class="ryff-wizard-shell">
-        ${progressBarHtml}
         <div class="test-wizard ryff-wizard ryff-wizard--split">
           ${headerHtml}
+          ${progressBarHtml}
           <div class="${bodyClass}">${bodyHtml}</div>
         </div>
       </div>
