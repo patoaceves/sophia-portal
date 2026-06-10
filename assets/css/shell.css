@@ -8632,8 +8632,8 @@ button.foro-preview-item__thumb {
 }
 
 .ryff-ring {
-  --size: 74px;
-  --ring: 8px;
+  --size: 96px;
+  --ring: 10px;
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
@@ -8658,13 +8658,13 @@ button.foro-preview-item__thumb {
 
 .ryff-ring__val {
   position: relative;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--dim-color, var(--color-accent));
 }
 
 .ryff-ring__label {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text);
   text-align: center;
