@@ -32,7 +32,7 @@ export async function renderTestFelicidadInto(container, respuestaId) {
         </div>`;
       return;
     }
-    renderResultadosInline(container, data);
+    renderResultadosInline(container, data, respuestaId);
   } catch (e) {
     console.error("test-felicidad inline failed:", e);
     container.innerHTML = `
@@ -43,8 +43,8 @@ export async function renderTestFelicidadInto(container, respuestaId) {
   }
 }
 
-function renderResultadosInline(container, data) {
-  const { scores, analisis, pilarNombres, completedAt } = data;
+function renderResultadosInline(container, data, respuestaId) {
+  const { scores, pilarNombres, completedAt } = data;
   const fecha = completedAt
     ? new Date(completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
     : "";
@@ -52,6 +52,13 @@ function renderResultadosInline(container, data) {
   // Generamos IDs únicos para esta instancia (por si hay múltiples en la
   // misma página por error). Usamos el container para query relativos.
   const uid = `tf${Math.random().toString(36).slice(2, 8)}`;
+
+  // Link a la pagina de resultados completos (bloques por pilar, analisis
+  // holistico, etc). Si tenemos respuestaId lo pasamos para abrir ese
+  // intento exacto; si no, la pagina standalone cae al ultimo intento.
+  const fullHref = respuestaId
+    ? `/app/test-felicidad/resultados?id=${encodeURIComponent(respuestaId)}`
+    : `/app/test-felicidad/resultados`;
 
   container.innerHTML = `
     <div class="autoeval-inline-eyebrow">Tu autoevaluación · ${escapeHtml(fecha)}</div>
@@ -64,7 +71,7 @@ function renderResultadosInline(container, data) {
         </div>
       </div>
       <div class="resultados-summary">
-        <h3 class="resultados-summary__title">Análisis de tu diagrama</h3>
+        <h3 class="resultados-summary__title">Tu diagrama de felicidad</h3>
         <div class="resultados-summary__pillars">
           <div class="resultados-summary__pillar">
             <span class="resultados-summary__pillar-label">Tu pilar más fuerte</span>
@@ -75,12 +82,10 @@ function renderResultadosInline(container, data) {
             <span class="resultados-summary__pillar-value resultados-summary__pillar-value--weak">${escapeHtml(weakestPilar(scores, pilarNombres))}</span>
           </div>
         </div>
-        <p class="resultados-summary__lead" style="text-align:left; align-self:stretch;">${escapeHtml(buildHolisticAnalysis(scores, pilarNombres))}</p>
+        <a class="btn btn-secondary" href="${fullHref}" style="margin-top: var(--s-2);">
+          <span>Ver resultados completos</span>${icon("arrowRight")}
+        </a>
       </div>
-    </section>
-
-    <section class="resultados-bloques">
-      ${renderBloques(scores, analisis)}
     </section>
   `;
 
@@ -91,14 +96,6 @@ function renderResultadosInline(container, data) {
     animate: true,
     compact: false,
   });
-
-  // Revelar los bloques (Fortaleza / En crecimiento / Vulnerable). En CSS
-  // arrancan con opacity:0; si nunca les ponemos .show quedan invisibles
-  // pero ocupando su alto completo, que es lo que generaba el gap enorme
-  // debajo del overview. Hacemos el mismo stagger que la pagina standalone.
-  setTimeout(() => container.querySelector("#col-fortaleza")?.classList.add("show"), 1800);
-  setTimeout(() => container.querySelector("#col-crecimiento")?.classList.add("show"), 2200);
-  setTimeout(() => container.querySelector("#col-vulnerable")?.classList.add("show"), 2600);
 }
 
 // ────────────────────────────────────────────────────────────────────
