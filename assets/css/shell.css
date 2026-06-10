@@ -8796,7 +8796,7 @@ button.foro-preview-item__thumb {
   flex-shrink: 0;
   padding: var(--s-6) var(--s-5);
   border-right: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
+  background: #FCF9F2;
 }
 .ryff-quiz-sidebar__title {
   margin: 0 0 var(--s-5);
@@ -8809,6 +8809,12 @@ button.foro-preview-item__thumb {
 .ryff-quiz-main { flex: 1; min-width: 0; padding: var(--s-7); display: flex; flex-direction: column; }
 .ryff-quiz-main .test-question { padding: 0; }
 .ryff-quiz-main .test-question__pilar { text-align: left; }
+/* Botones del wizard igual que el sitio publico de ryff: pill + ghost con borde */
+.ryff-quiz-main .btn { border-radius: var(--r-full); }
+.ryff-quiz-main .btn-ghost {
+  border: 1px solid var(--color-border-strong);
+  padding: var(--s-3) var(--s-5);
+}
 
 .ryff-dimnav__item { display: flex; align-items: flex-start; gap: var(--s-2); margin-bottom: var(--s-4); }
 .ryff-dimnav__item:last-child { margin-bottom: 0; }
