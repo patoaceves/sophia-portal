@@ -12,7 +12,7 @@ import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
 import { renderShell, escapeHtml } from "./ui-shell.js";
 import { icon } from "./icons.js";
-import { preguntasPlanas, ESCALA_LABELS, SCALE } from "./ryff-defs.js";
+import { preguntasPlanas, ESCALA_LABELS, SCALE, DIMS } from "./ryff-defs.js";
 
 const ACCENT = "#7A5BB0"; // morado de bienestar, tine el wizard
 
@@ -46,8 +46,10 @@ function renderInto(state) {
   const total = state.preguntas.length;
   const isIntro = state.currentIndex === -1;
   const pct = isIntro ? 0 : Math.round(((state.currentIndex + 1) / total) * 100);
+  const curColor = isIntro ? ACCENT : state.preguntas[state.currentIndex].accentColor;
 
   const bodyHtml = isIntro ? renderIntro(state) : renderPregunta(state, state.currentIndex);
+  const bodyClass = isIntro ? "test-wizard__body ryff-card" : "test-wizard__body ryff-card ryff-card--split";
 
   const headerHtml = `
     <header class="test-wizard__header">
@@ -62,7 +64,7 @@ function renderInto(state) {
   const progressBarHtml = isIntro ? "" : `
     <div class="test-progress">
       <div class="test-progress__bar">
-        <div class="test-progress__fill" style="width: ${pct}%;"></div>
+        <div class="test-progress__fill" style="width: ${pct}%; background: ${curColor};"></div>
       </div>
       <div class="test-progress__label">${state.currentIndex + 1} de ${total}</div>
     </div>
@@ -72,9 +74,47 @@ function renderInto(state) {
     ${progressBarHtml}
     <div class="test-wizard ryff-wizard">
       ${headerHtml}
-      <div class="test-wizard__body ryff-card">${bodyHtml}</div>
+      <div class="${bodyClass}">${bodyHtml}</div>
     </div>
   `;
+}
+
+// Avance por dimension: cuantas de las 3 preguntas de cada dimension van
+// contestadas, cual es la activa y cual ya quedo completa (palomita en su color).
+function dimProgress(state) {
+  const cur = state.preguntas[state.currentIndex];
+  const curDim = cur ? cur.dimKey : null;
+  return DIMS.map((d) => {
+    const qs = state.preguntas.filter((p) => p.dimKey === d.key);
+    const answered = qs.filter((p) => state.respuestas[p.id] !== undefined).length;
+    return { d, total: qs.length, answered, isActive: curDim === d.key, isDone: answered === qs.length };
+  });
+}
+
+function renderDimSidebar(state) {
+  return dimProgress(state).map(({ d, total, answered, isActive, isDone }) => {
+    const color = d.accentColor;
+    const pct = total ? Math.round((answered / total) * 100) : 0;
+    let iconHtml;
+    if (isDone) {
+      iconHtml = `<div class="ryff-dimnav__icon" style="background:${color};border-color:${color};"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+    } else if (isActive) {
+      iconHtml = `<div class="ryff-dimnav__icon" style="border-color:${color};background:${color}1A;"><span class="ryff-dimnav__dot" style="background:${color};"></span></div>`;
+    } else {
+      iconHtml = `<div class="ryff-dimnav__icon ryff-dimnav__icon--pending"></div>`;
+    }
+    const progStr = isDone ? "Completado" : (answered > 0 ? `${answered}/${total}` : "");
+    const nameColor = (isActive || isDone) ? color : "var(--color-text)";
+    const showBar = answered > 0 || isActive;
+    return `<div class="ryff-dimnav__item">
+      ${iconHtml}
+      <div class="ryff-dimnav__info">
+        <div class="ryff-dimnav__name" style="color:${nameColor};">${escapeHtml(d.nombreDisplay)}</div>
+        ${progStr ? `<div class="ryff-dimnav__prog">${progStr}</div>` : ""}
+        ${showBar ? `<div class="ryff-dimnav__bar"><div class="ryff-dimnav__bar-fill" style="width:${pct}%;background:${color};"></div></div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
 }
 
 function renderIntro(state) {
@@ -125,29 +165,37 @@ function renderPregunta(state, idx) {
   }).join("");
 
   return `
-    <article class="test-question">
-      <div class="test-question__pilar">${escapeHtml(p.dimNombre)} · Pregunta ${idx + 1} de ${preguntas.length}</div>
-      <h2 class="test-question__texto">${escapeHtml(p.texto)}</h2>
+    <div class="ryff-quiz-layout">
+      <aside class="ryff-quiz-sidebar">
+        <p class="ryff-quiz-sidebar__title">Tu avance</p>
+        ${renderDimSidebar(state)}
+      </aside>
+      <div class="ryff-quiz-main" style="--wizard-accent:${p.accentColor};">
+        <article class="test-question">
+          <div class="test-question__pilar">${escapeHtml(p.dimNombre)}</div>
+          <h2 class="test-question__texto">${escapeHtml(p.texto)}</h2>
 
-      <div class="dot-scale dot-scale--six">
-        <span class="dot-scale__label dot-scale__label--min">${escapeHtml(ESCALA_LABELS.min)}</span>
-        <div class="dot-scale__dots">${dots}</div>
-        <span class="dot-scale__label dot-scale__label--max">${escapeHtml(ESCALA_LABELS.max)}</span>
+          <div class="dot-scale dot-scale--six">
+            <span class="dot-scale__label dot-scale__label--min">${escapeHtml(ESCALA_LABELS.min)}</span>
+            <div class="dot-scale__dots">${dots}</div>
+            <span class="dot-scale__label dot-scale__label--max">${escapeHtml(ESCALA_LABELS.max)}</span>
+          </div>
+
+          <footer class="test-question__nav">
+            <button class="btn btn-ghost" data-test-action="prev" type="button" ${idx === 0 ? "disabled" : ""}>
+              ${icon("arrowLeft")}
+              <span>Anterior</span>
+            </button>
+            ${isLast && selected ? `
+              <button class="btn btn-accent" data-test-action="next" type="button" style="background:${p.accentColor};border-color:${p.accentColor};">
+                <span>Ver mis resultados</span>
+                ${icon("arrowRight")}
+              </button>
+            ` : `<span></span>`}
+          </footer>
+        </article>
       </div>
-
-      <footer class="test-question__nav">
-        <button class="btn btn-ghost" data-test-action="prev" type="button" ${idx === 0 ? "disabled" : ""}>
-          ${icon("arrowLeft")}
-          <span>Anterior</span>
-        </button>
-        ${isLast && selected ? `
-          <button class="btn btn-accent" data-test-action="next" type="button">
-            <span>Ver mis resultados</span>
-            ${icon("arrowRight")}
-          </button>
-        ` : `<span></span>`}
-      </footer>
-    </article>
+    </div>
   `;
 }
 
