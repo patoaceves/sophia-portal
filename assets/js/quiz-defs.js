@@ -579,6 +579,230 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión 3: Los 5 órdenes de conciencia de Robert Kegan
+  // Quiz CON SCORE — 5 preguntas, basado en el video de trabajo previo.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-kegan-s3": {
+    titulo: "Quiz: Los 5 órdenes de conciencia de Robert Kegan",
+    introEyebrow: "Pre-sesión · Sesión 3",
+    introTitle: "Los 5 órdenes de conciencia de Robert Kegan",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple basadas en el video de trabajo previo sobre los cinco órdenes de conciencia de Robert Kegan.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "kegan_primer_orden",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cómo describe Kegan el primer orden de la consciencia?",
+        opciones: [
+          "Como la etapa adulta donde se distinguen claramente sujeto y objeto.",
+          "Como la etapa infantil en la que imaginación y realidad no están separadas.",
+          "Como la etapa de modernismo y autoconciencia crítica.",
+          "Como la etapa de transformaciones interinstitucionales.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "kegan_segundo_orden_edad",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué rango de edad asocia el narrador al segundo orden de consciencia?",
+        opciones: [
+          "Entre 2 y 6 años.",
+          "Entre 6 y 10 años.",
+          "Entre 10 y 18 años.",
+          "Entre 40 y 60 años.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "kegan_tercer_orden",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Cuál de estas características pertenece al tercer orden de consciencia según la explicación del video?",
+        opciones: [
+          "Percepciones que no distinguen la fantasía de la realidad.",
+          "Cognición concreta y categorías duraderas.",
+          "Mutualidad, abstracción y habilidad interpersonal.",
+          "Visión interconectada y fusión transformadora de identidades.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "kegan_metafora_cuarto",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Qué metáfora geométrica usa el narrador para comparar el cuarto orden de consciencia?",
+        opciones: [
+          "Un punto.",
+          "Una línea.",
+          "Una caja o cubo (espacio tridimensional).",
+          "Un plano hecho de líneas.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "kegan_importancia_cuarto",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Por qué, según el video, es importante que los adultos desarrollen el cuarto orden de consciencia?",
+        opciones: [
+          "Para regresar a la infancia imaginativa.",
+          "Para poder ver sistemas como objetos y comprender cómo encajan entre sí.",
+          "Para negar la existencia de instituciones.",
+          "Para promover la absoluta separación entre sujeto y objeto.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 3: La arquitectura de la escucha
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s3": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 3 · El Arte de la Escucha y el Acuerdo",
+    introTitle: "Reflexión personal: La arquitectura de la escucha",
+    introLead: [
+      "Objetivo de la sesión: desarrollar las 4 habilidades de escucha SOPHIA, mantener la neutralidad y asegurar el cumplimiento de metas conversacionales y resultados acordados.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 3.",
+    preguntas: [
+      {
+        id: "reflexion_escucha",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "Al elegir la información \u201cimportante\u201d de la sesión, ¿estoy escuchando lo que el cliente necesita resolver o lo que yo considero interesante?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 3: La arquitectura de la escucha
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s3": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 3 · El Arte de la Escucha y el Acuerdo",
+    introTitle: "Journaling: La arquitectura de la escucha",
+    introLead: [
+      "Objetivo: desarrollar habilidades de escucha profunda y establecer resultados conversacionales claros.",
+      "Desafío de la semana: durante una conversación, identifica la \u201cinformación importante\u201d (la meta real) separándola del ruido narrativo del interlocutor.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_juicio",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "De las 4 habilidades de escucha SOPHIA, ¿cuál es la que requiere mayor atención de mi parte para evitar el juicio?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 3: Bases de la Metodología
+  // Quiz CON SCORE — 5 preguntas, todas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s3": {
+    titulo: "Evaluación · Sesión 3",
+    introEyebrow: "Evaluación · Sesión 3",
+    introTitle: "Bases de la Metodología",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre el arte de la escucha y el acuerdo, y lo revisado en la sesión 3.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "escucha_nivel_1_2",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cuál es la diferencia fundamental entre la \u201cEscucha de Nivel 1\u201d y la \u201cEscucha de Nivel 2\u201d según la analogía del foco de luz (spotlight)?",
+        opciones: [
+          "En el Nivel 1 el foco está siempre en el coachee; en el Nivel 2 el foco se apaga.",
+          "En el Nivel 1 el foco alterna entre el otro y mis propios juicios; en el Nivel 2 el foco permanece todo el tiempo sobre el hablante.",
+          "El Nivel 1 es para percibir emociones profundas; el Nivel 2 es para escuchar solo el contenido verbal.",
+          "No hay diferencia, ambas buscan dar consejos rápidos al coachee.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "pregunta_importante_valores",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "Según el material, ¿cuándo es especialmente útil la pregunta \u201c¿Por qué es esto importante para ti?\u201d?",
+        opciones: [
+          "En cualquier momento, ya que siempre ayuda a justificar las acciones.",
+          "Únicamente al final de la sesión para dar un reporte.",
+          "Durante la fase de contrato (acuerdo de sesión) para conectar con los valores del coachee.",
+          "Nunca debe usarse porque siempre activa defensas y cierra la conversación.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "backtracking",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "El \u201cBacktracking\u201d es una herramienta de rapport que consiste en:",
+        opciones: [
+          "Corregir las palabras del coachee cuando se equivoca.",
+          "Devolver al coachee el sentido esencial de lo comunicado utilizando sus propias palabras o expresiones clave.",
+          "Contar una experiencia personal similar para que el coachee no se sienta solo.",
+          "Guardar silencio absoluto durante toda la sesión sin intervenir.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "marco_resultado_ecologico",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Dentro del \u201cMarco de Resultado\u201d, ¿qué significa que un objetivo debe ser \u201cArmónico o Ecológico\u201d?",
+        opciones: [
+          "Que debe estar relacionado con el cuidado del medio ambiente.",
+          "Que debe ser un objetivo fácil de alcanzar sin esfuerzo.",
+          "Que debe estar alineado con los valores y el entorno del coachee, sin generar conflictos en otras áreas de su vida.",
+          "Que el coach debe estar de acuerdo con el objetivo para que sea válido.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "escucha_nivel_4_anhelos",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "En la \u201cEscucha de Nivel 4\u201d (Anhelos del corazón), ¿cuáles son algunos de los deseos profundos que el coach intenta percibir más allá de las palabras?",
+        opciones: [
+          "Dinero, fama, poder y posesiones materiales.",
+          "Puntualidad, orden, técnica y gramática.",
+          "Dignidad, justicia, paz, confianza y reconocimiento.",
+          "El nombre de los familiares y amigos del coachee.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
@@ -730,6 +954,95 @@ export const QUIZZES = {
         label: "Área vulnerable",
         color: "#B00020",
         texto: "Tu bienestar emocional está pidiendo atención en casi todos los frentes. Date permiso de priorizarte. Llega a la sesión con apertura: veremos primeros pasos pequeños y sostenibles, y considera apoyarte en alguien de confianza.",
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Trabajo con Propósito · Actividad previa: Mi trabajo y mi propósito
+  // Actividad previa de la sesión 6 (HW). Reflexiva (sin score de aprobar):
+  // 6 enunciados en escala de frecuencia (1-5, Nunca a Siempre). Total 6-30.
+  // Muestra el resumen por banda al final.
+  // ───────────────────────────────────────────────────────────────────
+  "trabajo-proposito-diagnostico": {
+    titulo: "Mi trabajo y mi propósito",
+    introEyebrow: "Actividad previa · Trabajo con Propósito",
+    introTitle: "Mi trabajo y mi propósito",
+    introLead: [
+      "Antes de la sesión en vivo, tómate un par de minutos para este breve autodiagnóstico. Para cada enunciado, marca con qué frecuencia se cumple en tu día a día, en una escala del 1 (Nunca) al 5 (Siempre).",
+      "No hay respuestas correctas ni incorrectas: es una foto de tu relación actual con tu trabajo. Tus respuestas se guardan y son confidenciales; las retomaremos en la sesión.",
+    ],
+    doneTitle: "¡Listo! Diagnóstico completado",
+    doneLead: "Gracias por tu honestidad. Esto es solo una foto de tu momento actual y será nuestro punto de partida en la sesión de Trabajo con Propósito.",
+    preguntas: [
+      {
+        id: "recompensa_personal",
+        tipo: "escala",
+        eyebrow: "Mi trabajo y mi propósito · 1 de 6",
+        texto: "¿Experimentas una forma satisfactoria de recompensa personal a partir de tu quehacer?",
+        escalaLabels: { min: "Nunca", max: "Siempre" },
+        obligatoria: true,
+      },
+      {
+        id: "impacto_claro",
+        tipo: "escala",
+        eyebrow: "Mi trabajo y mi propósito · 2 de 6",
+        texto: "¿Puedes describir con claridad el tipo de impacto que tu trabajo produce en el mundo?",
+        escalaLabels: { min: "Nunca", max: "Siempre" },
+        obligatoria: true,
+      },
+      {
+        id: "perfecciona_habilidades",
+        tipo: "escala",
+        eyebrow: "Mi trabajo y mi propósito · 3 de 6",
+        texto: "¿Logras perfeccionar tus conocimientos y habilidades a través de tu trabajo?",
+        escalaLabels: { min: "Nunca", max: "Siempre" },
+        obligatoria: true,
+      },
+      {
+        id: "beneficio_otros",
+        tipo: "escala",
+        eyebrow: "Mi trabajo y mi propósito · 4 de 6",
+        texto: "¿Tu trabajo genera beneficios para otras personas?",
+        escalaLabels: { min: "Nunca", max: "Siempre" },
+        obligatoria: true,
+      },
+      {
+        id: "inspirador",
+        tipo: "escala",
+        eyebrow: "Mi trabajo y mi propósito · 5 de 6",
+        texto: "¿Tu manera de trabajar podría resultar, al menos mínimamente, inspiradora para un observador?",
+        escalaLabels: { min: "Nunca", max: "Siempre" },
+        obligatoria: true,
+      },
+      {
+        id: "ayudas_a_crecer",
+        tipo: "escala",
+        eyebrow: "Mi trabajo y mi propósito · 6 de 6",
+        texto: "¿Ayudas a otros a perfeccionarse y a desarrollar sus talentos y habilidades?",
+        escalaLabels: { min: "Nunca", max: "Siempre" },
+        obligatoria: true,
+      },
+    ],
+    // Análisis por puntaje: 6 enunciados (1-5 c/u) = total 6 a 30.
+    analisis: [
+      {
+        minTotal: 22,
+        label: "Quehacer con propósito",
+        color: "#2E7D32",
+        texto: "Tu quehacer se vive como valioso, con impacto y crecimiento, tanto personal como hacia los demás. Llega a la sesión a profundizar en cómo sostener y expandir ese sentido en tu trabajo.",
+      },
+      {
+        minTotal: 14,
+        label: "En construcción de sentido",
+        color: "#1565C0",
+        texto: "Tu trabajo tiene momentos significativos, pero aún hay áreas por explorar para darle más sentido. Fíjate en qué enunciados puntuaron más bajo: ahí está tu mayor oportunidad para la sesión.",
+      },
+      {
+        minTotal: 6,
+        label: "Por reconectar con tu propósito",
+        color: "#C88D2D",
+        texto: "Tu trabajo todavía no se conecta de manera clara con tu identidad o propósito. No es un diagnóstico definitivo, es una foto de hoy. Reflexiona qué actividades te hacen sentir satisfacción, a quién beneficia lo que haces y cómo tu quehacer puede ser un espacio de aprendizaje. Lo trabajaremos en la sesión.",
       },
     ],
   }
