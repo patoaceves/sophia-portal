@@ -803,6 +803,144 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 4: La Arquitectura del Pensamiento Posibilista
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s4": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 4 · Marcos de Pensamiento",
+    introTitle: "Reflexión personal: La Arquitectura del Pensamiento Posibilista",
+    introLead: [
+      "Objetivo de la sesión: gestionar marcos de pensamiento, aplicar las condiciones de establecimiento de metas y transformar preguntas cerradas en abiertas utilizando escalas.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 4.",
+    preguntas: [
+      {
+        id: "reflexion_posibilismo",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿Cómo cambia mi presencia interna cuando paso de un pensamiento centrado en el problema a uno basado en la generación de múltiples posibilidades?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 4: La Arquitectura del Pensamiento Posibilista
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s4": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 4 · Marcos de Pensamiento",
+    introTitle: "Journaling: La Arquitectura del Pensamiento Posibilista",
+    introLead: [
+      "Objetivo: gestionar marcos de pensamiento y transformar preguntas cerradas en escalas de solución.",
+      "Desafío de la semana: toma tres preguntas cerradas que hayas hecho recientemente y redáctalas como \u201cscaling questions\u201d (preguntas de escala) para buscar soluciones.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_estados_mentales",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Qué estados mentales propios están limitando mi capacidad de formular preguntas abiertas y generativas?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 4: Marcos de Pensamiento
+  // Quiz CON SCORE — 5 preguntas, todas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s4": {
+    titulo: "Evaluación · Sesión 4",
+    introEyebrow: "Evaluación · Sesión 4",
+    introTitle: "Marcos de Pensamiento",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre los marcos de pensamiento, el establecimiento de metas y las preguntas de escala vistos en la sesión 4.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "marcos_categoria_visitante",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Si un coachee asiste a la sesión solo porque su jefe se lo ordenó, no reconoce tener un problema y no tiene intención de cambiar, ¿en qué categoría se encuentra?",
+        opciones: [
+          "Cliente.",
+          "Quejoso o Reclamante.",
+          "Visitante.",
+          "Consultor.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "marcos_respuesta_quejoso",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cuál es la respuesta adecuada del coach ante un coachee con actitud de \u201cQuejoso\u201d (Complainant)?",
+        opciones: [
+          "Asignar tareas de acción directa e inmediata para forzar el cambio.",
+          "No hacer nada y terminar la sesión rápidamente.",
+          "Reconocer la necesidad de ampliar opciones y usar preguntas tipo \u201cas-if\u201d (como si...) para abrir posibilidades.",
+          "Confrontarlo duramente por su falta de compromiso.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "marcos_resultado_smarrt",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "En el \u201cMarco de Resultado\u201d, ¿cuál es una condición necesaria para que una meta esté bien formulada?",
+        opciones: [
+          "Que el resultado dependa de que otras personas cambien su actitud.",
+          "Que el resultado se formule en negativo (lo que se quiere evitar).",
+          "Que el resultado sea S.M.A.R.R.T. y esté bajo el control de la persona.",
+          "Que la meta sea tan grande que resulte inalcanzable para motivar más.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "marcos_scaling_questions",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Qué herramienta se utiliza para medir la intensidad de la motivación o el progreso subjetivo del coachee en una escala del 1 al 10?",
+        opciones: [
+          "Backtracking.",
+          "Preguntas de Escala (Scaling Questions).",
+          "Rapport Biofísico.",
+          "Contrato Financiero.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "marcos_apertura_preguntas",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Al transformar una pregunta cerrada en una abierta, ¿cuál de las siguientes opciones representa una apertura real hacia múltiples posibilidades?",
+        opciones: [
+          "De \u201c¿Hay una forma?\u201d a \u201c¿Cuál es la única forma correcta?\u201d.",
+          "De \u201c¿Quieres hacerlo?\u201d a \u201c¿Lo vas a hacer hoy?\u201d.",
+          "De \u201c¿Por qué no podemos?\u201d a \u201c¿Cuáles podrían ser algunas de las mejores maneras de comenzar?\u201d.",
+          "De \u201c¿Estás listo?\u201d a \u201c¿Sí o no?\u201d.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
