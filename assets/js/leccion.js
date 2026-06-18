@@ -23,6 +23,14 @@ import { renderTestFelicidadInto } from "./test-felicidad-resultados.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 import { mountTarea } from "./tarea.js";
+import { mountBalanza } from "./actividad-balanza.js";
+
+// Actividades interactivas a la medida que se sirven como lección tipo `quiz`
+// pero NO usan el motor de quiz-defs: se montan con su propio módulo. La clave
+// (url_externa de la lección) mapea aquí al mounter correspondiente.
+const INTERACTIVE_WIZARDS = {
+  "vinculos-balanza": mountBalanza,
+};
 import { renderComposerPill, wireComposerPill } from "./foro-composer-pill.js";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -418,25 +426,38 @@ async function renderLeccion(persona, payload, cursoContext) {
     // en leccion.urlExterna (ej. "gnothi-seauton").
     const container = document.getElementById("quizEmbed");
     const quizKey = (leccion.urlExterna || "").trim();
-    mountQuiz({
-      container,
-      quizKey,
-      leccionId: leccion.id,
-      inscripcionId,
-      onComplete: async () => {
-        // Marcar lección completada (best-effort). El submit del quiz
-        // ya guardó las respuestas en su propio onComplete.
-        if (inscripcionId) {
-          try {
-            await api.marcarLeccion(leccion.id, inscripcionId);
-          } catch (e) {
-            console.warn("Could not mark quiz lesson complete:", e);
-          }
+    const onComplete = async () => {
+      // Marcar lección completada (best-effort). El submit del quiz
+      // ya guardó las respuestas en su propio onComplete.
+      if (inscripcionId) {
+        try {
+          await api.marcarLeccion(leccion.id, inscripcionId);
+        } catch (e) {
+          console.warn("Could not mark quiz lesson complete:", e);
         }
-        // Mostrar el botón de avance externo
-        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
-      },
-    });
+      }
+      // Mostrar el botón de avance externo
+      document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+    };
+
+    // ¿Es una actividad interactiva a la medida (no del motor de quiz)?
+    const customWizard = INTERACTIVE_WIZARDS[quizKey];
+    if (customWizard) {
+      customWizard({
+        container,
+        leccionId: leccion.id,
+        yaCompletada: !!leccion.completada,
+        onComplete,
+      });
+    } else {
+      mountQuiz({
+        container,
+        quizKey,
+        leccionId: leccion.id,
+        inscripcionId,
+        onComplete,
+      });
+    }
   } else if (isTarea) {
     // Mount componente de entrega de tarea. El alumno sube archivos y
     // opcionalmente agrega un comentario. Se marca completada cuando
