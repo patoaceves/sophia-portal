@@ -9138,3 +9138,24 @@ button.foro-preview-item__thumb {
 .balanza-final__mision-txt { margin: 0; line-height: 1.55; }
 .balanza-final__nota { margin-top: var(--s-4); color: var(--color-text-muted); line-height: 1.55; }
 .balanza-nav { margin-top: var(--s-5); }
+
+/* Balanza · puntos de color (reemplazan emojis) + ajustes v2 */
+.bal-dot {
+  display: inline-block; flex: 0 0 auto;
+  width: 15px; height: 15px; border-radius: var(--r-full);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.bal-dot--verde { background: var(--bal-verde); }
+.bal-dot--ambar { background: var(--bal-ambar); }
+.bal-dot--rojo  { background: var(--bal-rojo); }
+.balanza-target__head { display: flex; align-items: center; gap: var(--s-2); }
+.balanza-aviso-repaso {
+  margin: 0 0 var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+.balanza-final .balanza-mapa { margin-top: var(--s-4); text-align: left; }

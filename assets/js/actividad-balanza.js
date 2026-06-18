@@ -4,11 +4,15 @@
 // autoevaluación con bandas: es un ejercicio relacional de 4 pasos que mapea
 // con quién recargas energía y con quién la drenas. Todo es client-side; no
 // pega a ningún edge function. Al terminar el Paso 4 se llama onComplete()
-// para marcar la lección como completada (igual que las demás actividades).
+// para marcar la lección como completada.
+//
+// Los resultados (nombres, roles y micro-misión) se guardan en localStorage
+// por lección, así que al volver a entrar el alumno ve su mapa otra vez en
+// lugar de empezar de cero.
 //
 // Flujo:
 //   intro (0) → Paso 1 nombres (1) → Paso 2 análisis (2)
-//             → Paso 3 mapa relacional (3) → Paso 4 micro-misión (4) → fin
+//             → Paso 3 mapa relacional (3) → Paso 4 micro-misión (4) → resultados
 //
 // Se monta desde leccion.js cuando una lección tipo `quiz` trae como clave
 // (url_externa) "vinculos-balanza".
@@ -22,19 +26,16 @@ import { escapeHtml } from "./ui-shell.js";
 
 const ROLES = {
   verde: {
-    emoji: "🟢",
     nombre: "Sin Filtro",
     sub: "Soy Yo",
     desc: "Puedo decir lo que pienso, mostrarme vulnerable o equivocarme sin miedo a ser juzgado. Me siento libre.",
   },
   ambar: {
-    emoji: "🟡",
     nombre: "El Diplomático",
     sub: "Soy lo que esperan",
     desc: "Cuido mis palabras. Trato de complacer o cumplir un rol (el buen hijo, el empleado eficiente). No soy falso, pero tampoco soy totalmente espontáneo.",
   },
   rojo: {
-    emoji: "🔴",
     nombre: "El Soldado",
     sub: "Soy mi defensa",
     desc: "Estoy en guardia. Siento que debo protegerme, justificarme o tener cuidado para no detonar un conflicto. Me siento tenso.",
@@ -44,17 +45,14 @@ const ROLES = {
 const TERRITORIOS = {
   verde: {
     titulo: "Territorio de Refugio",
-    emoji: "🟢",
     mensaje: "Aquí es donde descansas y recargas. Estos vínculos son tu hogar emocional.",
   },
   ambar: {
     titulo: "Territorio de Teatro",
-    emoji: "🟡",
     mensaje: "Aquí funcionas, pero te adaptas. Cuidado: pasar mucho tiempo actuando para cumplir expectativas ajenas genera vacío interior.",
   },
   rojo: {
     titulo: "Territorio de Batalla",
-    emoji: "🔴",
     mensaje: "Aquí sobrevives. Estar en guardia constante activa tu sistema de alerta y bloquea la intimidad real.",
   },
 };
@@ -67,6 +65,11 @@ const RETOS = {
 
 const NUM_FILAS = 5;
 
+// Punto de color (reemplaza emojis). Hereda los --bal-* de .balanza.
+function dot(color) {
+  return `<span class="bal-dot bal-dot--${color}" aria-hidden="true"></span>`;
+}
+
 export function mountBalanza({ container, leccionId, onComplete, yaCompletada }) {
   if (!container) return;
 
@@ -77,23 +80,23 @@ export function mountBalanza({ container, leccionId, onComplete, yaCompletada })
     container,
     stateKey,
     onComplete,
+    yaCompletada: !!yaCompletada,
     step: cached?.step ?? 0,
     nombres: cached?.nombres ?? Array(NUM_FILAS).fill(""),
     roles: cached?.roles ?? {},        // idx → "verde" | "ambar" | "rojo"
     analisisIdx: cached?.analisisIdx ?? 0,
     misionTarget: cached?.misionTarget ?? null, // idx del vínculo elegido
     misionReto: cached?.misionReto ?? null,     // "A" | "B" | "C"
-    finalizada: false,
+    finalizada: !!cached?.finalizada,
     saving: false,
   };
 
   container.addEventListener("click", (e) => clickHandler(state, e));
   container.addEventListener("input", (e) => inputHandler(state, e));
 
-  // Si la lección ya estaba completada en el servidor, revelamos el botón
-  // "Avanzar" del footer (lo renderiza leccion.js, viene oculto) para que el
-  // alumno pueda seguir aunque vuelva a entrar en otra sesión.
-  if (yaCompletada) {
+  // Revelar el botón "Avanzar" del footer (lo renderiza leccion.js oculto) si
+  // la lección ya está completada en el servidor o localmente.
+  if (state.finalizada || state.yaCompletada) {
     document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
   }
 
@@ -104,7 +107,6 @@ export function mountBalanza({ container, leccionId, onComplete, yaCompletada })
 // Helpers de datos
 // ─────────────────────────────────────────────────────────────────────
 
-// Índices de filas con un nombre escrito.
 function indicesConNombre(state) {
   return state.nombres
     .map((n, i) => (n && n.trim() ? i : -1))
@@ -119,7 +121,6 @@ function indicesPorTerritorio(state, color) {
   return indicesConNombre(state).filter((i) => state.roles[i] === color);
 }
 
-// Vínculos elegibles para la micro-misión: los 🟡 y 🔴.
 function indicesElegiblesMision(state) {
   return indicesConNombre(state).filter(
     (i) => state.roles[i] === "ambar" || state.roles[i] === "rojo",
@@ -133,7 +134,8 @@ function indicesElegiblesMision(state) {
 function render(state) {
   const pasos = ["", "El reparto", "El análisis", "Tu mapa relacional", "La micro-misión"];
   const totalPasos = 4;
-  const progressHtml = state.step >= 1 && state.step <= totalPasos ? `
+  const mostrarProgreso = !state.finalizada && state.step >= 1 && state.step <= totalPasos;
+  const progressHtml = mostrarProgreso ? `
     <div class="test-progress">
       <div class="test-progress__bar">
         <div class="test-progress__fill" style="width:${Math.round((state.step / totalPasos) * 100)}%;"></div>
@@ -143,7 +145,7 @@ function render(state) {
   ` : "";
 
   let body = "";
-  if (state.finalizada) body = renderFinal(state);
+  if (state.finalizada) body = renderResultados(state);
   else if (state.step === 0) body = renderIntro(state);
   else if (state.step === 1) body = renderPaso1(state);
   else if (state.step === 2) body = renderPaso2(state);
@@ -159,15 +161,18 @@ function render(state) {
 }
 
 function renderIntro(state) {
-  const aviso = state.step === 0 && (state.nombres.some((n) => n.trim()) || false);
+  const repaso = state.yaCompletada ? `
+    <p class="balanza-aviso-repaso">Ya completaste esta actividad antes. Puedes repasarla cuando quieras o avanzar a la siguiente lección.</p>
+  ` : "";
   return `
     <div class="test-intro balanza-intro">
       <span class="test-intro__eyebrow">Actividad previa</span>
       <h2 class="test-intro__title">La Balanza Energética</h2>
       <p class="test-intro__lead">Identifica rápidamente qué relaciones te nutren y cuáles te drenan en este momento de tu vida.</p>
       <p class="test-intro__lead">Vas a pensar en las personas con las que más tiempo o energía mental gastas hoy, reconocer quién eres cuando estás con ellas y descubrir tu mapa relacional. Es un ejercicio honesto y privado: nada de lo que escribas sale de tu dispositivo.</p>
+      ${repaso}
       <button class="btn btn-accent btn-lg" data-bal-action="start" type="button">
-        <span>${aviso ? "Continuar mi actividad" : "Comenzar actividad"}</span>
+        <span>Comenzar actividad</span>
         ${icon("arrowRight")}
       </button>
     </div>
@@ -234,7 +239,7 @@ function renderPaso2(state) {
         type="button"
       >
         <span class="balanza-mask__top">
-          <span class="balanza-mask__emoji" aria-hidden="true">${r.emoji}</span>
+          ${dot(color)}
           <span class="balanza-mask__nombre">${escapeHtml(r.nombre)} <em>(${escapeHtml(r.sub)})</em></span>
         </span>
         <span class="balanza-mask__desc">${escapeHtml(r.desc)}</span>
@@ -253,8 +258,8 @@ function renderPaso2(state) {
       <div class="balanza-masks">${opciones}</div>
 
       <footer class="test-question__nav balanza-nav">
-        <button class="btn btn-ghost" data-bal-action="ana-prev" type="button" ${state.analisisIdx === 0 ? "disabled" : ""}>
-          ${icon("arrowLeft")}<span>Anterior</span>
+        <button class="btn btn-ghost" data-bal-action="ana-prev" type="button">
+          ${icon("arrowLeft")}<span>${state.analisisIdx === 0 ? "Editar nombres" : "Anterior"}</span>
         </button>
         <button class="btn btn-accent" data-bal-action="ana-next" type="button" ${seleccion ? "" : "disabled"}>
           <span>${esUltimo ? "Ver mi mapa" : "Siguiente"}</span>
@@ -265,7 +270,8 @@ function renderPaso2(state) {
   `;
 }
 
-function renderPaso3(state) {
+// Bloques de territorio, reutilizados por el Paso 3 y por la vista de resultados.
+function renderMapa(state) {
   const bloque = (color) => {
     const t = TERRITORIOS[color];
     const idxs = indicesPorTerritorio(state, color);
@@ -275,7 +281,7 @@ function renderPaso3(state) {
     return `
       <section class="balanza-terr balanza-terr--${color} ${idxs.length ? "" : "is-empty"}">
         <header class="balanza-terr__head">
-          <span class="balanza-terr__emoji" aria-hidden="true">${t.emoji}</span>
+          ${dot(color)}
           <h3 class="balanza-terr__titulo">${escapeHtml(t.titulo)}</h3>
         </header>
         ${personas}
@@ -283,18 +289,23 @@ function renderPaso3(state) {
       </section>
     `;
   };
+  return `
+    <div class="balanza-mapa">
+      ${bloque("verde")}
+      ${bloque("ambar")}
+      ${bloque("rojo")}
+    </div>
+  `;
+}
 
+function renderPaso3(state) {
   return `
     <article class="test-question balanza-paso">
       <div class="test-question__pilar">Paso 3 · Tu mapa relacional</div>
       <h2 class="test-question__texto">Así se reparte tu energía hoy</h2>
       <p class="balanza-ayuda">Tus vínculos quedan en tres territorios. No hay correctos ni incorrectos: es una foto honesta de este momento.</p>
 
-      <div class="balanza-mapa">
-        ${bloque("verde")}
-        ${bloque("ambar")}
-        ${bloque("rojo")}
-      </div>
+      ${renderMapa(state)}
 
       <footer class="test-question__nav balanza-nav">
         <button class="btn btn-ghost" data-bal-action="to-2-back" type="button">
@@ -312,13 +323,13 @@ function renderPaso3(state) {
 function renderPaso4(state) {
   const elegibles = indicesElegiblesMision(state);
 
-  // Caso feliz raro: todos sus vínculos son 🟢. No hay micro-misión de cambio.
+  // Caso raro: todos sus vínculos son de Refugio. No hay micro-misión de cambio.
   if (elegibles.length === 0) {
     return `
       <article class="test-question balanza-paso">
         <div class="test-question__pilar">Paso 4 · La micro-misión</div>
         <h2 class="test-question__texto">Todos tus vínculos están en Refugio</h2>
-        <p class="balanza-ayuda">Marcaste a todas tus personas como 🟢 Sin Filtro. Es un lugar privilegiado para estar. Tu micro-misión es cuidarlo: agradece a una de esas personas algo concreto esta semana.</p>
+        <p class="balanza-ayuda">Marcaste a todas tus personas como Sin Filtro. Es un lugar privilegiado para estar. Tu micro-misión es cuidarlo: agradece a una de esas personas algo concreto esta semana.</p>
         <footer class="test-question__nav balanza-nav">
           <button class="btn btn-ghost" data-bal-action="to-3" type="button">
             ${icon("arrowLeft")}<span>Anterior</span>
@@ -338,8 +349,7 @@ function renderPaso4(state) {
     const active = state.misionTarget === i;
     return `
       <button class="balanza-target balanza-target--${color} ${active ? "is-active" : ""}" data-bal-action="target" data-idx="${i}" type="button">
-        <span class="balanza-target__emoji" aria-hidden="true">${r.emoji}</span>
-        <span class="balanza-target__nombre">${escapeHtml(state.nombres[i])}</span>
+        <span class="balanza-target__head">${dot(color)}<span class="balanza-target__nombre">${escapeHtml(state.nombres[i])}</span></span>
         <span class="balanza-target__rol">${escapeHtml(r.nombre)}</span>
       </button>
     `;
@@ -361,7 +371,7 @@ function renderPaso4(state) {
     <article class="test-question balanza-paso">
       <div class="test-question__pilar">Paso 4 · La micro-misión</div>
       <h2 class="test-question__texto">Elige un vínculo y un reto pequeño</h2>
-      <p class="balanza-ayuda">No se trata de cortar relaciones, sino de mejorar su calidad. Elige un vínculo que marcaste como 🟡 o 🔴 y un reto para esta semana.</p>
+      <p class="balanza-ayuda">No se trata de cortar relaciones, sino de mejorar su calidad. Elige un vínculo que marcaste como Diplomático o Soldado y un reto para esta semana.</p>
 
       <h3 class="balanza-sub">1. Tu vínculo</h3>
       <div class="balanza-targets">${tarjetas}</div>
@@ -382,9 +392,10 @@ function renderPaso4(state) {
   `;
 }
 
-function renderFinal(state) {
+// Vista de resultados: se muestra al terminar y al volver a entrar.
+function renderResultados(state) {
   const i = state.misionTarget;
-  const tieneMision = i != null && state.misionReto;
+  const tieneMision = i != null && state.misionReto && state.nombres[i];
   const detalle = tieneMision ? `
     <div class="balanza-final__mision">
       <span class="balanza-final__mision-label">Tu reto de la semana con ${escapeHtml(state.nombres[i])}:</span>
@@ -396,10 +407,13 @@ function renderFinal(state) {
     <div class="quiz-resumen quiz-resumen--reflexivo balanza-final">
       <div class="quiz-resumen__head">
         <div class="quiz-resumen__icon">${icon("check")}</div>
-        <h2 class="quiz-resumen__title">Listo, completaste La Balanza Energética</h2>
-        <p class="quiz-resumen__lead">Ya tienes tu mapa relacional y un reto concreto. Llévalo a la práctica antes de la sesión.</p>
+        <h2 class="quiz-resumen__title">Tu Balanza Energética</h2>
+        <p class="quiz-resumen__lead">Este es tu mapa relacional de hoy y el reto que elegiste. Llévalo a la práctica antes de la sesión.</p>
       </div>
+
+      ${renderMapa(state)}
       ${detalle}
+
       <div class="balanza-final__nota">
         <p>En la sesión cubriremos <strong>DEAR MAN</strong>, <strong>VIDA</strong> y <strong>AVES</strong>: estrategias para ser efectivos en estos tres roles.</p>
       </div>
@@ -423,9 +437,8 @@ function clickHandler(state, e) {
 
   switch (action) {
     case "start":
-      // El intro (step 0) solo aparece cuando no hay draft avanzado; al dar
-      // clic siempre arrancamos en el Paso 1. Un draft con paso > 0 ya se
-      // restauró al montar y ni siquiera muestra esta pantalla.
+      // Si ya estaba finalizada, "Comenzar" rehace la actividad desde cero.
+      if (state.finalizada) { resetState(state); render(state); break; }
       state.step = 1;
       persist(state); render(state); break;
 
@@ -435,6 +448,9 @@ function clickHandler(state, e) {
       Object.keys(state.roles).forEach((k) => {
         if (!validos.has(Number(k))) delete state.roles[k];
       });
+      if (state.misionTarget != null && !validos.has(state.misionTarget)) {
+        state.misionTarget = null;
+      }
       state.analisisIdx = 0;
       state.step = 2;
       persist(state); render(state); break;
@@ -442,13 +458,15 @@ function clickHandler(state, e) {
 
     case "mask":
       state.roles[indicesConNombre(state)[state.analisisIdx]] = btn.dataset.color;
-      persist(state);
-      // feedback inmediato sin perder el paso
-      render(state);
-      break;
+      persist(state); render(state); break;
 
     case "ana-prev":
-      if (state.analisisIdx > 0) { state.analisisIdx -= 1; persist(state); render(state); }
+      // Desde la primera persona, "Anterior" regresa al Paso 1 (editar nombres).
+      if (state.analisisIdx === 0) {
+        state.step = 1; persist(state); render(state);
+      } else {
+        state.analisisIdx -= 1; persist(state); render(state);
+      }
       break;
 
     case "ana-next": {
@@ -463,14 +481,21 @@ function clickHandler(state, e) {
 
     case "to-2-back":
       state.step = 2;
-      state.analisisIdx = indicesConNombre(state).length - 1;
+      state.analisisIdx = Math.max(0, indicesConNombre(state).length - 1);
       persist(state); render(state); break;
 
     case "to-3":
       state.step = 3; persist(state); render(state); break;
 
-    case "to-4":
+    case "to-4": {
+      // Si el vínculo elegido ya no es elegible (cambió de color o se borró),
+      // limpiar la selección.
+      const elegibles = new Set(indicesElegiblesMision(state));
+      if (state.misionTarget != null && !elegibles.has(state.misionTarget)) {
+        state.misionTarget = null;
+      }
       state.step = 4; persist(state); render(state); break;
+    }
 
     case "target":
       state.misionTarget = Number(btn.dataset.idx);
@@ -504,8 +529,6 @@ async function finish(state) {
   state.saving = true;
   render(state);
 
-  // Marcar la lección como completada (best-effort). El ejercicio es
-  // reflexivo: siempre cuenta como completado al llegar aquí.
   try {
     if (typeof state.onComplete === "function") await state.onComplete();
   } catch (err) {
@@ -514,12 +537,12 @@ async function finish(state) {
 
   state.saving = false;
   state.finalizada = true;
-  clearState(state.stateKey);
+  persist(state); // guardamos resultados (NO se limpia) para recordarlos al volver
   render(state);
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Persistencia local (draft)
+// Persistencia local (localStorage · sobrevive entre sesiones)
 // ─────────────────────────────────────────────────────────────────────
 
 function snapshot(state) {
@@ -530,11 +553,12 @@ function snapshot(state) {
     analisisIdx: state.analisisIdx,
     misionTarget: state.misionTarget,
     misionReto: state.misionReto,
+    finalizada: state.finalizada,
   };
 }
 
 function persist(state) {
-  try { sessionStorage.setItem(state.stateKey, JSON.stringify(snapshot(state))); }
+  try { localStorage.setItem(state.stateKey, JSON.stringify(snapshot(state))); }
   catch { /* quota / disabled */ }
 }
 
@@ -545,12 +569,12 @@ function persistDebounced(state) {
 }
 
 function clearState(key) {
-  try { sessionStorage.removeItem(key); } catch { /* noop */ }
+  try { localStorage.removeItem(key); } catch { /* noop */ }
 }
 
 function readState(key) {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
