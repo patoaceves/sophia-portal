@@ -446,6 +446,7 @@ async function renderLeccion(persona, payload, cursoContext) {
       customWizard({
         container,
         leccionId: leccion.id,
+        inscripcionId,
         yaCompletada: !!leccion.completada,
         onComplete,
       });

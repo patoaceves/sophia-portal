@@ -247,23 +247,9 @@ Deno.serve(async (req) => {
     if (lErr) return errorOk(req, lErr.message, 500, "db_error");
     if (!lec) return errorOk(req, "Lección no encontrada", 404, "leccion_not_found");
 
-    // Idempotencia: si ya existe evaluación para esta (lección + inscripción), devolver el ID existente
-    const { data: existing, error: eErr } = await db
-      .from("evaluaciones_sesion")
-      .select("id")
-      .eq("leccion_id", leccionId)
-      .eq("inscripcion_id", inscripcionId)
-      .limit(1).maybeSingle();
-    if (eErr) return errorOk(req, eErr.message, 500, "db_error");
-    if (existing) {
-      span.end({ persona: persona.id, evaluacion: existing.id, idempotent: true });
-      return jsonResponse(req, { ok: true, evaluacionId: existing.id, alreadySubmitted: true });
-    }
-
-    // Insertar
     const completadoEn = new Date().toISOString();
     const comentarios = (respuestas.comentarios ?? "").trim();
-    const insertPayload: Record<string, unknown> = {
+    const fila: Record<string, unknown> = {
       inscripcion_id: inscripcionId,
       leccion_id: leccionId,
       respuestas: respuestas,
@@ -275,9 +261,29 @@ Deno.serve(async (req) => {
       completado_en: completadoEn,
     };
 
+    // Si ya existe evaluación para esta (lección + inscripción), la
+    // ACTUALIZAMOS (gana la última). Antes se descartaba el reenvío.
+    const { data: existing, error: eErr } = await db
+      .from("evaluaciones_sesion")
+      .select("id")
+      .eq("leccion_id", leccionId)
+      .eq("inscripcion_id", inscripcionId)
+      .limit(1).maybeSingle();
+    if (eErr) return errorOk(req, eErr.message, 500, "db_error");
+
+    if (existing) {
+      const { error: uErr } = await db
+        .from("evaluaciones_sesion")
+        .update(fila)
+        .eq("id", existing.id);
+      if (uErr) return errorOk(req, uErr.message, 500, "db_error");
+      span.end({ persona: persona.id, evaluacion: existing.id, updated: true });
+      return jsonResponse(req, { ok: true, evaluacionId: existing.id, updated: true });
+    }
+
     const { data: created, error: cErr } = await db
       .from("evaluaciones_sesion")
-      .insert(insertPayload)
+      .insert(fila)
       .select("id").single();
     if (cErr) return errorOk(req, cErr.message, 500, "db_error");
 

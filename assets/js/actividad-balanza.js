@@ -23,6 +23,9 @@
 
 import { icon } from "./icons.js";
 import { escapeHtml } from "./ui-shell.js";
+import { api } from "./api.js";
+
+const ACTIVIDAD = "vinculos-balanza";
 
 const ROLES = {
   verde: {
@@ -70,7 +73,7 @@ function dot(color) {
   return `<span class="bal-dot bal-dot--${color}" aria-hidden="true"></span>`;
 }
 
-export function mountBalanza({ container, leccionId, onComplete, yaCompletada }) {
+export function mountBalanza({ container, leccionId, inscripcionId, onComplete, yaCompletada }) {
   if (!container) return;
 
   const stateKey = `sophia_balanza_${leccionId || "vinculos"}`;
@@ -79,6 +82,8 @@ export function mountBalanza({ container, leccionId, onComplete, yaCompletada })
   const state = {
     container,
     stateKey,
+    leccionId,
+    inscripcionId,
     onComplete,
     yaCompletada: !!yaCompletada,
     step: cached?.step ?? 0,
@@ -101,6 +106,39 @@ export function mountBalanza({ container, leccionId, onComplete, yaCompletada })
   }
 
   render(state);
+
+  // Si no hay progreso local (otro dispositivo, caché limpiada), intentamos
+  // hidratar desde la base: la fuente de verdad es respuestas_quiz. Solo
+  // sobrescribimos cuando NO hay nada local en curso, para no pisar un redo.
+  const hayProgresoLocal = !!cached && (cached.finalizada || (cached.step ?? 0) > 0 ||
+    (Array.isArray(cached.nombres) && cached.nombres.some((n) => n && n.trim())));
+  if (!hayProgresoLocal) {
+    api.resultadosQuiz(leccionId)
+      .then((prev) => {
+        if (!prev?.tieneResultados || !prev.respuestas?.balanza) return;
+        try {
+          const saved = JSON.parse(prev.respuestas.balanza);
+          hydrate(state, saved);
+          state.finalizada = true;
+          persist(state);
+          document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+          render(state);
+        } catch (err) {
+          console.warn("balanza hydrate parse failed:", err);
+        }
+      })
+      .catch((err) => console.warn("balanza resultados fetch failed:", err));
+  }
+}
+
+// Rellena el estado con un snapshot guardado (desde backend o local).
+function hydrate(state, saved) {
+  if (Array.isArray(saved.nombres)) {
+    state.nombres = saved.nombres.concat(Array(NUM_FILAS).fill("")).slice(0, NUM_FILAS);
+  }
+  if (saved.roles && typeof saved.roles === "object") state.roles = saved.roles;
+  state.misionTarget = (saved.misionTarget ?? null);
+  state.misionReto = saved.misionReto || null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -529,6 +567,29 @@ async function finish(state) {
   state.saving = true;
   render(state);
 
+  // Guardar en la base (respuestas_quiz) vía submit-quiz. Serializamos el
+  // estado completo como string porque submit-quiz exige valores string.
+  try {
+    await api.submitQuiz({
+      leccionId: state.leccionId,
+      inscripcionId: state.inscripcionId,
+      actividad: ACTIVIDAD,
+      respuestas: {
+        balanza: JSON.stringify({
+          nombres: state.nombres,
+          roles: state.roles,
+          misionTarget: state.misionTarget,
+          misionReto: state.misionReto,
+        }),
+      },
+    });
+  } catch (err) {
+    // No bloqueamos: el resultado queda en localStorage y la lección igual se
+    // marca como completada. Se reintentará guardar si vuelve a finalizar.
+    console.warn("balanza submitQuiz failed (se guardó local):", err);
+  }
+
+  // Marcar la lección como completada (best-effort).
   try {
     if (typeof state.onComplete === "function") await state.onComplete();
   } catch (err) {

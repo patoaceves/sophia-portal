@@ -224,20 +224,10 @@ Deno.serve(async (req) => {
       inscripcionId = insc.id;
     }
 
-    // Idempotencia: si ya respondió este quiz, devolver ID existente
-    const { data: existing, error: eErr } = await db
-      .from("respuestas_quiz")
-      .select("id")
-      .eq("leccion_id", leccionId)
-      .eq("inscripcion_id", inscripcionId)
-      .limit(1).maybeSingle();
-    if (eErr) throw new ApiError(500, "db_error", eErr.message);
-    if (existing) {
-      span.end({ persona: persona.id, respuesta: existing.id, idempotent: true });
-      return jsonResponse(req, { ok: true, respuestaId: existing.id, alreadySubmitted: true });
-    }
-
-    // Insert
+    // Idempotencia por (leccion_id + inscripcion_id): si ya existe respuesta,
+    // la ACTUALIZAMOS (gana la última). Antes se devolvía sin tocar, lo que
+    // hacía que un "volver a contestar" se perdiera. Ahora siempre se guarda
+    // el último intento.
     const completedAt = new Date().toISOString();
     const payload = {
       version: 1,
@@ -245,6 +235,26 @@ Deno.serve(async (req) => {
       respuestas,
       completedAt,
     };
+
+    const { data: existing, error: eErr } = await db
+      .from("respuestas_quiz")
+      .select("id")
+      .eq("leccion_id", leccionId)
+      .eq("inscripcion_id", inscripcionId)
+      .limit(1).maybeSingle();
+    if (eErr) throw new ApiError(500, "db_error", eErr.message);
+
+    if (existing) {
+      const { error: uErr } = await db
+        .from("respuestas_quiz")
+        .update({ respuestas: payload, completado_en: completedAt })
+        .eq("id", existing.id);
+      if (uErr) throw new ApiError(500, "db_error", uErr.message);
+      span.end({ persona: persona.id, respuesta: existing.id, updated: true });
+      return jsonResponse(req, { ok: true, respuestaId: existing.id, updated: true });
+    }
+
+    // Insert (primer intento)
     const { data: created, error: cErr } = await db
       .from("respuestas_quiz")
       .insert({
