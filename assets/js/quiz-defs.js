@@ -1609,6 +1609,228 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión Sesión 8: La psicología detrás de las personas infelices
+  // Comprensión del video de trabajo previo. 5 preguntas de opción múltiple.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-infelicidad-s8": {
+    titulo: "Quiz: La psicología detrás de las personas infelices",
+    introEyebrow: "Pre-sesión · Sesión 8",
+    introTitle: "La psicología detrás de las personas infelices",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo sobre la infelicidad, el sesgo de negatividad y el estrés crónico.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "infelicidad_definicion",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el orador, ¿cómo define principalmente la infelicidad?",
+        opciones: [
+          "Como la ausencia de bienes materiales.",
+          "Como la incapacidad de estar a gusto en el momento presente.",
+          "Como una enfermedad exclusivamente biológica.",
+          "Como la falta de relaciones sociales profundas.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "infelicidad_causas",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cuál de las siguientes NO es una de las cinco causas principales de la infelicidad mencionadas en el video?",
+        opciones: [
+          "Buscar el bienestar fuera de uno mismo.",
+          "Poner la atención en lo negativo.",
+          "Tener una dieta equilibrada y ejercicio moderado.",
+          "Envenenarse con estrés crónico.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "infelicidad_sesgo_negatividad",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué explica el orador sobre el “sesgo de negatividad”?",
+        opciones: [
+          "Que solo existe en culturas orientales.",
+          "Que el cerebro presta más atención a lo negativo por supervivencia.",
+          "Que hace a las personas incapaces de sentir emociones positivas.",
+          "Que se corrige automáticamente con el tiempo sin intervención.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "infelicidad_sindrome_hollywood",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "El “síndrome de Hollywood” al que se refiere el orador describe:",
+        opciones: [
+          "La tendencia a idealizar celebridades como ejemplo de felicidad.",
+          "La creatividad necesaria para resolver problemas emocionales.",
+          "La mente creando historias ficticias donde uno es siempre el protagonista.",
+          "Un método terapéutico basado en guiones de cine.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "infelicidad_estres_cronico",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué resultado provoca, según el video, el estrés crónico en el cuerpo y la mente?",
+        opciones: [
+          "Aumento de serotonina y mayor sensación de bienestar.",
+          "Desregulación del sistema nervioso y aumento de cortisol.",
+          "Mejora del sueño y mayor capacidad de descanso.",
+          "Eliminación de la ansiedad de forma natural.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 8: Biología del Cambio
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s8": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 8 · Neurociencia del Coaching",
+    introTitle: "Reflexión personal: Biología del Cambio",
+    introLead: [
+      "Objetivo de la sesión: aplicar los fundamentos neurocientíficos (reptiliano, límbico, corteza) para entender el desarrollo cerebral a través del coaching.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 8.",
+    preguntas: [
+      {
+        id: "reflexion_calmar_limbico",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿Cómo puedo adaptar mis preguntas para calmar la respuesta del cerebro límbico de mi cliente y permitir que su corteza prefrontal acceda a soluciones creativas?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 8: Biología del Cambio
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s8": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 8 · Neurociencia del Coaching",
+    introTitle: "Journaling: Biología del Cambio",
+    introLead: [
+      "Objetivo: comprender los fundamentos neurocientíficos y la función del coaching en el desarrollo cerebral.",
+      "Desafío de la semana: identifica un momento de “secuestro amigdalino” (estrés) en un cliente y reflexiona qué pregunta podría haber activado su corteza prefrontal.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_limbico_vs_corteza",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Estoy comunicándome con el cerebro límbico (emoción) o con la corteza (razón) de mi cliente en los momentos críticos?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 8: Neurociencia en el Coaching
+  // Quiz CON SCORE — 5 preguntas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s8": {
+    titulo: "Evaluación · Sesión 8",
+    introEyebrow: "Evaluación · Sesión 8",
+    introTitle: "Neurociencia en el Coaching",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre la teoría de los tres cerebros, la neuroplasticidad y la regulación de la amígdala vistos en la sesión 8.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "neuro_reptiliano",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según la teoría de los “tres cerebros”, ¿cuál es la función principal del sistema reticular (cerebro reptiliano) en el comportamiento humano?",
+        opciones: [
+          "La planificación de metas a largo plazo y el pensamiento lógico.",
+          "La gestión de emociones complejas y el trabajo en equipo.",
+          "La supervivencia inmediata y las reacciones automáticas de “lucha o huida”.",
+          "La creación de metáforas y visualizaciones artísticas.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "neuro_limbico_tonal",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "El sistema límbico (cerebro mamífero) se caracteriza por ser “tonal” y “auditivo”. ¿Cómo se aplica esto en el coaching SOPHIA?",
+        opciones: [
+          "El coach debe hablar siempre lo más fuerte posible para imponer autoridad.",
+          "El coachee solo puede aprender si escucha música durante la sesión.",
+          "Los matices en el tono de voz del coach activan la confianza o la defensa emocional del coachee.",
+          "El cerebro límbico no tiene relación con el lenguaje, solo con el hambre.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "neuro_neocorteza",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué capacidad exclusiva de la neocorteza (cerebro cortical) permite que el coaching sea una herramienta de transformación hacia el futuro?",
+        opciones: [
+          "La capacidad de retirar la mano rápidamente del fuego.",
+          "La capacidad de crear construcciones visuales, mapas mentales y escenarios “como si” (proyección prospectiva).",
+          "La función de sentir miedo ante lo desconocido para evitar el cambio.",
+          "El almacenamiento de grasa corporal para épocas de escasez.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "neuro_dopamina",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Qué ocurre a nivel neurocientífico cuando un coach utiliza lenguaje positivo y visualización guiada?",
+        opciones: [
+          "Se bloquea la corteza prefrontal y el coachee entra en un estado de sueño.",
+          "Se estimula la producción de dopamina y se fomenta la neuroplasticidad para crear nuevas rutas neuronales.",
+          "El cerebro se agota y pierde la capacidad de tomar decisiones.",
+          "Se activan únicamente los instintos de supervivencia del tronco encefálico.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "neuro_miedo",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "El “miedo” en el coaching es definido como la “imaginación del fracaso”. ¿Cuál es el rol del coach para gestionar esta emoción desde la neurociencia?",
+        opciones: [
+          "Ignorar el miedo y obligar al coachee a actuar sin pensar.",
+          "Usar preguntas que activen la corteza prefrontal para regular la amígdala y “reescribir la escena” mediante visualización positiva.",
+          "Darle la razón al coachee para que se sienta cómodo en su zona de confort.",
+          "Analizar el trauma infantil que causó el miedo durante toda la sesión.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
