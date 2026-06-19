@@ -993,6 +993,93 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión Sesión 4: El malestar de la mediana edad
+  // Comprensión de los videos de trabajo previo. 5 preguntas de opción
+  // múltiple con respuesta correcta marcada (sin umbral de aprobación).
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-midlife-s4": {
+    titulo: "Quiz: El malestar de la mediana edad",
+    introEyebrow: "Pre-sesión · Sesión 4",
+    introTitle: "Hechos y ficciones de la crisis de la mediana edad",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple basadas en los videos de trabajo previo sobre la crisis y el malestar de la mediana edad.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "midlife_porcentaje_crisis",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según la investigación mencionada de Margie Lachman, ¿qué porcentaje aproximado de hombres experimenta una crisis de mediana edad intensa?",
+        opciones: [
+          "Alrededor del 10 a 12%.",
+          "Alrededor del 30 a 35%.",
+          "Alrededor del 50 a 60%.",
+          "Más del 80%.",
+        ],
+        correcta: 0,
+        obligatoria: true,
+      },
+      {
+        id: "midlife_critica_testosterona",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cuál es la crítica principal del Dr. Thomas Perls respecto al uso de testosterona para revertir el envejecimiento?",
+        opciones: [
+          "No hay evidencia de que aumente la energía.",
+          "Está asociado con un mayor riesgo de eventos cardiovasculares.",
+          "Es demasiado caro para la mayoría de los pacientes.",
+          "Provoca pérdida de masa muscular.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "midlife_testimonio_life",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "En el testimonio del médico que toma testosterona (Dr. Jeffry Life), ¿qué afirmación hace sobre su propia experiencia tras años de tratamiento?",
+        opciones: [
+          "Dice que su salud empeoró notablemente.",
+          "Afirma que ahora hace actividades físicas que no podía antes, como taekwondo.",
+          "Menciona que dejó de trabajar por completo.",
+          "Indica que perdió interés en la vida social.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "midlife_estrategia_pasion",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "En el relato personal sobre el malestar de la mediana edad, ¿qué estrategia encontró la oradora para encender una nueva pasión?",
+        opciones: [
+          "Renunciar a su trabajo inmediatamente.",
+          "Tomar un curso de acuarela y cultivar la expresión creativa.",
+          "Mudarse a otra ciudad para empezar de nuevo.",
+          "Empezar a tomar suplementos hormonales sin supervisión.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "midlife_no_respuesta",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Según la charla, ¿cuál de las siguientes NO es una de las tres respuestas comunes a la crisis o malestar de la mediana edad?",
+        opciones: [
+          "Resignación (surrender).",
+          "Detonación (hacer cambios radicales destructivos).",
+          "Exploración (buscar nuevas posibilidades).",
+          "Inmovilismo absoluto por miedo.",
+        ],
+        correcta: 3,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
