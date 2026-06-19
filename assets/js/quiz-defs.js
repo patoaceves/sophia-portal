@@ -1831,6 +1831,228 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión Sesión 9: La ingeniería de la fortaleza mental
+  // Comprensión del video de trabajo previo (Hormozi). 5 preguntas con score.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-fortaleza-s9": {
+    titulo: "Quiz: La ingeniería de la fortaleza mental",
+    introEyebrow: "Pre-sesión · Sesión 9",
+    introTitle: "La ingeniería de la fortaleza mental",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo de Alex Hormozi sobre la dureza mental y sus cuatro variables: tolerancia, entereza, resiliencia y adaptabilidad.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "fortaleza_definicion",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cómo define el orador la “dureza mental”?",
+        opciones: [
+          "La capacidad de ocultar las emociones ante otros.",
+          "La probabilidad de que un evento negativo cambie tu comportamiento en contra de tus metas.",
+          "La habilidad de trabajar muchas horas seguidas.",
+          "La ausencia total de sentimientos negativos.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fortaleza_componentes",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "Según el modelo del video, ¿cuál de los siguientes NO es uno de los cuatro componentes de la dureza mental?",
+        opciones: [
+          "Tolerancia.",
+          "Fortaleza (entereza).",
+          "Creatividad.",
+          "Adaptabilidad.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "fortaleza_resiliencia",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué mide específicamente la “resiliencia” en el esquema presentado?",
+        opciones: [
+          "Cuánto empeoras permanentemente después de un evento negativo.",
+          "El tiempo que tarda en volver a una nueva línea base después de un cambio de comportamiento.",
+          "La intensidad inmediata de la reacción emocional.",
+          "La cantidad de eventos negativos que puedes soportar sin cambiar de trabajo.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fortaleza_baja_entereza",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cuál es un ejemplo de baja entereza (low fortitude) según el orador?",
+        opciones: [
+          "Respirar hondo y volver al trabajo en 5 minutos.",
+          "Cambiar drásticamente tu comportamiento, como dejar el empleo o recurrir a sustancias, ante una adversidad menor.",
+          "Mantener exactamente la misma conducta sin ninguna alteración.",
+          "Usar el evento negativo para mejorar y subir tu nueva línea base.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fortaleza_biologia",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué relación establece el orador entre cuidado biológico (sueño, comida) y dureza mental?",
+        opciones: [
+          "No hay relación; la dureza mental es puramente genética.",
+          "Un peor estado biológico reduce la tolerancia y la resiliencia.",
+          "Dormir menos siempre aumenta la tolerancia.",
+          "Comer poco mejora la adaptabilidad.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 9: Niveles de Atención y Escucha Profunda
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s9": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 9 · Niveles Existenciales",
+    introTitle: "Reflexión personal: Niveles de Atención y Escucha Profunda",
+    introLead: [
+      "Objetivo de la sesión: organizar la información según niveles de atención para percibir significados ocultos y co-crear planes de acción alineados.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 9.",
+    preguntas: [
+      {
+        id: "reflexion_nivel_significado",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿A qué nivel de significado suelo prestar más atención y qué dimensiones de la experiencia del cliente estoy ignorando por hábito?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 9: Niveles de Atención y Escucha Profunda
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s9": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 9 · Niveles Existenciales",
+    introTitle: "Journaling: Niveles de Atención y Escucha Profunda",
+    introLead: [
+      "Objetivo: desarrollar la escucha multinivel y evocar conciencia profunda.",
+      "Desafío de la semana: durante una sesión, intenta “subir” un nivel de escucha, de los hechos (datos) a los valores o la identidad del cliente.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_nivel_escucha",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿En qué nivel de atención (datos, emoción, identidad o esencia) suelo situar mi escucha de manera predominante?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 9: Niveles Existenciales
+  // Quiz CON SCORE — 5 preguntas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s9": {
+    titulo: "Evaluación · Sesión 9",
+    introEyebrow: "Evaluación · Sesión 9",
+    introTitle: "Niveles Existenciales",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre la jerarquía de los niveles existenciales, la confusión entre acción e identidad y la escucha multinivel vistas en la sesión 9.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "niveles_jerarquia",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el principio de jerarquía de los Niveles Existenciales, ¿qué sucede cuando se produce un cambio en un nivel superior (por ejemplo, Identidad o Valores)?",
+        opciones: [
+          "No tiene ningún efecto en los niveles de abajo.",
+          "Organiza y transforma automáticamente los niveles inferiores (Capacidades, Acciones, Entorno).",
+          "El coachee se confunde y deja de actuar.",
+          "Solo cambia el entorno físico, pero no lo que la persona hace.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "niveles_confusion_identidad",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "El coach nota que un coachee dice: “Soy un fracasado porque llegué tarde a la reunión”. ¿Qué confusión de niveles está ocurriendo aquí?",
+        opciones: [
+          "Confusión entre Capacidad y Entorno.",
+          "Confusión entre Acción (comportamiento) e Identidad (quién soy).",
+          "Confusión entre Legado y Visión.",
+          "No hay confusión, es una observación correcta de la realidad.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "niveles_bloqueo_capacidad",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Si un coachee se siente bloqueado porque “no sabe cómo empezar un proyecto”, ¿en qué nivel existencial debería intervenir el coach con sus preguntas?",
+        opciones: [
+          "Nivel de Entorno (preguntar dónde está su oficina).",
+          "Nivel de Identidad (preguntar quién necesita ser para lograrlo).",
+          "Nivel de Capacidad (preguntar cómo podría desarrollar las habilidades necesarias).",
+          "Nivel de Legado (preguntar qué dirán de él en 100 años).",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "niveles_observar_continuar",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cuál es el propósito de la tarea de coaching llamada “Observar (continuar)”?",
+        opciones: [
+          "Criticar los errores del pasado para no repetirlos.",
+          "Desplazar el enfoque hacia lo que ya funciona (excepciones positivas) para que el coachee descubra tendencias constructivas.",
+          "Obligar al coachee a escribir 10 páginas diarias sobre sus problemas.",
+          "Que el coachee vigile a sus compañeros de trabajo.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "niveles_legado_maestria",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "En la metodología SOPHIA, ¿cuál es la pregunta clave para explorar el nivel de “Legado / Maestría”?",
+        opciones: [
+          "¿Qué vas a comer mañana?",
+          "¿Por qué es importante esto para ti hoy?",
+          "Si tu transformación dejara una huella permanente en el mundo dentro de 100 años, ¿cuál sería esa obra?",
+          "¿Dónde y con quién vas a realizar esta acción?",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
