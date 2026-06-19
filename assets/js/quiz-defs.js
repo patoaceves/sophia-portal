@@ -1080,6 +1080,91 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión Sesión 5: Pensamiento estratégico
+  // Comprensión del video de trabajo previo. 5 preguntas de opción múltiple
+  // (incluye una de verdadero/falso) con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-estrategico-s5": {
+    titulo: "Quiz: Pensamiento estratégico",
+    introEyebrow: "Pre-sesión · Sesión 5",
+    introTitle: "Usa el pensamiento estratégico para crear la vida que quieres",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo sobre pensamiento estratégico.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "estrategico_tactico_vs_estrategico",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cuál es la diferencia clave entre pensamiento táctico y estratégico según el video?",
+        opciones: [
+          "El pensamiento táctico siempre es mejor para la planificación a largo plazo.",
+          "El pensamiento táctico reacciona a problemas inmediatos; el estratégico busca el panorama general y previene problemas.",
+          "El pensamiento estratégico depende solo del talento natural.",
+          "No existe diferencia práctica entre ambos.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "estrategico_victorias_pasadas",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "En el análisis estratégico personal, ¿qué sugiere el video que hagas con tus victorias pasadas?",
+        opciones: [
+          "Solo listarlas sin más detalles.",
+          "Ignorarlas y enfocarte en nuevas metas.",
+          "Revisarlas para encontrar patrones que expliquen por qué tuviste éxito.",
+          "Compartirlas en redes sociales para demostrar competencia.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "estrategico_diseno_entorno",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Según el capítulo sobre diseño del entorno, los cambios en la vida práctica se recomiendan para facilitar buenas decisiones diarias.",
+        opciones: [
+          "Verdadero.",
+          "Falso.",
+        ],
+        correcta: 0,
+        obligatoria: true,
+      },
+      {
+        id: "estrategico_riesgo_asimetrico",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cómo describe el video el concepto de riesgo asimétrico?",
+        opciones: [
+          "Riesgos en los que la pérdida supera siempre la ganancia.",
+          "Riesgos que deben evitarse a toda costa.",
+          "Oportunidades donde el potencial de ganancia es mucho mayor que la desventaja potencial.",
+          "Una predicción exacta del resultado de una decisión.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "estrategico_meta_habilidades",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Para aprender de forma estratégica, ¿qué recomienda el video como prioridad?",
+        opciones: [
+          "Aprender muchas habilidades al azar.",
+          "Enfocarse en meta-habilidades que facilitan aprender otras cosas.",
+          "Evitar habilidades fuera de tu campo.",
+          "Memorizar datos sin integrar conocimientos.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
