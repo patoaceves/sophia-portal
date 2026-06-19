@@ -1387,6 +1387,228 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión Sesión 7: El efecto Super Mario y el fracaso
+  // Comprensión del video de trabajo previo. 5 preguntas de opción múltiple.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-fracaso-s7": {
+    titulo: "Quiz: El efecto Super Mario y el fracaso",
+    introEyebrow: "Pre-sesión · Sesión 7",
+    introTitle: "El fracaso como combustible",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo sobre el efecto Super Mario, el fracaso y el diseño de la vida.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "fracaso_metafora",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el video, ¿qué metáfora usa el entrevistado para explicar cómo debemos ver el fracaso?",
+        opciones: [
+          "Un mapa del tesoro.",
+          "Un videojuego (efecto Super Mario).",
+          "Una carrera de obstáculos.",
+          "Un rompecabezas.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fracaso_conexion_emocional",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cuál es una razón que el entrevistado da para que sus videos conecten emocionalmente con la audiencia?",
+        opciones: [
+          "Prioriza datos técnicos y hojas de especificaciones.",
+          "Evoca una respuesta visceral y emoción en los espectadores.",
+          "Usa gráficos complejos que impresionan a los expertos.",
+          "Evita el humor para mantener seriedad científica.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fracaso_miedo_publico",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué estrategia recomienda el entrevistado para superar el miedo a fallar en público?",
+        opciones: [
+          "Evitar exponerse hasta estar completamente preparado.",
+          "Empezar con metas pequeñas y “fallar” intencionalmente para normalizarlo.",
+          "Pedir siempre la aprobación de un mentor antes de actuar.",
+          "No practicar y confiar en el talento natural.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fracaso_esconder_verduras",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Qué significa “esconder las verduras” en el enfoque del creador de contenidos?",
+        opciones: [
+          "Añadir información técnica oculta en la descripción del video.",
+          "Disfrazar el aprendizaje en entretenimiento para atraer atención.",
+          "Omitir los experimentos difíciles para simplificar el contenido.",
+          "Enseñar solo a estudiantes avanzados para no confundir a principiantes.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fracaso_vida_plena",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Cuál de las siguientes ideas NO forma parte de la visión del entrevistado sobre una vida más plena?",
+        opciones: [
+          "Priorizar relaciones y vivir según valores personales.",
+          "Buscar incrementos graduales y evitar quemarse por metas rápidas.",
+          "Creer que la felicidad solo se alcanza con más dinero y posesiones.",
+          "Practicar gratitud como herramienta para reajustar la perspectiva.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 7: El Lenguaje del Rapport y la Imaginación
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s7": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 7 · Las Preguntas del Acaso",
+    introTitle: "Reflexión personal: El Lenguaje del Rapport y la Imaginación",
+    introLead: [
+      "Objetivo de la sesión: utilizar el lenguaje para construir rapport y crear preguntas de imaginación que promuevan la autoconciencia y el compromiso.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 7.",
+    preguntas: [
+      {
+        id: "reflexion_metaforas_imagenes",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿Cómo impacta el uso deliberado de metáforas e imágenes en la capacidad del cliente para comprometerse con su propia visión?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 7: El Lenguaje del Rapport y la Imaginación
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s7": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 7 · Las Preguntas del Acaso",
+    introTitle: "Journaling: El Lenguaje del Rapport y la Imaginación",
+    introLead: [
+      "Objetivo: utilizar el lenguaje para construir rapport y crear preguntas que promuevan la autoconciencia.",
+      "Desafío de la semana: crea una pregunta de imaginación que invite al coachee a visualizar su meta desde un futuro donde el problema ya no existe.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_preguntas_acaso",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo pueden las “preguntas del acaso” y de imaginación abrir puertas que la lógica racional mantiene cerradas?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 7: Las Preguntas del Acaso
+  // Quiz CON SCORE — 5 preguntas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s7": {
+    titulo: "Evaluación · Sesión 7",
+    introEyebrow: "Evaluación · Sesión 7",
+    introTitle: "Las Preguntas del Acaso",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre el lenguaje del rapport, las preguntas de imaginación y los desplazamientos en el tiempo vistos en la sesión 7.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "acaso_suavizadores",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cuál es la función principal de los “suavizadores” (softeners) como “tengo curiosidad por...” al inicio de una pregunta?",
+        opciones: [
+          "Hacer que la sesión dure más tiempo.",
+          "Reducir la tensión, eliminar la sensación de juicio y abrir espacio para la reflexión profunda.",
+          "Demostrar que el coach tiene más conocimiento que el coachee.",
+          "Evitar que el coachee responda con honestidad.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "acaso_nombrar_resultado",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "El marco de “nombrar el resultado” (naming the outcome) consiste en pedir permiso al coachee para:",
+        opciones: [
+          "Terminar la sesión antes de tiempo.",
+          "Cambiar el precio de las sesiones de coaching.",
+          "Dirigir la conversación hacia el objetivo acordado, asegurando que la pregunta esté al servicio del coachee.",
+          "Darle un consejo directo sobre lo que debe hacer con su vida.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "acaso_visual_creativo",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Según la metodología, ¿qué diferencia hay entre el pensamiento “no creativo” y el “sistema visual creativo”?",
+        opciones: [
+          "El no creativo es visual y el creativo es solo de lenguaje.",
+          "El no creativo se organiza en bucles auditivos (diálogos internos limitantes), mientras que el sistema visual se activa con la imaginación y escenarios “como si”.",
+          "No hay diferencia; el cerebro siempre piensa de la misma manera.",
+          "El pensamiento creativo solo ocurre cuando el coachee está dormido.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "acaso_time_shift",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿A qué tipo de desplazamiento pertenece la pregunta: “Imagina que han pasado seis meses... ¿qué ha cambiado desde que lograste tu meta?”?",
+        opciones: [
+          "Desplazamiento de culpa.",
+          "Desplazamiento en el tiempo (time shift).",
+          "Pregunta de escala numérica.",
+          "Retroalimentación reflejante.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "acaso_preguntas_puerta",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué se busca lograr con las “preguntas botón o puerta” (como la pregunta milagro)?",
+        opciones: [
+          "Cerrar la sesión de forma abrupta.",
+          "Romper la sensación de bloqueo imaginando que el problema desaparece de repente para identificar cambios.",
+          "Evaluar el desempeño del coach durante el último mes.",
+          "Obligar al coachee a firmar un nuevo contrato financiero.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
