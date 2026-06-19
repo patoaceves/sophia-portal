@@ -1165,6 +1165,228 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Quiz pre-sesión Sesión 6: Cómo lidiar con la depresión
+  // Comprensión del video de trabajo previo. 5 preguntas de opción múltiple.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-depresion-s6": {
+    titulo: "Quiz: Cómo lidiar con la depresión",
+    introEyebrow: "Pre-sesión · Sesión 6",
+    introTitle: "Cómo lidiar con la depresión",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo sobre la depresión, la intervención médica y la higiene mental.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "depresion_tratamiento_medico",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el orador, ¿cuál es una razón importante para considerar un tratamiento médico (por ejemplo, antidepresivos) en una depresión severa?",
+        opciones: [
+          "Porque la depresión nunca mejora con intervenciones conductuales.",
+          "La depresión puede ser fisiológicamente dañina y con alto riesgo de suicidio.",
+          "Porque los antidepresivos garantizan la solución de problemas de vida complejos.",
+          "Porque la terapia conductual es inútil en todos los casos.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "depresion_dominio_minimo",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué significa, en el contexto del video, restringir el evento anómalo al dominio mínimo necesario (constrain the anomalous event to the minimal necessary domain)?",
+        opciones: [
+          "Exagerar el error para provocar un cambio radical en la identidad propia.",
+          "Interpretar un fallo puntual como una evidencia de fracaso total de la vida o la carrera.",
+          "Limitar la interpretación negativa de un suceso para evitar que desencadene una cascada de autocrítica.",
+          "Evitar planear soluciones y esperar a que las cosas se resuelvan solas.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "depresion_sensacion_significado",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "El orador describe la sensación de significado como:",
+        opciones: [
+          "Una ilusión sin relevancia para el comportamiento humano.",
+          "Un marcador psicofisiológico que orienta a la persona y sugiere que está actuando adecuadamente.",
+          "Algo exclusivo de las personas extrovertidas.",
+          "Un sustituto de la rutina y la disciplina.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "depresion_rutinas",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cuál de las siguientes ideas sobre las rutinas y la salud mental se menciona explícitamente en el video?",
+        opciones: [
+          "No tener rutina ni horarios no afecta el estado de ánimo.",
+          "Mantener una rutina (hora de despertarse, comer) ayuda a regular el sistema nervioso y el ánimo.",
+          "Comer menos por la mañana mejora la energía de forma consistente.",
+          "Evitar relaciones íntimas favorece la estabilidad emocional.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "depresion_aprendizaje_errores",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué punto hace el orador acerca del aprendizaje y de cometer errores al perseguir intereses nuevos?",
+        opciones: [
+          "Debes esperar hasta tener la idea perfecta antes de actuar.",
+          "Hacerlo mal al principio es una parte necesaria del aprendizaje y es preferible a no intentarlo.",
+          "Evitar ser torpe al empezar te convertirá en maestro más rápido.",
+          "Los errores iniciales indican que no debes seguir con ese interés.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 6: El Observador Fenomenológico
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s6": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 6 · El Observador Fenomenológico",
+    introTitle: "Reflexión personal: El Observador Fenomenológico",
+    introLead: [
+      "Objetivo de la sesión: comprender los fundamentos de la fenomenología y su aplicación práctica para observar la realidad del cliente sin prejuicios.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 6.",
+    preguntas: [
+      {
+        id: "reflexion_suspender_juicios",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "Si lograra suspender todos mis juicios previos durante diez minutos de sesión, ¿qué verdades del cliente empezarían a emerger que antes me eran invisibles?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 6: El Observador Fenomenológico
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s6": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 6 · El Observador Fenomenológico",
+    introTitle: "Journaling: El Observador Fenomenológico",
+    introLead: [
+      "Objetivo: aplicar los principios fenomenológicos al coaching para una observación pura.",
+      "Desafío de la semana: describe un objeto o una emoción de tu cliente durante 2 minutos usando solo lenguaje descriptivo, sin interpretaciones subjetivas.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_causas_vs_fenomeno",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo cambia la sesión cuando dejo de buscar “causas” y empiezo a observar el “fenómeno” tal como se presenta?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Evaluación Sesión 6: Fenomenología y Coaching
+  // Quiz CON SCORE — 5 preguntas con respuesta correcta marcada.
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-evaluacion-s6": {
+    titulo: "Evaluación · Sesión 6",
+    introEyebrow: "Evaluación · Sesión 6",
+    introTitle: "Fenomenología y Coaching",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre la fenomenología aplicada al coaching: la epoché, la empatía no apropiativa, el rostro del otro y la pregunta fenomenológica.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "fenom_epoche",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Qué propone la “epoché” (inspirada en Husserl) como actitud fundamental del coach?",
+        opciones: [
+          "Analizar las causas psicológicas del pasado del coachee para dar un diagnóstico.",
+          "Suspender juicios, teorías y expectativas previas para recibir la experiencia tal como se da.",
+          "Dirigir al coachee hacia una solución rápida basada en la experiencia del coach.",
+          "Comparar la historia del coachee con casos similares para encontrar un patrón.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fenom_empatia_stein",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "Según Edith Stein, ¿cuál es la característica principal de la “empatía no apropiativa”?",
+        opciones: [
+          "Sentir exactamente lo mismo que el coachee para mimetizarse con él.",
+          "Imaginar que uno es el coachee para darle consejos desde su lugar.",
+          "Captar la vivencia del otro como algo “otro”, respetando su alteridad sin absorberla ni juzgarla.",
+          "Ignorar las emociones del coachee para mantener la objetividad técnica.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "fenom_levinas_rostro",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "En la filosofía de Levinas aplicada al coaching, ¿qué implica “estar ante el rostro del otro”?",
+        opciones: [
+          "Observar las microexpresiones faciales para detectar mentiras.",
+          "Reconocer que el otro es una categoría de mi propia conciencia.",
+          "Aceptar una responsabilidad ética donde el coach acompaña sin imponer una agenda ni querer “arreglar” al coachee.",
+          "Mantener contacto visual forzado para demostrar autoridad.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "fenom_pregunta_fenomenologica",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cuál es la principal diferencia entre una pregunta explicativa y una pregunta fenomenológica?",
+        opciones: [
+          "La explicativa busca el “cómo” y la fenomenológica busca el “por qué”.",
+          "La explicativa busca causas y justificaciones; la fenomenológica busca la descripción rigurosa de la vivencia (forma, peso, sensación).",
+          "No hay diferencia; ambas buscan que el coachee entienda su pasado.",
+          "La pregunta fenomenológica siempre debe ser cerrada para evitar confusiones.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "fenom_dejar_emerger_sentido",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Cómo debe actuar el coach para “dejar emerger el sentido” durante la sesión?",
+        opciones: [
+          "Proponiendo metáforas propias que le parezcan poéticas al coach.",
+          "Reformulando lo que dice el coachee con interpretaciones técnicas (“esto que dices es ansiedad”).",
+          "Favoreciendo el lenguaje del coachee y manteniendo silencios que den espacio a que el sentido tome forma por sí mismo.",
+          "Concluyendo la sesión con una enseñanza moral sobre lo aprendido.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
