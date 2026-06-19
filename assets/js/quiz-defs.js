@@ -941,6 +941,58 @@ export const QUIZZES = {
   },
 
   // ───────────────────────────────────────────────────────────────────
+  // Coaching · Reflexión personal Sesión 5: Laboratorio de Integración I
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-reflexion-s5": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 5 · Laboratorio de Integración I",
+    introTitle: "Reflexión personal: Laboratorio de Integración I",
+    introLead: [
+      "Objetivo de la sesión: práctica supervisada para consolidar los marcos de pensamiento y las habilidades de escucha iniciales.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 5.",
+    preguntas: [
+      {
+        id: "reflexion_hilo_metodologia",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "Durante mis sesiones de práctica, ¿en qué momento siento que pierdo el hilo de la metodología y qué me dice eso de mi estado de presencia?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
+  // Coaching · Journaling Sesión 5: Laboratorio de Integración I
+  // 1 pregunta de texto libre (sin score)
+  // ───────────────────────────────────────────────────────────────────
+  "coaching-journaling-s5": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 5 · Laboratorio de Integración I",
+    introTitle: "Journaling: Laboratorio de Integración I",
+    introLead: [
+      "Objetivo: evaluar la aplicación inicial de la metodología en un entorno controlado.",
+      "Desafío de la semana: solicita un feedback específico sobre un punto ciego y escribe un plan de acción para mejorarlo en el próximo laboratorio.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_patron_estilo",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "Al observar mi desempeño en este primer laboratorio, ¿qué patrón recurrente detecto en mi estilo de coaching?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ───────────────────────────────────────────────────────────────────
   // Bienestar Físico · Checklist de Salud y Bienestar Corporal-Emocional
   // Actividad previa de la sesión de Bienestar Físico (HW)
   // Quiz reflexivo de 35 preguntas binarias en 7 categorías. No tiene
