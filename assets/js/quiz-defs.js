@@ -1170,7 +1170,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "coaching-depresion-s6": {
     titulo: "Quiz: Cómo lidiar con la depresión",
-    introEyebrow: "Pre-sesión · Sesión 6",
+    introEyebrow: "Pre-sesión · Sesión 7",
     introTitle: "Cómo lidiar con la depresión",
     introLead: [
       "Este quiz tiene 5 preguntas basadas en el video de trabajo previo sobre la depresión, la intervención médica y la higiene mental.",
@@ -1255,7 +1255,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "coaching-reflexion-s6": {
     titulo: "Reflexión personal",
-    introEyebrow: "Sesión 6 · El Observador Fenomenológico",
+    introEyebrow: "Sesión 7 · El Observador Fenomenológico",
     introTitle: "Reflexión personal: El Observador Fenomenológico",
     introLead: [
       "Objetivo de la sesión: comprender los fundamentos de la fenomenología y su aplicación práctica para observar la realidad del cliente sin prejuicios.",
@@ -1280,7 +1280,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "coaching-journaling-s6": {
     titulo: "Journaling de la semana",
-    introEyebrow: "Semana 6 · El Observador Fenomenológico",
+    introEyebrow: "Semana 7 · El Observador Fenomenológico",
     introTitle: "Journaling: El Observador Fenomenológico",
     introLead: [
       "Objetivo: aplicar los principios fenomenológicos al coaching para una observación pura.",
@@ -1305,8 +1305,8 @@ export const QUIZZES = {
   // Quiz CON SCORE — 5 preguntas con respuesta correcta marcada.
   // ───────────────────────────────────────────────────────────────────
   "coaching-evaluacion-s6": {
-    titulo: "Evaluación · Sesión 6",
-    introEyebrow: "Evaluación · Sesión 6",
+    titulo: "Evaluación · Sesión 7",
+    introEyebrow: "Evaluación · Sesión 7",
     introTitle: "Fenomenología y Coaching",
     introLead: [
       "Esta evaluación tiene 5 preguntas de opción múltiple sobre la fenomenología aplicada al coaching: la epoché, la empatía no apropiativa, el rostro del otro y la pregunta fenomenológica.",
@@ -1392,7 +1392,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "coaching-fracaso-s7": {
     titulo: "Quiz: El efecto Super Mario y el fracaso",
-    introEyebrow: "Pre-sesión · Sesión 7",
+    introEyebrow: "Pre-sesión · Sesión 6",
     introTitle: "El fracaso como combustible",
     introLead: [
       "Este quiz tiene 5 preguntas basadas en el video de trabajo previo sobre el efecto Super Mario, el fracaso y el diseño de la vida.",
@@ -1477,7 +1477,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "coaching-reflexion-s7": {
     titulo: "Reflexión personal",
-    introEyebrow: "Sesión 7 · Las Preguntas del Acaso",
+    introEyebrow: "Sesión 6 · Las Preguntas del Acaso",
     introTitle: "Reflexión personal: El Lenguaje del Rapport y la Imaginación",
     introLead: [
       "Objetivo de la sesión: utilizar el lenguaje para construir rapport y crear preguntas de imaginación que promuevan la autoconciencia y el compromiso.",
@@ -1502,7 +1502,7 @@ export const QUIZZES = {
   // ───────────────────────────────────────────────────────────────────
   "coaching-journaling-s7": {
     titulo: "Journaling de la semana",
-    introEyebrow: "Semana 7 · Las Preguntas del Acaso",
+    introEyebrow: "Semana 6 · Las Preguntas del Acaso",
     introTitle: "Journaling: El Lenguaje del Rapport y la Imaginación",
     introLead: [
       "Objetivo: utilizar el lenguaje para construir rapport y crear preguntas que promuevan la autoconciencia.",
@@ -1527,8 +1527,8 @@ export const QUIZZES = {
   // Quiz CON SCORE — 5 preguntas con respuesta correcta marcada.
   // ───────────────────────────────────────────────────────────────────
   "coaching-evaluacion-s7": {
-    titulo: "Evaluación · Sesión 7",
-    introEyebrow: "Evaluación · Sesión 7",
+    titulo: "Evaluación · Sesión 6",
+    introEyebrow: "Evaluación · Sesión 6",
     introTitle: "Las Preguntas del Acaso",
     introLead: [
       "Esta evaluación tiene 5 preguntas de opción múltiple sobre el lenguaje del rapport, las preguntas de imaginación y los desplazamientos en el tiempo vistos en la sesión 7.",
