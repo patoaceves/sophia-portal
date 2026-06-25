@@ -4840,14 +4840,34 @@
 
 .checkpoint__pulse {
   position: absolute;
-  inset: -2px;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
   border-radius: var(--r-full);
   border: 2px solid var(--color-accent);
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center;
+  pointer-events: none;
   animation: pulse-ring 1.6s ease-out infinite;
 }
 
 @keyframes pulse-ring {
-  0%   { transform: scale(1);    opacity: 0.7; }
+  0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+
+/* Portada dentro del contenido de una leccion (ej. bienvenida) */
+.leccion-html .leccion-cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-md, 12px);
+  margin: 0 0 var(--s-4, 16px);
+}
+
+/* Spinner del player de video */
+@keyframes video-spin { to { transform: rotate(360deg); } }
   100% { transform: scale(1.6); opacity: 0; }
 }
 

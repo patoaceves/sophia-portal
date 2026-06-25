@@ -31,7 +31,11 @@ function escapeHtml(s) {
 }
 
 export async function mountVideoPlayer(container, { leccionId, inscripcionId }) {
-  container.innerHTML = `<div class="video-loading" style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:#000;border-radius:var(--r-lg);color:#fff;opacity:.7;">Cargando video…</div>`;
+  container.innerHTML = `
+    <div class="video-loading" style="aspect-ratio:16/9;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:var(--color-bg-elevated,#fff);border:1px solid var(--color-border,#e7e2d9);border-radius:var(--r-lg,16px);color:var(--color-text-muted,#8a8378);">
+      <span style="width:28px;height:28px;border:3px solid var(--color-border,#e7e2d9);border-top-color:var(--color-accent,#c0112f);border-radius:50%;display:inline-block;animation:video-spin .8s linear infinite;"></span>
+      <span style="font-size:14px;">Cargando video…</span>
+    </div>`;
 
   let info;
   try {
@@ -54,6 +58,9 @@ export async function mountVideoPlayer(container, { leccionId, inscripcionId }) 
   video.preload = "metadata";
   video.style.cssText = "width:100%;display:block;background:#000;";
   video.src = info.signedUrl;
+  video.addEventListener("error", () => {
+    wrap.innerHTML = `<div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:var(--color-bg-elevated,#fff);color:var(--color-text-muted,#8a8378);border-radius:var(--r-lg,16px);">No se pudo reproducir el video. Recarga la página e inténtalo de nuevo.</div>`;
+  });
 
   if (info.subtitlesUrl) {
     const track = document.createElement("track");

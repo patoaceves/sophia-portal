@@ -373,10 +373,10 @@ function renderResumenConScore(state) {
   }).join("");
 
   const tone = aprobado ? "ok" : "ko";
-  const titulo = aprobado ? "¡Bien hecho!" : "No aprobaste, sigue practicando";
+  const titulo = aprobado ? "¡Bien hecho!" : "¡Casi! Repasa y vuelve a intentar";
   const lead = aprobado
     ? "Tienes una base sólida sobre los temas de la sesión. Revisa abajo las respuestas correctas y, si quieres, reintenta el quiz."
-    : `Obtuviste ${pct}%. Necesitas al menos 60% para aprobar y avanzar a la siguiente lección. Revisa las respuestas correctas abajo y vuelve a intentarlo.`;
+    : `Llevas ${pct}%. Revisa abajo las respuestas correctas y, cuando quieras, inténtalo de nuevo. Vas muy bien.`;
   const btnLabel = aprobado ? "Reintentar quiz" : "Volver a intentar";
   const btnClass = aprobado ? "btn-secondary" : "btn-accent";
 

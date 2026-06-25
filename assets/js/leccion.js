@@ -195,7 +195,7 @@ async function renderLeccion(persona, payload, cursoContext) {
               <span class="leccion-page__crumb-modulo">Módulo ${modInfo?.orden ?? modCompleto?.orden} · ${escapeHtml(modInfo?.titulo ?? modCompleto?.titulo ?? "")}</span>
               ${modLecciones.length > 0 ? `
                 <span class="leccion-page__crumb-sep">·</span>
-                <span class="leccion-page__crumb-leccion">Lección ${leccion.orden} de ${modLecciones.length}</span>
+                <span class="leccion-page__crumb-leccion">Lección ${idxHere + 1} de ${modLecciones.length}</span>
               ` : ""}
             </div>
           ` : ""}
@@ -622,6 +622,18 @@ function wireCtaButtons(leccion, inscripcionId, nextId, backHref) {
         const boxEl = btn.querySelector(".leccion-cta__check-box");
         labelEl.textContent = nextId ? "Avanzar" : "Volver al temario";
         boxEl.innerHTML = icon("check");
+
+        // Marca el checkpoint actual como completado (verde) en vivo.
+        const curDot = document.querySelector(".checkpoint--current");
+        if (curDot) {
+          curDot.classList.remove("checkpoint--current");
+          curDot.classList.add("checkpoint--done");
+          const dotLink = curDot.querySelector(".checkpoint__dot");
+          if (dotLink) {
+            dotLink.querySelector(".checkpoint__pulse")?.remove();
+            dotLink.innerHTML = icon("check");
+          }
+        }
 
         // El span del arrow NO existe en estado "no completado" (lo removí
         // en v19b para eliminar gap fantasma). Lo creamos aquí cuando la
