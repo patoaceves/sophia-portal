@@ -18,6 +18,77 @@
 // se comporta como antes (Gnóthi Seautón, Reflexión, Journaling).
 
 export const QUIZZES = {
+
+  "hwd-m1-actividad-1": {
+    titulo: "Actividad 1",
+    introEyebrow: "Actividad",
+    introTitle: "Pon a prueba lo que viste",
+    introLead: [
+      "Esta actividad tiene dos preguntas de opción múltiple y tres de reflexión personal.",
+      "Las de opción múltiple se califican al terminar y puedes reintentarlas. Las de reflexión se guardan, son tuyas y confidenciales.",
+    ],
+    doneTitle: "¡Listo! Actividad completada",
+    doneLead: "Gracias por reflexionar. Tus respuestas quedaron guardadas.",
+    preguntas: [
+      {
+        id: "aristoteles_bien",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Aristóteles establece que ______ es aquello a lo que todas las cosas tienden.",
+        opciones: ["La armonía", "El éxito", "El progreso", "El bien"],
+        correcta: 3,
+        obligatoria: true,
+      },
+      {
+        id: "errores_bien_aparente",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Se puede decir que los errores que cometemos, o acciones moralmente cuestionables, de alguna forma buscaban algún tipo de bien, aunque haya resultado en un bien aparente?",
+        opciones: ["Verdadero", "Falso"],
+        correcta: 0,
+        obligatoria: true,
+      },
+      {
+        id: "elementos_vida_feliz",
+        tipo: "texto",
+        eyebrow: "Reflexión",
+        texto: "¿Qué elementos en tu vida han logrado que vivas una vida feliz hasta ahora?",
+        obligatoria: true,
+      },
+      {
+        id: "elementos_mas_feliz",
+        tipo: "texto",
+        eyebrow: "Reflexión",
+        texto: "¿Qué elementos ayudarían a que vivas una vida más feliz?",
+        obligatoria: true,
+      },
+      {
+        id: "felicidad_esperada",
+        tipo: "texto",
+        eyebrow: "Reflexión",
+        texto: "Piensa en una situación en la que hayas hecho o conseguido algo que pensabas que te iba a hacer más feliz y que, en cambio, te hizo más infeliz, o la felicidad que esperabas fue mucho menor y muy corta. ¿Qué era lo que querías hacer o tener?",
+        obligatoria: false,
+      },
+    ],
+  },
+
+  "hwd-m1-journaling": {
+    titulo: "Journaling",
+    introEyebrow: "Journaling",
+    introTitle: "La cinta hedónica",
+    introLead: [
+      "Un espacio para escribir con calma. No hay respuestas correctas; esto es para ti.",
+    ],
+    preguntas: [
+      {
+        id: "cinta_hedonica",
+        tipo: "texto",
+        eyebrow: "Journaling",
+        texto: "¿Has vivido el fenómeno de la cinta hedónica? Nombra algún logro, éxito o vivencia que lo refleje. Por ejemplo: cuando me gradué; cuando realicé el viaje de mis sueños; cuando abrí mi negocio.",
+        obligatoria: true,
+      },
+    ],
+  },
   // ───────────────────────────────────────────────────────────────────
   // Gnóthi Seautón · Actividad en clase del Cap 2 (Autoconocimiento)
   // ───────────────────────────────────────────────────────────────────

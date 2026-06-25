@@ -24,6 +24,7 @@ import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 import { mountTarea } from "./tarea.js";
 import { mountBalanza } from "./actividad-balanza.js";
+import { mountVideoPlayer } from "./video-player.js";
 
 // Actividades interactivas a la medida que se sirven como lección tipo `quiz`
 // pero NO usan el motor de quiz-defs: se montan con su propio módulo. La clave
@@ -297,6 +298,13 @@ async function renderLeccion(persona, payload, cursoContext) {
   // Relocalizar checkpoint-bar DENTRO del .app-header para que header +
   // checkpoints se comporten como UNA sola unidad sticky (sin empalme).
   relocateCheckpointBarIntoHeader();
+
+  // Player de video self-hosted (resume) -> solo actua si renderVideoEmbed dejo
+  // el contenedor .video-mount (lecciones de video con path de Storage).
+  const videoMount = document.querySelector('.video-mount[data-storage-video]');
+  if (videoMount) {
+    mountVideoPlayer(videoMount, { leccionId: leccion.id, inscripcionId });
+  }
 
   // After render: post-process content (sanitize image URLs)
   if (isTest) {
@@ -699,7 +707,12 @@ function renderVideoEmbed(url) {
   if (yt) return `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe></div>`;
   const vm = url.match(/vimeo\.com\/(\d+)/);
   if (vm) return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" frameborder="0" allowfullscreen></iframe></div>`;
-  return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
+  // Archivo externo directo (http) -> <video> simple, sin resume.
+  if (/^https?:\/\//i.test(url)) {
+    return `<video src="${escapeHtml(url)}" controls style="width:100%;border-radius:var(--r-lg);"></video>`;
+  }
+  // Path de Storage (bucket privado) -> player con resume, montado tras render.
+  return `<div class="video-mount" data-storage-video="1"></div>`;
 }
 
 /**

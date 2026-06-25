@@ -177,6 +177,21 @@ export const api = {
     return data;
   },
 
+  /** GET /get-video-url?leccionId= -> { signedUrl, subtitlesUrl, resumePct, completada, inscripcionId, expiresIn } */
+  async getVideoUrl(leccionId) {
+    const { data } = await callEdge("get-video-url", { query: { leccionId } });
+    return data;
+  },
+
+  /** POST /guardar-progreso-video -> { ok, progresoId, videoPct, completada } */
+  async guardarProgresoVideo(leccionId, inscripcionId, videoPct) {
+    const { data } = await callEdge("guardar-progreso-video", {
+      method: "POST",
+      body: { leccionId, inscripcionId, videoPct },
+    });
+    return data;
+  },
+
   /** POST /submit-test-felicidad → { respuestaId, scores, niveles, analisis, completedAt } */
   async submitTest(inscripcionId, respuestas) {
     const { data } = await callEdge("submit-test-felicidad", {
@@ -470,9 +485,10 @@ export const api = {
    * @param {object} opts.respuestas  · { preguntaId: valor }
    * @returns {Promise<{ ok: boolean, respuestaId: string }>}
    */
-  async submitQuiz({ leccionId, inscripcionId, actividad, respuestas }) {
+  async submitQuiz({ leccionId, inscripcionId, actividad, respuestas, score }) {
     const body = { leccionId, actividad, respuestas };
     if (inscripcionId) body.inscripcionId = inscripcionId;
+    if (score != null) body.score = score;
     const { data } = await callEdge("submit-quiz", { method: "POST", body });
     return data;
   },

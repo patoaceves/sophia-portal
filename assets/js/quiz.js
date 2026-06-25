@@ -622,11 +622,15 @@ async function submit(state) {
   render(state);
 
   try {
+    const _score = calcularScore(state.def, state.respuestas); // null si es reflexivo
     const res = await api.submitQuiz({
       leccionId: state.leccionId,
       inscripcionId: state.inscripcionId,
       actividad: state.quizKey,
       respuestas: state.respuestas,
+      score: _score
+        ? { aciertos: _score.aciertos, total: _score.total, pct: _score.pct, aprobado: _score.aprobado }
+        : null,
     });
     state.completedAt = res?.completedAt || new Date().toISOString();
     state.submitted = true;
