@@ -19,6 +19,120 @@
 
 export const QUIZZES = {
 
+  "hwd-m2-actividad-1": {
+    titulo: "Actividad",
+    introEyebrow: "Actividad",
+    introTitle: "Hábitos y autoconocimiento",
+    introLead: [
+      "Cuatro preguntas de opción múltiple sobre lo que viste en los videos. Se califican al terminar y puedes reintentarlas.",
+    ],
+    doneTitle: "¡Listo! Actividad completada",
+    doneLead: "Gracias por participar. Revisa abajo tus respuestas.",
+    preguntas: [
+      {
+        id: "estructura_habito",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 4",
+        texto: "¿Cuál es la estructura fundamental de un hábito?",
+        opciones: ["Motivación, esfuerzo y resultado.", "Señal, rutina y recompensa.", "Decisión, acción y consecuencia.", "Pensamiento, emoción y memoria."],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eliminar_habitos",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 4",
+        texto: "¿Por qué no se pueden \"eliminar\" los hábitos?",
+        opciones: ["Porque la fuerza de voluntad es limitada para todos los seres humanos.", "Porque los hábitos son genéticos y nacemos con ellos.", "Porque las rutas neuronales son como autopistas permanentes en el cerebro.", "Porque el entorno siempre nos obliga a repetir las mismas acciones."],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "cambiar_habito",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 4",
+        texto: "Si quieres cambiar un hábito perjudicial, ¿cuál es la estrategia que propone el autor?",
+        opciones: ["Eliminar la señal por completo para que el cerebro no reaccione.", "Cambiar la rutina manteniendo la misma señal y la misma recompensa.", "Suprimir la recompensa para que el cerebro se olvide del hábito.", "Esperar a tener suficiente motivación intrínseca para dejarlo."],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "resultados_reales",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 4",
+        texto: "¿En qué debería concentrarse una persona para obtener resultados reales?",
+        opciones: ["En encontrar su destino predeterminado.", "En las metas a largo plazo y la motivación extrínseca.", "En sistemas de pequeñas mejoras diarias, no solo en metas.", "En aumentar su fuerza de voluntad mediante el pensamiento positivo."],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "hwd-m2-journaling": {
+    titulo: "Journaling",
+    introEyebrow: "Journaling",
+    introTitle: "Tus Fortalezas VIA",
+    introLead: [
+      "Las fortalezas VIA son rasgos psicológicos positivos y universales: formas de pensar, sentir y actuar valoradas en prácticamente todas las culturas y épocas. Una fortaleza es un rasgo moral y entrenable.",
+      "Antes de responder, descubre tus fortalezas contestando el cuestionario en viacharacter.org. Luego tómate unos minutos para reflexionar con honestidad.",
+    ],
+    preguntas: [
+      {
+        id: "fortalezas_insignia",
+        tipo: "texto",
+        eyebrow: "Reflexión",
+        texto: "Mira tus 5 fortalezas principales (fortalezas insignia). ¿En qué momentos de tu vida reciente sentiste que estas fortalezas fluyeron de manera natural?",
+        obligatoria: true,
+      },
+      {
+        id: "herramienta_navegacion",
+        tipo: "texto",
+        eyebrow: "Reflexión",
+        texto: "Describe una situación difícil que hayas superado. ¿Cuál de tus fortalezas fue tu principal \"herramienta de navegación\" para no perder el rumbo?",
+        obligatoria: true,
+      },
+      {
+        id: "fortaleza_pilar",
+        tipo: "texto",
+        eyebrow: "Reflexión",
+        texto: "En el Modelo SOPHIA, la vida feliz es un \"platillo bien servido\" con 8 elementos esenciales. ¿Cómo podrías usar tu fortaleza #1 para mejorar uno de estos pilares hoy mismo? (Ej: usar la Gratitud para fortalecer tus Vínculos, o la Autorregulación para mejorar tu Bienestar Físico).",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "hwd-m2-dinamica": {
+    titulo: "Dinámica",
+    introEyebrow: "Dinámica",
+    introTitle: "Diseña un pacto",
+    introLead: [
+      "Vas a diseñar un pequeño experimento contigo mismo. Observa, formula una pregunta y recolecta datos para identificar tus siguientes pasos.",
+    ],
+    preguntas: [
+      {
+        id: "observa_situacion",
+        tipo: "texto",
+        eyebrow: "Paso 1",
+        texto: "Observa tu situación actual: mira el mundo a tu alrededor, piensa en tus distintos roles hoy en día y en tu situación física, emocional, mental, espiritual, laboral y social.",
+        obligatoria: true,
+      },
+      {
+        id: "pregunta_investigacion",
+        tipo: "texto",
+        eyebrow: "Paso 2",
+        texto: "Formula una pregunta de investigación. Por ejemplo: \"¿Qué pasaría si no como entre comidas?\" o \"¿Qué pasaría si convierto mi tiempo de pantalla en tiempo de lectura?\"",
+        obligatoria: true,
+      },
+      {
+        id: "experimento",
+        tipo: "texto",
+        eyebrow: "Paso 3",
+        texto: "Diseña un pequeño experimento para recolectar datos que puedas analizar después. Por ejemplo: dejar el celular siempre en el mismo sitio y observar cuántas veces te acercas a él, qué sientes mientras está lejos y tu nivel de distracción al leer.",
+        obligatoria: true,
+      },
+    ],
+  },
+
   "hwd-m1-actividad-1": {
     titulo: "Actividad 1",
     introEyebrow: "Actividad",
