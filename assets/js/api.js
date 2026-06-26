@@ -119,6 +119,16 @@ function takeBust(key) {
   return httpBust.delete(key) ? "reload" : undefined;
 }
 
+// Tras marcar progreso, las lecciones HERMANAS (prefetcheadas) quedan stale en
+// su checkpoint porque su payload se cacheo con "no completada". Limpiamos el
+// cache en memoria de TODAS las lecciones y forzamos reload HTTP durante una
+// ventana > max-age (60s) para que get-leccion traiga el avance fresco.
+let leccionBustUntil = 0;
+function bustLecciones() {
+  cacheClear("api:leccion:");
+  leccionBustUntil = Date.now() + 65000;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const api = {
@@ -153,7 +163,8 @@ export const api = {
     const key = `api:leccion:${id}`;
     const hit = cacheGet(key);
     if (hit) return hit;
-    const { data } = await callEdge("get-leccion", { query: { id }, fetchCache: takeBust(`leccion:${id}`) });
+    const forceReload = Date.now() < leccionBustUntil;
+    const { data } = await callEdge("get-leccion", { query: { id }, fetchCache: forceReload ? "reload" : takeBust(`leccion:${id}`) });
     cacheSet(key, data);
     return data;
   },
@@ -168,12 +179,9 @@ export const api = {
     // Invalida cache para que progreso se refleje de inmediato
     cacheClear("api:curso:");
     cacheDel("api:mis-cursos");
-    cacheDel(`api:leccion:${leccionId}`);
-    // ...y bustea también el HTTP cache (Cache-Control: max-age=60) en el
-    // siguiente fetch de estos endpoints.
+    bustLecciones();
     httpBust.add("curso");
     httpBust.add("mis-cursos");
-    httpBust.add(`leccion:${leccionId}`);
     return data;
   },
 
@@ -425,10 +433,9 @@ export const api = {
           // invalidar igual que marcarLeccion (sessionStorage + HTTP cache).
           cacheClear("api:curso:");
           cacheDel("api:mis-cursos");
-          cacheDel(`api:leccion:${leccionId}`);
+          bustLecciones();
           httpBust.add("curso");
           httpBust.add("mis-cursos");
-          httpBust.add(`leccion:${leccionId}`);
           resolve(payload);
         } else {
           const msg = payload?.error || `Submit tarea failed (${xhr.status})`;
