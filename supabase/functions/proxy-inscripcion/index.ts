@@ -49,6 +49,16 @@ const GHL_WEBHOOK =
   Deno.env.get("GHL_WEBHOOK_URL") ??
   "https://services.leadconnectorhq.com/hooks/ek1LQvM0Kyj7fll9nDO7/webhook-trigger/845cecc4-28cd-4408-99b3-fd6622365af3";
 
+// Webhook propio del Happiness Workshop Digital (curso autoguiado): dispara su
+// mensaje de bienvenida específico. El resto de los cursos usan GHL_WEBHOOK.
+// Override opcional vía secret GHL_WEBHOOK_URL_DIGITAL.
+const GHL_WEBHOOK_DIGITAL =
+  Deno.env.get("GHL_WEBHOOK_URL_DIGITAL") ??
+  "https://services.leadconnectorhq.com/hooks/ek1LQvM0Kyj7fll9nDO7/webhook-trigger/08J2Y6Nwy0CYIykxZq3s";
+
+// Curso "Happiness Workshop Digital" (slug happiness-workshop-digital).
+const HWD_CURSO_ID = "a17c34f0-1c2a-48a8-8f64-5ff48c1a8b5f";
+
 // Roles válidos (enum persona_rol en Postgres).
 const VALID_ROLES = new Set(["participante", "admin", "instructor", "profesor", "facilitador", "coordinador"]);
 
@@ -155,6 +165,10 @@ Deno.serve(async (req) => {
     if (cErr) return jsonResponse({ ok: false, error: cErr.message }, 500);
     if (!cohorte) return jsonResponse({ ok: false, error: "Cohorte no encontrada" }, 404);
 
+    // Routing del webhook: el Happiness Workshop Digital (autoguiado) tiene su
+    // propio mensaje de bienvenida; el resto de los cursos usan el default.
+    const webhookUrl = cohorte.curso_id === HWD_CURSO_ID ? GHL_WEBHOOK_DIGITAL : GHL_WEBHOOK;
+
     const cursoNombre = String(body.cohorteNombre ?? "").trim() || (cohorte.nombre ?? "");
     const primeraSesionFecha = formatFechaEs(String(cohorte.fecha_inicio ?? body.primeraSesionFecha ?? "").trim());
     const primeraSesionHora = String(cohorte.hora_sesion ?? body.primeraSesionHora ?? "").trim();
@@ -234,10 +248,11 @@ Deno.serve(async (req) => {
       invitaciones.push({ email, token });
 
       // 3) Notificar a GHL (mismo payload que el script de Airtable).
-      //    No bloquea: la invitación ya quedó.
+      //    No bloquea: la invitación ya quedó. Para el digital se usa su
+      //    propio webhook (webhookUrl), para el resto el default.
       const linkInvitacion = `https://portal.sophiamx.org/?invite=${token}`;
       try {
-        const ghlRes = await fetch(GHL_WEBHOOK, {
+        const ghlRes = await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
