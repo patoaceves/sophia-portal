@@ -113,20 +113,42 @@ function cacheClear(prefix) {
 // basta: el browser podría servir la respuesta HTTP stale por hasta 60s.
 // Tras una mutación que afecta progreso, registramos qué endpoints deben
 // re-fetchearse con cache:"reload" (fuerza red y actualiza el HTTP cache).
-const httpBust = new Set();
+// IMPORTANTE: el bust se persiste en sessionStorage, NO en memoria. "Avanzar"
+// hace una navegación de página completa que reinicia api.js, así que un Set en
+// memoria se perdía y get-curso terminaba sirviendo el HTTP cache stale (max-age
+// 60s) con "no completada": la palomita no aparecía en la barra de progreso al
+// avanzar. sessionStorage sobrevive la navegación dentro de la misma pestaña.
+const BUST_KEY = "api:httpBust";
 
+function readBust() {
+  try { return new Set(JSON.parse(sessionStorage.getItem(BUST_KEY) || "[]")); }
+  catch { return new Set(); }
+}
+function writeBust(set) {
+  try { sessionStorage.setItem(BUST_KEY, JSON.stringify([...set])); } catch {}
+}
+function addBust(key) {
+  const s = readBust(); s.add(key); writeBust(s);
+}
 function takeBust(key) {
-  return httpBust.delete(key) ? "reload" : undefined;
+  const s = readBust();
+  if (s.delete(key)) { writeBust(s); return "reload"; }
+  return undefined;
 }
 
 // Tras marcar progreso, las lecciones HERMANAS (prefetcheadas) quedan stale en
 // su checkpoint porque su payload se cacheo con "no completada". Limpiamos el
 // cache en memoria de TODAS las lecciones y forzamos reload HTTP durante una
-// ventana > max-age (60s) para que get-leccion traiga el avance fresco.
-let leccionBustUntil = 0;
+// ventana > max-age (60s) para que get-leccion traiga el avance fresco. La
+// ventana también vive en sessionStorage para sobrevivir la navegación.
+const LECCION_BUST_KEY = "api:leccionBustUntil";
 function bustLecciones() {
   cacheClear("api:leccion:");
-  leccionBustUntil = Date.now() + 65000;
+  try { sessionStorage.setItem(LECCION_BUST_KEY, String(Date.now() + 65000)); } catch {}
+}
+function leccionBustActive() {
+  try { return Date.now() < Number(sessionStorage.getItem(LECCION_BUST_KEY) || 0); }
+  catch { return false; }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +185,7 @@ export const api = {
     const key = `api:leccion:${id}`;
     const hit = cacheGet(key);
     if (hit) return hit;
-    const forceReload = Date.now() < leccionBustUntil;
+    const forceReload = leccionBustActive();
     const { data } = await callEdge("get-leccion", { query: { id }, fetchCache: forceReload ? "reload" : takeBust(`leccion:${id}`) });
     cacheSet(key, data);
     return data;
@@ -180,8 +202,8 @@ export const api = {
     cacheClear("api:curso:");
     cacheDel("api:mis-cursos");
     bustLecciones();
-    httpBust.add("curso");
-    httpBust.add("mis-cursos");
+    addBust("curso");
+    addBust("mis-cursos");
     return data;
   },
 
@@ -434,8 +456,8 @@ export const api = {
           cacheClear("api:curso:");
           cacheDel("api:mis-cursos");
           bustLecciones();
-          httpBust.add("curso");
-          httpBust.add("mis-cursos");
+          addBust("curso");
+          addBust("mis-cursos");
           resolve(payload);
         } else {
           const msg = payload?.error || `Submit tarea failed (${xhr.status})`;
