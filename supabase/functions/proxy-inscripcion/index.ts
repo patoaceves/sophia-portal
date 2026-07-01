@@ -4,14 +4,16 @@
 // ventas" (webhook → script "Crear invitación SOPHIA"). Para cada participante:
 // - crea/encuentra persona por email (con su rol; queda pendiente de login)
 // - crea invitación con token único, estatus='activa', origen='alta-ventas'
-//   (si ya existe invitación activa/pendiente para esa cohorte+email, la reusa)
+//   (si ya existe invitación activa/pendiente para ese curso+email, la reusa)
 // - notifica a GHL con el mismo payload que mandaba el script de Airtable
-//   (link de invitación + datos de cohorte y facilitador). GHL no bloquea:
+//   (link de invitación + datos de curso y facilitador). GHL no bloquea:
 //   si falla, la invitación ya quedó y solo se reporta en `warnings`.
 //
 // POST /proxy-inscripcion
-// Body: { token, enviadoEn, cohorteId, cohorteNombre,
+// Body: { token, enviadoEn, cursoId, cursoNombre,
 //         primeraSesionFecha?, primeraSesionHora?, participantes[] }
+//   (transicional: cohorteId/cohorteNombre de formularios viejos se aceptan
+//    y se resuelven a su curso; el fallback se retira en la fase de limpieza)
 //   participantes[]: { nombre, apellidos, email, rol?, telefono? }
 // Response 200: { ok: true, mensaje, invitaciones: [{email, token}],
 //                 errors: [], warnings: [] }
@@ -141,9 +143,10 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: "Token inválido" }, 401);
     }
 
-    const cohorteId = String(body.cohorteId ?? "");
-    if (!UUID_RE.test(cohorteId)) {
-      return jsonResponse({ ok: false, error: "cohorteId inválido" }, 400);
+    const cursoIdRaw = String(body.cursoId ?? "");
+    const legacyCohorteId = String(body.cohorteId ?? "");
+    if (!UUID_RE.test(cursoIdRaw) && !UUID_RE.test(legacyCohorteId)) {
+      return jsonResponse({ ok: false, error: "cursoId inválido" }, 400);
     }
 
     const participantes: Participante[] = Array.isArray(body.participantes) ? body.participantes : [];
@@ -156,27 +159,41 @@ Deno.serve(async (req) => {
 
     const db = getDb();
 
-    // Cohorte: validar que existe + leer datos para el mensaje de bienvenida
+    // Resolución transicional: formularios viejos mandan cohorteId; se
+    // resuelve a su curso mientras la tabla cohortes exista. Retirar este
+    // fallback en la fase de limpieza.
+    let cursoId = cursoIdRaw;
+    if (!UUID_RE.test(cursoId)) {
+      const { data: co } = await db
+        .from("cohortes").select("curso_id")
+        .eq("id", legacyCohorteId).maybeSingle();
+      cursoId = String(co?.curso_id ?? "");
+      if (!UUID_RE.test(cursoId)) {
+        return jsonResponse({ ok: false, error: "Curso no encontrado" }, 404);
+      }
+    }
+
+    // Curso: validar que existe + leer datos para el mensaje de bienvenida
     // (fecha/hora de primera sesión y facilitador) que van en el payload GHL.
-    const { data: cohorte, error: cErr } = await db
-      .from("cohortes")
-      .select("id, curso_id, estatus, nombre, fecha_inicio, hora_sesion, facilitador_nombre, facilitador_email, facilitador_telefono, facilitador_avatar_url, facilitador_mensaje")
-      .eq("id", cohorteId).maybeSingle();
+    const { data: curso, error: cErr } = await db
+      .from("cursos")
+      .select("id, estatus, titulo, fecha_inicio, hora_sesion, facilitador_nombre, facilitador_email, facilitador_telefono, facilitador_avatar_url, facilitador_mensaje")
+      .eq("id", cursoId).maybeSingle();
     if (cErr) return jsonResponse({ ok: false, error: cErr.message }, 500);
-    if (!cohorte) return jsonResponse({ ok: false, error: "Cohorte no encontrada" }, 404);
+    if (!curso) return jsonResponse({ ok: false, error: "Curso no encontrado" }, 404);
 
     // Routing del webhook: el Happiness Workshop Digital (autoguiado) tiene su
     // propio mensaje de bienvenida; el resto de los cursos usan el default.
-    const webhookUrl = cohorte.curso_id === HWD_CURSO_ID ? GHL_WEBHOOK_DIGITAL : GHL_WEBHOOK;
+    const webhookUrl = curso.id === HWD_CURSO_ID ? GHL_WEBHOOK_DIGITAL : GHL_WEBHOOK;
 
-    const cursoNombre = String(body.cohorteNombre ?? "").trim() || (cohorte.nombre ?? "");
-    const primeraSesionFecha = formatFechaEs(String(cohorte.fecha_inicio ?? body.primeraSesionFecha ?? "").trim());
-    const primeraSesionHora = String(cohorte.hora_sesion ?? body.primeraSesionHora ?? "").trim();
-    const coordinadorNombre = String(cohorte.facilitador_nombre ?? "").trim();
-    const coordinadorEmail = String(cohorte.facilitador_email ?? "").trim();
-    const coordinadorWhatsapp = String(cohorte.facilitador_telefono ?? "").trim();
-    const coordinadorFotoUrl = String(cohorte.facilitador_avatar_url ?? "").trim();
-    const coordinadorMensaje = String(cohorte.facilitador_mensaje ?? "").trim();
+    const cursoNombre = String(body.cursoNombre ?? body.cohorteNombre ?? "").trim() || (curso.titulo ?? "");
+    const primeraSesionFecha = formatFechaEs(String(curso.fecha_inicio ?? body.primeraSesionFecha ?? "").trim());
+    const primeraSesionHora = String(curso.hora_sesion ?? body.primeraSesionHora ?? "").trim();
+    const coordinadorNombre = String(curso.facilitador_nombre ?? "").trim();
+    const coordinadorEmail = String(curso.facilitador_email ?? "").trim();
+    const coordinadorWhatsapp = String(curso.facilitador_telefono ?? "").trim();
+    const coordinadorFotoUrl = String(curso.facilitador_avatar_url ?? "").trim();
+    const coordinadorMensaje = String(curso.facilitador_mensaje ?? "").trim();
     const coordinadorIniciales = calcIniciales(coordinadorNombre);
     const coordinadorWhatsappDigits = whatsappDigits(coordinadorWhatsapp);
     const coordinadorWhatsappPretty = whatsappPretty(coordinadorWhatsapp);
@@ -221,14 +238,14 @@ Deno.serve(async (req) => {
         personaId = created.id;
       }
 
-      // 2) ¿Ya existe invitación activa para esta (cohorte+email)? Reusarla.
+      // 2) ¿Ya existe invitación activa para este (curso+email)? Reusarla.
       //    El webhook GHL se manda igual: re-importar a alguien sirve para
       //    re-enviarle su link de bienvenida (mismo comportamiento operativo
       //    que la automation vieja, donde cada envío notificaba).
       let token: string;
       const { data: existingInv } = await db
         .from("invitaciones").select("id, token, estatus")
-        .eq("cohorte_id", cohorteId).eq("email_destinatario", email)
+        .eq("curso_id", cursoId).eq("email_destinatario", email)
         .in("estatus", ["activa", "pendiente"])
         .limit(1).maybeSingle();
 
@@ -237,7 +254,7 @@ Deno.serve(async (req) => {
       } else {
         token = newInvitationToken();
         const { error: iErr } = await db.from("invitaciones").insert({
-          token, cohorte_id: cohorteId, email_destinatario: email,
+          token, curso_id: cursoId, email_destinatario: email,
           origen: "alta-ventas", estatus: "activa", persona_id: personaId,
         });
         if (iErr) {

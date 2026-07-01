@@ -761,8 +761,8 @@
       const payload = {
         token: PUBLIC_TOKEN,
         enviadoEn: new Date().toISOString(),
-        cohorteId: state.cursoSeleccionado.id,
-        cohorteNombre: state.cursoSeleccionado.nombre,
+        cursoId: state.cursoSeleccionado.id,
+        cursoNombre: state.cursoSeleccionado.nombre,
         primeraSesionFecha: state.cursoSeleccionado.fechaInicio ?? "",
         primeraSesionHora: state.cursoSeleccionado.horaInicio ?? "",
         participantes: valid.map(f => ({

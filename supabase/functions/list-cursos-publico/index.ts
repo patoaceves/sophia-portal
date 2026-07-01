@@ -1,6 +1,6 @@
 // SOPHIA Portal · list-cursos-publico (Postgres)
 //
-// Lista pública de cohortes ABIERTAS para alimentar el dropdown de la
+// Lista pública de cursos PUBLICADOS para alimentar el dropdown de la
 // página /embed/importar-participantes. Validada por IMPORT_PUBLIC_TOKEN.
 //
 // GET /list-cursos-publico?token=...
@@ -54,19 +54,19 @@ Deno.serve(async (req) => {
     }
 
     const db = getDb();
-    const { data: cohortes, error } = await db
-      .from("cohortes")
-      .select("id, nombre, fecha_inicio, fecha_fin, hora_sesion")
-      .eq("estatus", "abierta")
-      .order("nombre", { ascending: true });
+    const { data: cursosData, error } = await db
+      .from("cursos")
+      .select("id, titulo, fecha_inicio, fecha_fin, hora_sesion")
+      .eq("estatus", "published")
+      .order("titulo", { ascending: true });
     if (error) {
       console.error("list-cursos-publico db error:", error);
       return errorResponse("Error interno", 500, "db_error");
     }
 
-    const cursos = (cohortes ?? []).map(c => ({
+    const cursos = (cursosData ?? []).map(c => ({
       id: c.id,
-      nombre: c.nombre ?? "",
+      nombre: c.titulo ?? "",
       fechaInicio: c.fecha_inicio ?? "",
       fechaFin: c.fecha_fin ?? "",
       horaInicio: c.hora_sesion ?? "",

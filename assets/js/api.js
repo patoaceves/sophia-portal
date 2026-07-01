@@ -300,7 +300,7 @@ export const api = {
 
   /**
    * POST /claim-invitation, devuelve
-   *   { ok, isNew, cohorteId, cursoSlug, inscripcionId, alreadyClaimed }
+   *   { ok, isNew, cursoId, cursoSlug, inscripcionId, alreadyClaimed }
    *
    * Códigos de error útiles (en err.payload.code):
    *   invalid_token, not_found, already_claimed, expired, revoked,

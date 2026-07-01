@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
 
     const { data: invitaciones, error: iErr } = await db
       .from("invitaciones")
-      .select("id, token, cohorte_id, expira_el, estatus")
+      .select("id, token, curso_id, expira_el, estatus")
       .eq("email_destinatario", email)
       .in("estatus", ["activa", "pendiente"])
       .order("created_at", { ascending: true });
@@ -153,19 +153,19 @@ Deno.serve(async (req) => {
         errors.push(`Invitación ${inv.id} expirada`);
         continue;
       }
-      const { data: cohorte } = await db
-        .from("cohortes").select("id, curso_id, cursos!inner(id, slug)")
-        .eq("id", inv.cohorte_id).maybeSingle();
-      if (!cohorte) {
-        errors.push(`Cohorte ${inv.cohorte_id} no encontrada`);
+      const { data: curso } = await db
+        .from("cursos").select("id, slug")
+        .eq("id", inv.curso_id).maybeSingle();
+      if (!curso) {
+        errors.push(`Curso ${inv.curso_id} no encontrado`);
         continue;
       }
-      const cursoId = cohorte.curso_id;
-      const cursoSlug = (cohorte as any).cursos?.slug ?? "";
+      const cursoId = curso.id;
+      const cursoSlug = curso.slug ?? "";
 
       const { data: existing } = await db
         .from("inscripciones").select("id")
-        .eq("persona_id", persona.id).eq("curso_id", cursoId).eq("cohorte_id", inv.cohorte_id)
+        .eq("persona_id", persona.id).eq("curso_id", cursoId)
         .maybeSingle();
       let inscripcionId: string;
       if (existing) {
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
       } else {
         const { data: created, error: cErr } = await db
           .from("inscripciones").insert({
-            persona_id: persona.id, curso_id: cursoId, cohorte_id: inv.cohorte_id,
+            persona_id: persona.id, curso_id: cursoId,
             estatus: "activa", fecha_inscripcion: now.toISOString().slice(0, 10),
           }).select("id").single();
         if (cErr) {
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
       await db.from("invitaciones").update({
         estatus: "canjeada", persona_id: persona.id, fecha_canje: now.toISOString(),
       }).eq("id", inv.id);
-      invites.push({ inscripcionId, cohorteId: inv.cohorte_id, cursoSlug });
+      invites.push({ inscripcionId, cursoId: inv.curso_id, cursoSlug });
     }
 
     span.end({ persona: persona.id, claimed, alreadyEnrolled, errors: errors.length });

@@ -1,11 +1,11 @@
 // SOPHIA Portal · claim-invitation (Postgres, inlined)
 //
 // Canjea una invitación tokenizada y crea (si no existe) la inscripción
-// del usuario a la cohorte correspondiente.
+// del usuario al curso correspondiente.
 //
 // POST /claim-invitation
 // Body: { token: "inv_xxxxxxxx" }
-// Response 200: { ok, cursoSlug, cohorteId, inscripcionId, isNew, alreadyClaimed }
+// Response 200: { ok, cursoSlug, cursoId, inscripcionId, isNew, alreadyClaimed }
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -147,17 +147,17 @@ Deno.serve(async (req) => {
 
     const { data: invitacion, error: iErr } = await db
       .from("invitaciones")
-      .select("id, token, cohorte_id, email_destinatario, estatus, persona_id, expira_el")
+      .select("id, token, curso_id, email_destinatario, estatus, persona_id, expira_el")
       .eq("token", token).maybeSingle();
     if (iErr) return jsonResponse(req, { error: iErr.message, code: "db_error" }, 500);
     if (!invitacion) return jsonResponse(req, { error: "Invitación no encontrada", code: "not_found" }, 404);
 
     if (invitacion.estatus === "canjeada" && invitacion.persona_id === persona.id) {
-      const { data: cohorte } = await db
-        .from("cohortes").select("id, curso_id, cursos!inner(slug)")
-        .eq("id", invitacion.cohorte_id).maybeSingle();
-      const cursoSlug = (cohorte as any)?.cursos?.slug ?? "";
-      return jsonResponse(req, { ok: true, alreadyClaimed: true, cohorteId: invitacion.cohorte_id, cursoSlug });
+      const { data: curso } = await db
+        .from("cursos").select("id, slug")
+        .eq("id", invitacion.curso_id).maybeSingle();
+      const cursoSlug = curso?.slug ?? "";
+      return jsonResponse(req, { ok: true, alreadyClaimed: true, cursoId: invitacion.curso_id, cursoSlug });
     }
 
     if (!["activa", "pendiente"].includes(invitacion.estatus)) {
@@ -170,26 +170,26 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { error: "Email no coincide", code: "email_mismatch" }, 400);
     }
 
-    const { data: cohorte, error: cErr } = await db
-      .from("cohortes").select("id, curso_id, cursos!inner(id, slug)")
-      .eq("id", invitacion.cohorte_id).maybeSingle();
+    const { data: curso, error: cErr } = await db
+      .from("cursos").select("id, slug")
+      .eq("id", invitacion.curso_id).maybeSingle();
     if (cErr) return jsonResponse(req, { error: cErr.message, code: "db_error" }, 500);
-    if (!cohorte) return jsonResponse(req, { error: "Cohorte no encontrada", code: "no_cohort" }, 404);
-    const cursoId = cohorte.curso_id;
-    const cursoSlug = (cohorte as any).cursos?.slug ?? "";
+    if (!curso) return jsonResponse(req, { error: "Curso no encontrado", code: "no_curso" }, 404);
+    const cursoId = curso.id;
+    const cursoSlug = curso.slug ?? "";
 
     let inscripcionId: string;
     let isNew = false;
     const { data: existing } = await db
       .from("inscripciones").select("id")
-      .eq("persona_id", persona.id).eq("curso_id", cursoId).eq("cohorte_id", invitacion.cohorte_id)
+      .eq("persona_id", persona.id).eq("curso_id", cursoId)
       .maybeSingle();
     if (existing) {
       inscripcionId = existing.id;
     } else {
       const { data: created, error: insErr } = await db
         .from("inscripciones").insert({
-          persona_id: persona.id, curso_id: cursoId, cohorte_id: invitacion.cohorte_id,
+          persona_id: persona.id, curso_id: cursoId,
           estatus: "activa", fecha_inscripcion: new Date().toISOString().slice(0, 10),
         }).select("id").single();
       if (insErr) return jsonResponse(req, { error: insErr.message, code: "db_error" }, 500);
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
     }).eq("id", invitacion.id);
 
     span.end({ persona: persona.id, inscripcion: inscripcionId, isNew });
-    return jsonResponse(req, { ok: true, cursoSlug, cohorteId: invitacion.cohorte_id, inscripcionId, isNew, alreadyClaimed: false });
+    return jsonResponse(req, { ok: true, cursoSlug, cursoId, inscripcionId, isNew, alreadyClaimed: false });
   } catch (err) {
     span.end({ error: true });
     return errorResponse(req, err);
