@@ -2480,6 +2480,215 @@ export const QUIZZES = {
         texto: "Tu trabajo todavía no se conecta de manera clara con tu identidad o propósito. No es un diagnóstico definitivo, es una foto de hoy. Reflexiona qué actividades te hacen sentir satisfacción, a quién beneficia lo que haces y cómo tu quehacer puede ser un espacio de aprendizaje. Lo trabajaremos en la sesión.",
       },
     ],
+  },
+
+  // ─── Sesión 10 · Niveles Existenciales 2 ───
+  "coaching-mundo-interior-s10": {
+    titulo: "Quiz: Deja de intentar trabajar más duro",
+    introEyebrow: "Pre-sesión · Sesión 10",
+    introTitle: "Tu mundo interior como motor del progreso",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo (\"Stop trying to work harder\") sobre cómo tu propio mundo interior, más que las circunstancias externas, determina el avance en tu carrera profesional.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "mundo_interior_factor",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el video, ¿cuál es el factor que con más frecuencia impide el progreso en la carrera profesional?",
+        opciones: [
+          "Falta de conexiones y networking.",
+          "La propia persona y cómo maneja su mundo interior.",
+          "La ausencia de títulos universitarios prestigiosos.",
+          "La economía y la automatización.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "mundo_interior_rasgo",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "El presentador comenta estudios sobre rasgos de personalidad. ¿Qué rasgo aparece frecuentemente asociado a la satisfacción laboral si se usa correctamente?",
+        opciones: [
+          "Neuroticismo.",
+          "Apertura a ideas.",
+          "Conciencia (conscientiousness).",
+          "Hostilidad.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "mundo_interior_resiliencia",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué estrategia recomienda el video para mejorar la resiliencia profesional cuando el mundo externo es más difícil?",
+        opciones: [
+          "Depender únicamente de la suerte y esperar oportunidades.",
+          "Optimizar y trabajar en el mundo interno propio (auto-trabajo).",
+          "Aumentar radicalmente las horas de trabajo sin límites.",
+          "Evitar cualquier tipo de planificación a largo plazo.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "mundo_interior_neuroticismo",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Sobre el neuroticismo, el video sugiere que lo más sano es:",
+        opciones: [
+          "Reprimir la ansiedad hasta que desaparezca.",
+          "Usar la preocupación para identificar problemas y crear planes concretos.",
+          "Ignorar las señales internas y seguir trabajando más duro.",
+          "Cambiar de carrera inmediatamente para evitar el estrés.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "mundo_interior_practica",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué práctica concreta propone el presentador para avanzar desde un trabajo sin crecimiento hacia un trabajo deseado?",
+        opciones: [
+          "Quejarse públicamente en redes sociales para atraer atención.",
+          "Elegir un trabajo aleatorio y esperar una promoción.",
+          "Planificar por pasos, invertir el trabajo soñado y crear una lista de tareas a 5–7 años.",
+          "Evitar formación adicional y confiar en que el jefe notará el esfuerzo.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-reflexion-s10": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 10 · Niveles Existenciales 2",
+    introTitle: "Reflexión personal: La Experiencia Integradora Existencial",
+    introLead: [
+      "Objetivo de la sesión: utilizar las hojas de trabajo de niveles existenciales para evocar conciencia, facilitar la acción y compartir apreciación profunda.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 10.",
+    preguntas: [
+      {
+        id: "reflexion_apreciacion_niveles",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "Al compartir apreciación utilizando los niveles existenciales, ¿cómo se transforma la conexión y el reconocimiento de la identidad del coachee?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-journaling-s10": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 10 · Niveles Existenciales 2",
+    introTitle: "Journaling: La Experiencia Integradora Existencial",
+    introLead: [
+      "Objetivo: integrar la hoja de trabajo de Niveles Existenciales para co-crear planes de acción alineados.",
+      "Desafío de la semana: utiliza la hoja de trabajo de Niveles Existenciales con un compañero y anota el impacto que tuvo en su nivel de compromiso.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_apreciacion_niveles",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo transforma la sesión el hecho de compartir una apreciación basada en los Niveles Existenciales?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-evaluacion-s10": {
+    titulo: "Evaluación · Sesión 10",
+    introEyebrow: "Evaluación · Sesión 10",
+    introTitle: "Los Niveles Existenciales como Proceso",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre el proceso de coaching con Niveles Existenciales: el enfoque Top-Down, el trabajo de legado, la creación de confianza y la medición del avance vistos en la sesión 10.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "eval_top_down",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Por qué el coaching \"de arriba hacia abajo\" (Top-Down) se considera más transformador?",
+        opciones: [
+          "Porque es más rápido y requiere menos esfuerzo del coachee.",
+          "Porque reorganiza la jerarquía interna; un cambio en la identidad o el legado transforma automáticamente las acciones y el entorno.",
+          "Porque se enfoca únicamente en el entorno físico del coachee.",
+          "Porque el coach da las órdenes desde una posición de autoridad.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_legado",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "En la hoja de trabajo de los Niveles Existenciales, ¿cuál es el propósito de preguntar sobre el \"Legado (Maestría)\"?",
+        opciones: [
+          "Planificar la jubilación financiera del coachee.",
+          "Conectar el cambio actual con una huella permanente y trascendente en el mundo (a 100 años vista).",
+          "Identificar quiénes son los enemigos del coachee.",
+          "Determinar cuánto dinero quiere ganar el coachee en el próximo mes.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_confianza",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Durante la fase de \"Crear Confianza y Seguridad\", ¿qué herramienta se sugiere para sintonizar con el coachee?",
+        opciones: [
+          "El uso de interrupciones constantes para demostrar atención.",
+          "El uso de suavizadores (softeners) y la reformulación reflexiva.",
+          "Ignorar el tono emocional del coachee para ser objetivo.",
+          "Hablar únicamente de los problemas del coach.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_nivel_identidad",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿A qué nivel existencial pertenece la pregunta: \"¿Qué cualidades quieres mostrar o qué tipo de persona serías al lograr esto?\"?",
+        opciones: [
+          "Acciones.",
+          "Entorno.",
+          "Identidad.",
+          "Capacidades.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "eval_medicion",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Al final de la sesión, en la etapa de \"Medición\", ¿qué herramienta se utiliza para confirmar el avance?",
+        opciones: [
+          "Un examen escrito de 20 preguntas.",
+          "Una pregunta de escala (ej. \"¿Cómo sabrás que has avanzado en X?\").",
+          "Una crítica constructiva sobre los errores del coachee.",
+          "El cierre inmediato de la sesión sin preguntas.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
   }
 };
 
