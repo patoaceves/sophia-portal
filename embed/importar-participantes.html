@@ -419,7 +419,83 @@
       color: var(--color-accent);
     }
 
+    /* Lista de links de invitacion (2da pantalla) */
+    .invite-links {
+      margin: var(--s-5) auto 0 auto;
+      max-width: 640px;
+      text-align: left;
+    }
+    .invite-links__toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: var(--s-3);
+    }
+    .invite-links__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      background: var(--color-bg-elevated);
+    }
+    .invite-links__item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--s-3);
+      align-items: center;
+      padding: var(--s-3) var(--s-4);
+    }
+    .invite-links__item + .invite-links__item {
+      border-top: 1px solid var(--color-border);
+    }
+    .invite-links__who {
+      min-width: 0;
+    }
+    .invite-links__name {
+      font-weight: 600;
+      font-size: 0.9375rem;
+    }
+    .invite-links__email {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+    }
+    .invite-links__url {
+      display: block;
+      font-family: ui-monospace, "SF Mono", Monaco, monospace;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .btn-copy {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: 8px 14px;
+      border-radius: var(--r-md);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    .btn-copy:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .btn-copy.is-copied {
+      background: var(--color-success-tech-soft);
+      border-color: var(--color-success-tech);
+      color: var(--color-success-tech);
+    }
     @media (max-width: 720px) {
+      .invite-links__item {
+        grid-template-columns: 1fr;
+      }
+      .btn-copy { justify-self: start; }
       .participantes-table__row {
         grid-template-columns: 1fr;
       }
@@ -509,7 +585,7 @@
 
   <script>
     // ═════════════════════════════════════════════════════════════════
-    // CONFIGURACIÓN — EDITAR AQUÍ
+    // CONFIGURACIÓN - EDITAR AQUÍ
     // ═════════════════════════════════════════════════════════════════
 
     // Endpoint público de cursos (edge function Supabase)
@@ -521,10 +597,12 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqdmp5aXNwbHFzcmpzZXNzYXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMTA2NDIsImV4cCI6MjA5MzU4NjY0Mn0.Q9nnRffenm78Qil6Q2Tu3kpTI4m3JolW2S8iM6PMlfA";
 
     // URL del webhook de Airtable Automations que recibe los participantes.
-    // ⚠️  NO llamar hooks.airtable.com directamente desde el browser —
+    // ⚠️  NO llamar hooks.airtable.com directamente desde el browser -
     // Airtable no sirve headers CORS y el navegador bloquea la request.
     // Usamos nuestro propio edge function como proxy server-side.
     const WEBHOOK_URL = "https://ajvjyisplqsrjsessayo.supabase.co/functions/v1/proxy-inscripcion";
+    // Base para armar los links de invitacion que se muestran al terminar.
+    const PORTAL_URL = "https://portal.sophiamx.org";
 
     // Token estático compartido. DEBE coincidir con:
     //   1. La env var IMPORT_PUBLIC_TOKEN en Supabase (la usa list-cursos-publico)
@@ -787,7 +865,8 @@
           const text = await res.text().catch(() => "");
           throw new Error(text || `Error ${res.status}`);
         }
-        showSuccessState(valid.length, state.cursoSeleccionado.nombre);
+        const data = await res.json().catch(() => null);
+        showSuccessState(valid, state.cursoSeleccionado.nombre, data);
       } catch (err) {
         console.error("import POST failed:", err);
         showFlash(
@@ -893,7 +972,39 @@
       }
     }
 
-    function showSuccessState(count, cursoNombre) {
+    function showSuccessState(participantes, cursoNombre, data) {
+      const count = participantes.length;
+
+      // Cruzar cada invitacion (email, token) con el participante capturado
+      // para tener su nombre. Si la respuesta no trae links, hay fallback.
+      const invitaciones = Array.isArray(data?.invitaciones) ? data.invitaciones : [];
+      const links = invitaciones.map(inv => {
+        const email = String(inv.email || "").toLowerCase();
+        const p = participantes.find(f => f.email.trim().toLowerCase() === email);
+        const nombre = p ? `${p.nombre.trim()} ${p.apellidos.trim()}`.trim() : email;
+        return { nombre, email, url: `${PORTAL_URL}/?invite=${encodeURIComponent(inv.token)}` };
+      });
+
+      const linksHtml = links.length === 0 ? "" : `
+        <div class="invite-links">
+          <div class="invite-links__toolbar">
+            <button type="button" class="btn-copy" id="copyAllBtn">Copiar todos</button>
+          </div>
+          <ul class="invite-links__list">
+            ${links.map((l, i) => `
+              <li class="invite-links__item">
+                <div class="invite-links__who">
+                  <div class="invite-links__name">${escapeHtml(l.nombre)}</div>
+                  <div class="invite-links__email">${escapeHtml(l.email)}</div>
+                  <span class="invite-links__url">${escapeHtml(l.url)}</span>
+                </div>
+                <button type="button" class="btn-copy" data-copy-index="${i}">Copiar link</button>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      `;
+
       formContainer.style.display = "none";
       successContainer.style.display = "block";
       successContainer.innerHTML = `
@@ -905,12 +1016,45 @@
           </div>
           <h2 class="success-state__title">${count === 1 ? "Participante enviado" : count + " participantes enviados"}</h2>
           <p class="success-state__text">
-            ${count === 1 ? "Se inscribirá" : "Se inscribirán"} a <strong>${escapeHtml(cursoNombre)}</strong>.
-            ${count === 1 ? "Recibirá" : "Recibirán"} su correo de bienvenida con el link de acceso al portal en los próximos minutos.
+            ${count === 1 ? "Quedó inscrito" : "Quedaron inscritos"} a <strong>${escapeHtml(cursoNombre)}</strong>.
+            ${links.length > 0
+              ? "Aquí tienes el link de acceso de cada quien para compartirlo directo (por WhatsApp o donde sea). El correo de bienvenida también sale en automático como respaldo."
+              : (count === 1 ? "Recibirá" : "Recibirán") + " su correo de bienvenida con el link de acceso al portal en los próximos minutos."}
           </p>
-          <button type="button" class="success-state__reset" id="resetBtn">Inscribir más participantes</button>
+          ${linksHtml}
+          <div style="margin-top: var(--s-5);">
+            <button type="button" class="success-state__reset" id="resetBtn">Inscribir más participantes</button>
+          </div>
         </div>
       `;
+
+      // Copiar individual con feedback
+      successContainer.querySelectorAll("[data-copy-index]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const l = links[Number(btn.dataset.copyIndex)];
+          if (!l) return;
+          try {
+            await navigator.clipboard.writeText(l.url);
+            btn.textContent = "Copiado";
+            btn.classList.add("is-copied");
+            setTimeout(() => { btn.textContent = "Copiar link"; btn.classList.remove("is-copied"); }, 2000);
+          } catch { window.prompt("Copia el link:", l.url); }
+        });
+      });
+
+      // Copiar todos: Nombre <tab> link, una linea por persona
+      const copyAllBtn = document.getElementById("copyAllBtn");
+      if (copyAllBtn) {
+        copyAllBtn.addEventListener("click", async () => {
+          const text = links.map(l => `${l.nombre}\t${l.url}`).join("\n");
+          try {
+            await navigator.clipboard.writeText(text);
+            copyAllBtn.textContent = "Copiados";
+            copyAllBtn.classList.add("is-copied");
+            setTimeout(() => { copyAllBtn.textContent = "Copiar todos"; copyAllBtn.classList.remove("is-copied"); }, 2000);
+          } catch { window.prompt("Copia los links:", text); }
+        });
+      }
       document.getElementById("resetBtn").addEventListener("click", () => {
         // Reset state
         state.filas = [];
