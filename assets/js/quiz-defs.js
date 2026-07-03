@@ -2943,6 +2943,133 @@ export const QUIZZES = {
         obligatoria: true,
       },
     ],
+  },
+
+  // ─── Sesión 13 · Herramientas aplicadas al coaching ───
+  "coaching-evaluacion-s13": {
+    titulo: "Evaluación · Sesión 13",
+    introEyebrow: "Evaluación · Sesión 13",
+    introTitle: "Herramientas de Priorización",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre las herramientas de priorización y visualización vistas en la sesión 13: priorizar vs. organizar la agenda, la Rueda de Priorización, el punto de apalancamiento y el uso comparativo de ruedas.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "eval_priorizar_vs_agenda",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el material, ¿cuál es la diferencia fundamental entre \"organizar la agenda\" y \"priorizar con efectividad\"?",
+        opciones: [
+          "No hay diferencia; ambas significan anotar todo lo que hay que hacer.",
+          "La clave es agendar las verdaderas prioridades y sus completamientos, no solo organizar lo que ya está en la agenda.",
+          "Organizar la agenda es para el trabajo y priorizar es para la familia.",
+          "Priorizar consiste en hacer las tareas más fáciles primero para ahorrar energía.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_poder_personal",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué se busca identificar con la pregunta: \"¿Qué se necesita para poder decir 'no' a otras prioridades?\"?",
+        opciones: [
+          "La falta de educación del coachee.",
+          "El nivel de compromiso con sus propios valores y su capacidad de establecer límites (Poder Personal).",
+          "Quiénes son las personas que le caen mal al coachee.",
+          "Cuántas horas libres tiene el coachee al día.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_rueda_sombrear",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "En el ejercicio de la Rueda de Priorización, ¿cuál es el objetivo de sombrear las secciones del 1 al 10?",
+        opciones: [
+          "Hacer que el dibujo se vea más bonito y artístico.",
+          "Crear una representación visual del nivel actual de satisfacción para que el coachee \"note\" dónde está el desequilibrio.",
+          "Evaluar si el coachee sabe colorear correctamente.",
+          "Comparar al coachee con otros clientes del coach.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_apalancamiento",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Al analizar la Rueda completa, el coach pregunta por el \"área que generaría un impacto positivo en las demás\". ¿Por qué es vital esta pregunta?",
+        opciones: [
+          "Para ahorrar tiempo y no tener que trabajar en todas las áreas a la vez.",
+          "Para encontrar el punto de apalancamiento donde un pequeño cambio genera una transformación sistémica.",
+          "Porque el coach decide qué área es la más importante.",
+          "Porque es una regla matemática obligatoria.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_dos_ruedas",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Si un coachee tiene dudas entre dos opciones (ej. cambiar de trabajo o quedarse), ¿cómo se sugiere usar la Rueda?",
+        opciones: [
+          "Dibujando una sola rueda con ambas opciones mezcladas.",
+          "Usando dos ruedas lado a lado, evaluando los mismos criterios en ambas para comparar visualmente la satisfacción potencial.",
+          "Tirando una moneda al aire mientras se mira la rueda.",
+          "Pidiendo al coach que elija la rueda que más le guste.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-reflexion-s13": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 13 · Herramientas aplicadas",
+    introTitle: "Reflexión personal: Visualización y Priorización Estratégica",
+    introLead: [
+      "Tema de fase: aplicación técnica y gestión de polaridades. Objetivo de la sesión: utilizar diagramas visuales para la toma de decisiones, priorización efectiva y conducción de sesiones de descubrimiento.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 13.",
+    preguntas: [
+      {
+        id: "reflexion_apoyo_visual",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿Cómo ayuda el apoyo visual a mi cliente a desenredar la complejidad de su pensamiento y qué revela esto sobre su forma de priorizar?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-journaling-s13": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 13 · Herramientas aplicadas",
+    introTitle: "Journaling: Visualización y Priorización Estratégica",
+    introLead: [
+      "Objetivo: aplicar técnicas de diagramación para priorización y sesiones de descubrimiento.",
+      "Desafío de la semana: diseña un diagrama visual para un cliente que necesite priorizar tres áreas de vida o proyectos distintos.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_diagramacion",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo facilita la diagramación visual el paso de la confusión mental a la toma de decisiones estratégica?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
   }
 };
 
