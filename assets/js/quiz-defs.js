@@ -3070,6 +3070,133 @@ export const QUIZZES = {
         obligatoria: true,
       },
     ],
+  },
+
+  // ─── Sesión 14 · Dialéctica ───
+  "coaching-evaluacion-s14": {
+    titulo: "Evaluación · Sesión 14",
+    introEyebrow: "Evaluación · Sesión 14",
+    introTitle: "Dialéctica en el Coaching",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre la mirada dialéctica y su aplicación al coaching: de Platón y Kant a Hegel, la dialéctica en DBT (Linehan) y el Mapa de Opuestos SOPHIA vistos en la sesión 14.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "eval_platon_dialectica",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el modelo de Platón, ¿cuál es la función de la dialéctica en el proceso de aprendizaje?",
+        opciones: [
+          "Confirmar que nuestras opiniones iniciales siempre son correctas.",
+          "Conducir el alma desde las sombras (apariencias) hacia la luz del conocimiento verdadero (Ideas).",
+          "Ganar discusiones utilizando trucos retóricos.",
+          "Ignorar la realidad para vivir en la imaginación.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_kant_ilusion",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "En la Dialéctica Trascendental de Kant, ¿cuándo se produce una \"ilusión de la razón\"?",
+        opciones: [
+          "Cuando el coachee miente descaradamente.",
+          "Cuando la razón intenta conocer cosas que están más allá de la experiencia posible (como el alma o Dios como objetos físicos).",
+          "Cuando el coach no utiliza un tono de voz adecuado.",
+          "Cuando el coachee olvida sus metas de la semana anterior.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_hegel_antitesis",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Para Hegel, la dialéctica es el movimiento de la realidad. ¿Qué representa la \"Antítesis\"?",
+        opciones: [
+          "El punto de partida o idea inicial.",
+          "La negación o contradicción de la tesis inicial que permite el movimiento.",
+          "La solución final y perfecta que no cambia más.",
+          "Una pérdida de tiempo que debe evitarse.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_dbt_nucleo",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cuál es el núcleo de la dialéctica en la terapia DBT (Linehan) aplicada al coaching?",
+        opciones: [
+          "Obligar al coachee a cambiar aunque no quiera.",
+          "La síntesis entre la Aceptación (validar lo que es) y el Cambio (trabajar en lo que puede ser).",
+          "Elegir solo uno de los dos extremos: o acepto o cambio.",
+          "Criticar al coachee por tener pensamientos contradictorios.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_sophia_sintesis",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "En el \"Mapa de Opuestos\" del coaching SOPHIA, si la Tesis es \"Necesito seguridad\" y la Antítesis es \"Quiero independencia\", ¿qué sería la Síntesis?",
+        opciones: [
+          "Abandonar ambos deseos y no hacer nada.",
+          "Elegir solo la seguridad para no correr riesgos.",
+          "Una \"Autonomía responsable\" que integre la estabilidad con la libertad de acción.",
+          "Pelear internamente hasta que una de las dos ideas gane.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-reflexion-s14": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 14 · Dialéctica",
+    introTitle: "Reflexión personal: La Síntesis Dialéctica en SOPHIA",
+    introLead: [
+      "Objetivo de la sesión: aplicar la dialéctica (inspirada en DBT y SOPHIA) para navegar contradicciones y encontrar puntos de equilibrio en el proceso.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 14.",
+    preguntas: [
+      {
+        id: "reflexion_verdades_opuestas",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿Qué \"verdades opuestas\" está sosteniendo mi cliente y cómo puedo ayudarle a encontrar una síntesis que le permita avanzar?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-journaling-s14": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 14 · Dialéctica",
+    introTitle: "Journaling: La Síntesis Dialéctica en SOPHIA",
+    introLead: [
+      "Objetivo: comprender la dialéctica en el coaching y su relación con DBT para el manejo de opuestos.",
+      "Desafío de la semana: identifica una \"verdad\" del cliente y su \"opuesto\"; busca una síntesis que incluya ambas realidades sin anular ninguna.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_integrar_polaridades",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo puedo ayudar al cliente a integrar sus polaridades (p. ej. \"quiero seguridad\" vs. \"quiero riesgo\") usando la dialéctica SOPHIA?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
   }
 };
 
