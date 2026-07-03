@@ -3197,6 +3197,133 @@ export const QUIZZES = {
         obligatoria: true,
       },
     ],
+  },
+
+  // ─── Sesión 15 · Laboratorio de Integración III (Lab 3) ───
+  "coaching-descanso-s15": {
+    titulo: "Quiz: Método para aprender a descansar",
+    introEyebrow: "Pre-sesión · Sesión 15",
+    introTitle: "Método para aprender a descansar",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo de Jana Fernández sobre el sueño como función fisiológica esencial, los cronotipos, el uso de pantallas y la recuperación del descanso.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "descanso_funcion_sueno",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según Jana Fernández, ¿por qué el sueño es una función fisiológica esencial?",
+        opciones: [
+          "Porque únicamente sirve para descansar mentalmente.",
+          "Porque durante la noche ocurren procesos como la limpieza cerebral, consolidación de la memoria y regulación hormonal.",
+          "Porque es reemplazable con siestas largas durante el día.",
+          "Porque permite ver más contenido en pantallas sin esfuerzo.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "descanso_factor_moderno",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cuál es uno de los principales factores del estilo de vida moderno que Jana identifica como perjudicial para el descanso?",
+        opciones: [
+          "La dieta mediterránea.",
+          "La exposición prolongada a la luz natural.",
+          "La obsesión por la productividad y la prisa (multitarea).",
+          "Dormir siempre a la misma hora.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "descanso_cronotipos",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué son los cronotipos, según la explicación del video?",
+        opciones: [
+          "Enfermedades relacionadas con el sueño.",
+          "Rasgos individuales que determinan los ritmos de sueño-vigilia, influenciados por genética, estilo de vida y relojes internos/externos.",
+          "Aparatos electrónicos que miden la calidad del sueño.",
+          "Técnicas de respiración para conciliar el sueño.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "descanso_pantallas",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Respecto al uso de pantallas por la noche, Jana afirma que:",
+        opciones: [
+          "La luz azul es totalmente mala y debe eliminarse siempre.",
+          "La tecnología es mala en sí misma y hay que evitarla por completo.",
+          "La luz azul tiene una función; el problema es usar dispositivos que activan cognitivamente al cerebro en las horas previas al sueño.",
+          "Mirar el móvil en la cama ayuda a conciliar el sueño porque distrae la mente.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "descanso_recuperacion",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué dice Jana sobre la recuperación del sueño tras privaciones acumuladas durante la semana?",
+        opciones: [
+          "Que el sueño perdido se recupera completamente el fin de semana si duermo más horas.",
+          "Que el sueño no se recupera; las funciones nocturnas específicas deben realizarse cada noche con regularidad.",
+          "Que bastan sesiones de meditación para recuperar los ciclos de sueño perdidos.",
+          "Que comer mucho por la noche compensa la falta de sueño.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-reflexion-s15": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 15 · Laboratorio de Integración III",
+    introTitle: "Reflexión personal: Laboratorio de Integración III",
+    introLead: [
+      "Objetivo de la sesión: integrar herramientas visuales y enfoques dialécticos en la práctica avanzada.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 15.",
+    preguntas: [
+      {
+        id: "reflexion_dialectica_conflictos",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿De qué manera la técnica dialéctica ha cambiado mi forma de manejar los conflictos internos que presenta el coachee?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-journaling-s15": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 15 · Laboratorio de Integración III",
+    introTitle: "Journaling: Laboratorio de Integración III",
+    introLead: [
+      "Objetivo: demostrar maestría en la integración de herramientas visuales, dialéctica y niveles existenciales.",
+      "Desafío de la semana: realiza una sesión donde el 80% del tiempo sea escucha activa y solo el 20% intervenciones de alto impacto.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_presencia_natural",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿En qué medida mi presencia como coach es ahora más natural y menos estructurada, manteniendo la eficacia?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
   }
 };
 
