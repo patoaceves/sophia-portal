@@ -2816,6 +2816,133 @@ export const QUIZZES = {
         obligatoria: true,
       },
     ],
+  },
+
+  // ─── Sesión 12 · Existencialismo ───
+  "coaching-reflexion-s12": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 12 · Existencialismo",
+    introTitle: "Reflexión personal: La Escalera Existencial",
+    introLead: [
+      "Objetivo de la sesión: relacionar el existencialismo con el coaching a través de sus exponentes y aplicar la \"escalera existencial\" en la sesión.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 12.",
+    preguntas: [
+      {
+        id: "reflexion_sostener_incertidumbre",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "Ante la libertad radical del cliente, ¿cuál es mi nivel de comodidad al sostener el vacío o la incertidumbre que surge en el proceso existencial?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-journaling-s12": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 12 · Existencialismo",
+    introTitle: "Journaling: La Escalera Existencial",
+    introLead: [
+      "Objetivo: relacionar el existencialismo con el coaching mediante la aplicación de la \"escalera existencial\".",
+      "Desafío de la semana: analiza un dilema de un cliente bajo la premisa: \"¿Cómo está eligiendo el cliente ser libre en esta situación?\".",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_libertad_responsabilidad",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿De qué manera la responsabilidad y la libertad (ejes del existencialismo) están presentes en la meta de mi coachee?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-evaluacion-s12": {
+    titulo: "Evaluación · Sesión 12",
+    introEyebrow: "Evaluación · Sesión 12",
+    introTitle: "Existencialismo y Coaching",
+    introLead: [
+      "Esta evaluación tiene 5 preguntas de opción múltiple sobre los exponentes del existencialismo (Kierkegaard, Sartre, Heidegger, Camus) y su aplicación al coaching a través de la Escalera Existencial vistos en la sesión 12.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Necesitas al menos 60% para aprobar y avanzar. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "eval_kierkegaard_angustia",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según Kierkegaard, ¿qué representa la \"Angustia\" en la vida del ser humano?",
+        opciones: [
+          "Una enfermedad mental que debe ser medicada de inmediato.",
+          "El \"vértigo de la libertad\"; la parálisis ante la posibilidad infinita de elegir.",
+          "Una falta de fe que indica que la persona es mala.",
+          "Un sentimiento que solo experimentan las personas que no tienen éxito.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_sartre_existencia",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "Jean-Paul Sartre afirma que \"la existencia precede a la esencia\". En el coaching, ¿qué significa esto para el coachee?",
+        opciones: [
+          "Que su destino ya está escrito y no puede cambiarlo.",
+          "Que no nace con una \"naturaleza\" fija, sino que se define a sí mismo a través de sus acciones y elecciones libres.",
+          "Que primero debe estudiar mucha filosofía antes de poder actuar.",
+          "Que los demás son responsables de quién es él hoy.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_heidegger_autenticidad",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Cuál es la propuesta de Heidegger sobre la \"Autenticidad\" y el \"Dasein\"?",
+        opciones: [
+          "Seguir las modas y lo que \"la gente\" (das Man) dice para ser feliz.",
+          "Vivir ignorando que vamos a morir para no sufrir.",
+          "Salir del anonimato social y asumir la propia finitud (ser-para-la-muerte) para elegir una vida propia.",
+          "Cambiar de personalidad cada día para ser más flexible.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "eval_camus_rebelion",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Albert Camus introduce el concepto de \"Rebelión\" frente al \"Absurdo\". ¿Cómo se aplica esto en una sesión de coaching?",
+        opciones: [
+          "Incitando al coachee a pelear con su jefe y su familia.",
+          "Ayudando al coachee a crear sentido y dignidad a través de su acción, incluso cuando el mundo parece no tener respuestas claras.",
+          "Convenciendo al coachee de que nada tiene sentido y que no vale la pena esforzarse.",
+          "Buscando soluciones mágicas que eliminen todos los problemas del mundo.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "eval_escalera_primer_paso",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "En la \"Escalera Existencial\" del coaching, ¿cuál es el primer paso fundamental según la influencia de San Agustín y Heidegger?",
+        opciones: [
+          "Tomar una decisión drástica.",
+          "La Presencia Radical: escuchar el interior y reconocer cómo se \"es\" en el mundo antes de intentar cambiar nada.",
+          "Culpar a los demás por la situación actual.",
+          "Diseñar un plan de acción financiero.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+    ],
   }
 };
 
