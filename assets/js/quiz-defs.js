@@ -2689,6 +2689,133 @@ export const QUIZZES = {
         obligatoria: true,
       },
     ],
+  },
+
+  // ─── Sesión 11 · Laboratorio de Integración II (Lab 2) ───
+  "coaching-trabajo-felicidad-s11": {
+    titulo: "Quiz: ¿El trabajo te puede hacer feliz?",
+    introEyebrow: "Pre-sesión · Sesión 11",
+    introTitle: "¿El trabajo te puede hacer feliz?",
+    introLead: [
+      "Este quiz tiene 5 preguntas basadas en el video de trabajo previo (\"Can work make you happy?\") sobre el éxito ganado, el servicio a los demás y qué hace realmente que el trabajo produzca alegría.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "felicidad_idea_equivocada",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el video, ¿cuál es la idea equivocada más común sobre el trabajo y la felicidad?",
+        opciones: [
+          "Que ganar reconocimiento o éxito puede garantizar la felicidad.",
+          "Que el trabajo nunca puede traer felicidad.",
+          "Que servir a los demás es irrelevante para la satisfacción laboral.",
+          "Que lograr ingresos suficientes elimina toda insatisfacción.",
+        ],
+        correcta: 0,
+        obligatoria: true,
+      },
+      {
+        id: "felicidad_dos_cosas",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué dos cosas principales dice el presentador que debes buscar en el trabajo para obtener verdadera felicidad?",
+        opciones: [
+          "Buen salario y título laboral prestigioso.",
+          "Seguridad laboral y vacaciones largas.",
+          "Éxito ganado y servicio a los demás.",
+          "Flexibilidad horaria y reconocimiento público.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "felicidad_exito_ganado",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué significa \"éxito ganado\" según el video?",
+        opciones: [
+          "Obtener poder sobre los demás en el trabajo.",
+          "Sentir que creas valor y que ese valor es reconocido.",
+          "Recibir aumentos salariales automáticos por antigüedad.",
+          "Evitar responsabilidades para reducir el estrés.",
+        ],
+        correcta: 1,
+        obligatoria: true,
+      },
+      {
+        id: "felicidad_experimento",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "En los experimentos mencionados, ¿qué actividad sencilla hizo que la gente empezara a gustar más de su trabajo?",
+        opciones: [
+          "Recibir un ascenso.",
+          "Trabajar menos horas.",
+          "Hacer café para compañeros y servir a otros.",
+          "Cambiar de puesto dentro de la empresa.",
+        ],
+        correcta: 2,
+        obligatoria: true,
+      },
+      {
+        id: "felicidad_otro_factor",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Además del éxito ganado y el servicio, ¿qué otro factor afirma el presentador que contribuye a que el trabajo produzca alegría?",
+        opciones: [
+          "Hacer algo en lo que realmente seas bueno.",
+          "Tener un título universitario prestigioso.",
+          "Evitar la interacción con colegas.",
+          "Priorizar únicamente la remuneración económica.",
+        ],
+        correcta: 0,
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-reflexion-s11": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 11 · Laboratorio de Integración II",
+    introTitle: "Reflexión personal: Laboratorio de Integración II",
+    introLead: [
+      "Objetivo de la sesión: refinar la escucha de niveles existenciales y la capacidad de evocar conciencia en un entorno controlado.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 11.",
+    preguntas: [
+      {
+        id: "reflexion_crear_experiencia",
+        tipo: "texto",
+        eyebrow: "Pregunta reflexiva",
+        texto: "¿Qué resistencia interna experimento al intentar \"crear una experiencia\" profunda en lugar de simplemente \"tener una conversación\"?",
+        placeholder: "Escribe con honestidad. No hay respuesta correcta.",
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-journaling-s11": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 11 · Laboratorio de Integración II",
+    introTitle: "Journaling: Laboratorio de Integración II",
+    introLead: [
+      "Objetivo: consolidar la escucha y la evocación de conciencia a un nivel intermedio.",
+      "Desafío de la semana: identifica una competencia de la ICF que hayas demostrado con éxito rotundo en esta sesión de laboratorio.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      {
+        id: "journaling_evolucion_lab",
+        tipo: "texto",
+        eyebrow: "Reflexión de la semana",
+        texto: "¿Cómo ha evolucionado mi capacidad de facilitar el insight desde el Laboratorio 1 hasta hoy?",
+        placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.",
+        obligatoria: true,
+      },
+    ],
   }
 };
 
