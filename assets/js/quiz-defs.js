@@ -3854,14 +3854,21 @@ export const QUIZZES = {
     "introEyebrow": "Actividad · Lo importante y lo urgente",
     "introTitle": "El cuadrante de lo importante y lo urgente",
     "introLead": [
-      "Piensa en el cuadrante que cruza dos ejes: importante / no importante y urgente / no urgente. La Estética Existencial vive en lo importante pero NO urgente: por eso solemos relegarla."
+      "La matriz de Eisenhower cruza dos ejes: importante / no importante y urgente / no urgente. La Estética Existencial vive en lo importante pero NO urgente: por eso solemos relegarla. Llena el cuadrante con elementos o actividades de tu vida."
     ],
     "preguntas": [
       {
         "id": "cuadrante",
-        "tipo": "texto",
+        "tipo": "cuadrante",
         "eyebrow": "Paso 1",
-        "texto": "Anota varios elementos o actividades de tu vida en el cuadrante que corresponda (importante y urgente / importante no urgente / urgente no importante / ni urgente ni importante).",
+        "texto": "Anota varios elementos o actividades de tu vida en el cuadrante que corresponda.",
+        "ejes": { "cols": ["Urgente", "No urgente"], "rows": ["Importante", "No importante"] },
+        "celdas": [
+          { "id": "hacer", "titulo": "Hacer", "hint": "Importante y urgente", "placeholder": "Ej. terminar la propuesta de un proyecto, responder a un cliente…" },
+          { "id": "programar", "titulo": "Programar", "hint": "Importante, no urgente", "placeholder": "Ej. un curso de desarrollo profesional, tiempo de contemplación…" },
+          { "id": "delegar", "titulo": "Delegar", "hint": "Urgente, no importante", "placeholder": "Ej. transcribir notas de reuniones, trámites que otro puede hacer…" },
+          { "id": "eliminar", "titulo": "Eliminar", "hint": "Ni importante ni urgente", "placeholder": "Ej. scroll infinito, reuniones sin propósito…" }
+        ],
         "obligatoria": true
       },
       {

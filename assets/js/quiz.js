@@ -220,13 +220,15 @@ function renderPregunta(state, idx) {
     body = renderMultiList(p, value);
   } else if (p.tipo === "escala") {
     body = renderEscala(p, value);
+  } else if (p.tipo === "cuadrante") {
+    body = renderCuadrante(p, value);
   } else if (p.tipo === "texto") {
     body = renderTextArea(p, value);
   }
 
   // Botón "Siguiente / Enviar": para choice/escala aparece al responder; para
   // texto siempre visible (porque puede ser opcional o requerir confirmar).
-  const showNext = p.tipo === "texto" || p.tipo === "multi" || isAnswered || !p.obligatoria;
+  const showNext = p.tipo === "texto" || p.tipo === "multi" || p.tipo === "cuadrante" || isAnswered || !p.obligatoria;
   const nextLabel = isLast ? "Completar" : "Siguiente";
 
   return `
@@ -301,6 +303,54 @@ function renderMultiList(p, value) {
   `;
 }
 
+// Pregunta tipo "cuadrante": matriz 2x2 llenable (ej. Eisenhower: importante/
+// urgente). La respuesta se guarda como JSON string { celdaId: texto }.
+function parseCuadrante(value) {
+  try {
+    const v = JSON.parse(value || "{}");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch { return {}; }
+}
+
+function renderCuadrante(p, value) {
+  const vals = parseCuadrante(value);
+  const cols = p.ejes?.cols || ["Urgente", "No urgente"];
+  const rows = p.ejes?.rows || ["Importante", "No importante"];
+  const celdas = p.celdas || [];
+  const cell = (i) => {
+    const c = celdas[i];
+    if (!c) return "<div></div>";
+    const val = vals[c.id] || "";
+    return `
+      <div class="quiz-cuadrante__cell quiz-cuadrante__cell--${escapeHtml(c.id)}">
+        <span class="quiz-cuadrante__cell-title">${escapeHtml(c.titulo)}</span>
+        ${c.hint ? `<span class="quiz-cuadrante__cell-hint">${escapeHtml(c.hint)}</span>` : ""}
+        <textarea
+          class="quiz-cuadrante__input"
+          data-quiz-cuadrante-input
+          data-celda="${escapeHtml(c.id)}"
+          rows="4"
+          maxlength="1000"
+          placeholder="${escapeHtml(c.placeholder || "Anota aquí…")}"
+        >${escapeHtml(val)}</textarea>
+      </div>
+    `;
+  };
+  return `
+    <div class="quiz-cuadrante">
+      <div class="quiz-cuadrante__corner" aria-hidden="true"></div>
+      <div class="quiz-cuadrante__col-label">${escapeHtml(cols[0])}</div>
+      <div class="quiz-cuadrante__col-label">${escapeHtml(cols[1])}</div>
+      <div class="quiz-cuadrante__row-label"><span>${escapeHtml(rows[0])}</span></div>
+      ${cell(0)}
+      ${cell(1)}
+      <div class="quiz-cuadrante__row-label"><span>${escapeHtml(rows[1])}</span></div>
+      ${cell(2)}
+      ${cell(3)}
+    </div>
+  `;
+}
+
 // Pregunta tipo escala Likert 1–5 con las "bolitas" (mismas clases CSS que la
 // autoevaluación: .dot-scale / .dot-option / .dot-option__circle--N). Guarda
 // el valor numérico 1–5. parseInt tolera respuestas previas tipo "2 · ...".
@@ -371,9 +421,20 @@ function renderResumen(state) {
   const items = showAnswers
     ? state.def.preguntas.map((p) => {
         const respuesta = state.respuestas[p.id];
-        const respuestaHtml = respuesta
-          ? `<div class="quiz-resumen-item__user">${escapeHtml(respuesta)}</div>`
-          : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">Sin respuesta</div>`;
+        let respuestaHtml;
+        if (p.tipo === "cuadrante" && respuesta) {
+          const vals = parseCuadrante(respuesta);
+          const parts = (p.celdas || [])
+            .filter((c) => (vals[c.id] || "").trim())
+            .map((c) => `<div class="quiz-resumen-item__user"><strong>${escapeHtml(c.titulo)}:</strong> ${escapeHtml(vals[c.id])}</div>`);
+          respuestaHtml = parts.length
+            ? parts.join("")
+            : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">Sin respuesta</div>`;
+        } else {
+          respuestaHtml = respuesta
+            ? `<div class="quiz-resumen-item__user">${escapeHtml(respuesta)}</div>`
+            : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">Sin respuesta</div>`;
+        }
         return `
           <li class="quiz-resumen-item quiz-resumen-item--reflexivo">
             <div class="quiz-resumen-item__body">
@@ -694,6 +755,22 @@ function clickHandler(state, e) {
 }
 
 function inputHandler(state, e) {
+  // Celdas del cuadrante 2x2
+  const celda = e.target.closest("[data-quiz-cuadrante-input]");
+  if (celda) {
+    const p = state.preguntas[state.currentIndex];
+    if (!p || p.tipo !== "cuadrante") return;
+    const vals = parseCuadrante(state.respuestas[p.id]);
+    vals[celda.dataset.celda] = celda.value;
+    state.respuestas[p.id] = JSON.stringify(vals);
+    const nextBtn = state.container.querySelector('[data-quiz-action="next"]');
+    if (nextBtn && p.obligatoria) {
+      nextBtn.disabled = !isAnswerValid(p, state.respuestas[p.id]);
+    }
+    persistStateDebounced(state);
+    return;
+  }
+
   const ta = e.target.closest("[data-quiz-text-input]");
   if (!ta) return;
   const p = state.preguntas[state.currentIndex];
@@ -760,6 +837,10 @@ async function submit(state) {
 function isAnswerValid(pregunta, value) {
   if (pregunta.tipo === "choice") {
     return typeof value === "string" && (pregunta.opciones || []).includes(value);
+  }
+  if (pregunta.tipo === "cuadrante") {
+    const vals = parseCuadrante(value);
+    return Object.values(vals).some((t) => (t || "").trim().length > 0);
   }
   if (pregunta.tipo === "multi") {
     const sel = (value || "").split(MULTI_SEP).map((s) => s.trim()).filter(Boolean);
