@@ -404,6 +404,9 @@ function renderTextArea(p, value) {
  *     correctas/incorrectas + botón para reintentar.
  */
 function renderResumen(state) {
+  if (hasPerfiles(state.def)) {
+    return renderResumenPerfiles(state);
+  }
   if (hasAnalisis(state.def)) {
     return renderResumenAnalisis(state);
   }
@@ -568,6 +571,65 @@ function hasScoring(def) {
 // ─────────────────────────────────────────────────────────────────────
 // Análisis por puntaje (escala Likert) para la actividad previa
 // ─────────────────────────────────────────────────────────────────────
+
+function hasPerfiles(def) {
+  return def?.perfiles && typeof def.perfiles === "object" && !Array.isArray(def.perfiles);
+}
+
+// Test de perfiles: cada pregunta es choice con opciones cuyo `valor` (1..N)
+// mapea a un perfil. Se cuenta el valor más frecuente; empate se resuelve por
+// el orden de def.perfilesOrden (o el id numérico menor).
+function computePerfil(def, respuestas) {
+  const counts = {};
+  for (const p of (def.preguntas || [])) {
+    const v = respuestas[p.id];
+    // La respuesta se guarda como texto de la opción; recuperamos su `valor`.
+    const opt = (p.opciones || []).find((o) => (typeof o === "object" ? o.texto : o) === v);
+    const valor = opt && typeof opt === "object" ? opt.valor : undefined;
+    if (valor != null) counts[valor] = (counts[valor] || 0) + 1;
+  }
+  const orden = def.perfilesOrden || Object.keys(def.perfiles).map(Number);
+  let best = null, bestCount = -1;
+  for (const key of orden) {
+    const c = counts[key] || 0;
+    if (c > bestCount) { best = key; bestCount = c; }
+  }
+  return { perfilId: best, counts };
+}
+
+function renderResumenPerfiles(state) {
+  const def = state.def;
+  const { perfilId } = computePerfil(def, state.respuestas);
+  const perfil = def.perfiles[perfilId] || Object.values(def.perfiles)[0];
+  const titulo = def.doneTitle || "Tu perfil";
+  const lead = def.doneLead || "Este es el perfil que más resuena con tus respuestas hoy.";
+
+  const referentes = (perfil.referentes && perfil.referentes.length)
+    ? `<p class="quiz-perfil__ref"><span>Referentes:</span> ${escapeHtml(perfil.referentes.join(" \u00b7 "))}</p>`
+    : "";
+
+  return `
+    <div class="quiz-resumen quiz-resumen--reflexivo quiz-resumen--perfil">
+      <div class="quiz-resumen__head">
+        <div class="quiz-resumen__icon">${icon("check")}</div>
+        <p class="quiz-resumen__lead">${escapeHtml(lead)}</p>
+      </div>
+      <div class="quiz-perfil" style="--perfil-color:${perfil.color || "var(--color-accent)"};">
+        <span class="quiz-perfil__eyebrow">Tu perfil de actitud frente a la vida</span>
+        <h2 class="quiz-perfil__nombre">${escapeHtml(perfil.nombre)}</h2>
+        <p class="quiz-perfil__resumen">${escapeHtml(perfil.resumen || "")}</p>
+        ${perfil.mensaje ? `<p class="quiz-perfil__mensaje">${escapeHtml(perfil.mensaje)}</p>` : ""}
+        ${referentes}
+      </div>
+      <div class="quiz-resumen__actions">
+        <button class="btn btn-secondary" data-quiz-action="retry" type="button">
+          ${icon("refresh")}
+          <span>Volver a contestar</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
 
 function hasAnalisis(def) {
   return Array.isArray(def?.analisis) && def.analisis.length > 0;

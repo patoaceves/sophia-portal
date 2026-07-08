@@ -9188,6 +9188,7 @@ button.foro-preview-item__thumb {
   grid-template-columns: 28px 1fr 1fr;
   gap: 10px;
   margin-top: var(--s-4);
+  margin-bottom: var(--s-6, 24px);
 }
 .quiz-cuadrante__col-label {
   text-align: center;
@@ -9257,4 +9258,56 @@ button.foro-preview-item__thumb {
   .quiz-cuadrante__corner,
   .quiz-cuadrante__col-label,
   .quiz-cuadrante__row-label { display: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Quiz · resultado tipo "perfil" (test de perfiles, ej. Fe y filosofia)
+   ════════════════════════════════════════════════════════════════════ */
+.quiz-perfil {
+  margin-top: var(--s-4);
+  padding: var(--s-5, 22px);
+  border-radius: var(--r-lg);
+  background: var(--color-paper, #fdfbf7);
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--perfil-color, var(--color-accent));
+  text-align: center;
+}
+.quiz-perfil__eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft, #6b6357);
+  margin-bottom: 6px;
+}
+.quiz-perfil__nombre {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1.9rem;
+  line-height: 1.15;
+  color: var(--perfil-color, var(--color-accent));
+  margin: 0 0 10px;
+}
+.quiz-perfil__resumen {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin: 0 auto 12px;
+  max-width: 46ch;
+}
+.quiz-perfil__mensaje {
+  font-style: italic;
+  color: var(--color-ink-soft, #6b6357);
+  margin: 0 auto 12px;
+  max-width: 46ch;
+}
+.quiz-perfil__ref {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft, #6b6357);
+  margin: 0;
+}
+.quiz-perfil__ref span {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.78rem;
 }

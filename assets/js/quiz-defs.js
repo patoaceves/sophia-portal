@@ -3915,6 +3915,110 @@ export const QUIZZES = {
     ]
   },
 
+  "hwd-m9-actividad-1": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad · Test de perfiles",
+    "introTitle": "Tu perfil de actitud frente a la vida",
+    "introLead": [
+      "Diez preguntas sobre tu postura ante el sentido de la vida. No hay respuestas correctas ni incorrectas: al terminar verás el perfil que más resuena con lo que respondiste hoy."
+    ],
+    "doneTitle": "Tu perfil",
+    "doneLead": "Este es el perfil que más resuena con tus respuestas hoy. Es una foto del momento, no una etiqueta fija.",
+    "perfilesOrden": [1, 2, 3, 4],
+    "perfiles": {
+      "1": {
+        "nombre": "Creyente esperanzado",
+        "resumen": "Tienes una estrella polar que guía tu vida con propósito y sentido.",
+        "mensaje": "La virtud y el servicio son caminos hacia la felicidad.",
+        "referentes": ["Frodo Bolsón", "Obi-Wan Kenobi"],
+        "color": "#2f9e5b"
+      },
+      "2": {
+        "nombre": "Buscador incansable",
+        "resumen": "Estás en un proceso de búsqueda incansable de propósito y sentido.",
+        "mensaje": "La felicidad se encuentra en la búsqueda con propósito.",
+        "referentes": ["Harry Potter", "Hamlet"],
+        "color": "#c98a12"
+      },
+      "3": {
+        "nombre": "Pesimista resignado",
+        "resumen": "Tienes deseo de encontrar un sentido mayor a tu vida, pero te has resignado a seguir existiendo.",
+        "mensaje": "Aun desde la resignación, puedes construir pequeños significados cotidianos.",
+        "referentes": ["Sísifo", "Wall-E"],
+        "color": "#3a6ea5"
+      },
+      "4": {
+        "nombre": "Pesimista alienado",
+        "resumen": "No hay un propósito o sentido mayor que guíe tu vida, ni tienes esperanza de que exista.",
+        "mensaje": "Incluso en el desencanto, elegir crear significado es un acto de libertad.",
+        "referentes": ["Mersault (El extranjero)", "Rick Sánchez"],
+        "color": "#c0443a"
+      }
+    },
+    "preguntas": [
+      { "id": "p1", "tipo": "choice", "eyebrow": "Pregunta 1 de 10", "texto": "Cuando pienso en el propósito que guía mi vida…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Tengo claro que está conectado con algo más grande y trascendente." },
+        { "valor": 2, "texto": "Creo que existe, pero aún no sé cuál es." },
+        { "valor": 3, "texto": "La vida es un devenir y depende de cada uno si tiene sentido o no." },
+        { "valor": 4, "texto": "No creo que exista ningún propósito." }
+      ] },
+      { "id": "p2", "tipo": "choice", "eyebrow": "Pregunta 2 de 10", "texto": "Ante las dificultades importantes…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Las interpreto como parte de un plan o camino con sentido." },
+        { "valor": 2, "texto": "Las veo como oportunidades para acercarme a mi propósito." },
+        { "valor": 3, "texto": "Pienso que son golpes del azar sin valor real." },
+        { "valor": 4, "texto": "Las vivo como señales de que nada importa y moriremos al final." }
+      ] },
+      { "id": "p3", "tipo": "choice", "eyebrow": "Pregunta 3 de 10", "texto": "Cuando me detengo de verdad a contemplar por qué existo y qué significa mi vida…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Percibo una narrativa coherente que me conecta con algo eterno o sagrado." },
+        { "valor": 2, "texto": "Siento que hay una respuesta esperando ser encontrada y me motiva buscarla." },
+        { "valor": 3, "texto": "Concluyo que, aunque pueda existir una respuesta, somos impotentes ante esta." },
+        { "valor": 4, "texto": "Tengo la sensación de que no hay nada detrás, ni siquiera un absurdo que explicar." }
+      ] },
+      { "id": "p4", "tipo": "choice", "eyebrow": "Pregunta 4 de 10", "texto": "El futuro, para mí, es…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Una oportunidad para cumplir con un propósito trascendental." },
+        { "valor": 2, "texto": "Un terreno incierto donde espero encontrar sentido con la edad, el paso del tiempo, al encontrar el amor o algo por el estilo." },
+        { "valor": 3, "texto": "Algo que probablemente será más de lo mismo, con altas y bajas pero la vida sin más." },
+        { "valor": 4, "texto": "Inexistente como algo que valga la pena planear." }
+      ] },
+      { "id": "p5", "tipo": "choice", "eyebrow": "Pregunta 5 de 10", "texto": "Sobre la muerte…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "No es el final, sino una transición." },
+        { "valor": 2, "texto": "Es un misterio que intento comprender." },
+        { "valor": 3, "texto": "Es un hecho inevitable que hace absurdo todo esfuerzo; por lo que hay que vivir a mi manera mientras pueda." },
+        { "valor": 4, "texto": "Es simplemente el fin, sin más." }
+      ] },
+      { "id": "p6", "tipo": "choice", "eyebrow": "Pregunta 6 de 10", "texto": "Cuando veo sufrimiento en el mundo…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Lo entiendo como parte de un proceso mayor que puedo ayudar a mejorar." },
+        { "valor": 2, "texto": "Lo uso como motivación para buscar un sentido." },
+        { "valor": 3, "texto": "Lo veo como evidencia de que la vida es injusta y absurda." },
+        { "valor": 4, "texto": "Lo siento como prueba de que nada importa." }
+      ] },
+      { "id": "p7", "tipo": "choice", "eyebrow": "Pregunta 7 de 10", "texto": "Lo que me impulsa a levantarme cada día es…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Servir a un propósito mayor que yo mismo/a." },
+        { "valor": 2, "texto": "Seguir explorando, creciendo y buscando respuestas." },
+        { "valor": 3, "texto": "Cumplir con lo necesario para seguir vivo." },
+        { "valor": 4, "texto": "Nada en especial; solo la inercia." }
+      ] },
+      { "id": "p8", "tipo": "choice", "eyebrow": "Pregunta 8 de 10", "texto": "Cuando escucho la frase \u201cla vida vale la pena vivirla\u201d…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Estoy totalmente de acuerdo." },
+        { "valor": 2, "texto": "Quiero creerlo y sigo buscando razones." },
+        { "valor": 3, "texto": "Suena ingenua; no creo que sea cierta." },
+        { "valor": 4, "texto": "No tiene ningún sentido para mí." }
+      ] },
+      { "id": "p9", "tipo": "choice", "eyebrow": "Pregunta 9 de 10", "texto": "En momentos de felicidad…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "Siento que confirman que la vida tiene un propósito mayor." },
+        { "valor": 2, "texto": "Son pistas de que podría haber un sentido." },
+        { "valor": 3, "texto": "Son distracciones que pronto desaparecen." },
+        { "valor": 4, "texto": "No cambian mi percepción de vacío." }
+      ] },
+      { "id": "p10", "tipo": "choice", "eyebrow": "Pregunta 10 de 10", "texto": "Si pudiera resumir mi visión de la vida en una frase…", "obligatoria": true, "opciones": [
+        { "valor": 1, "texto": "\u201cHay un propósito que nos trasciende.\u201d" },
+        { "valor": 2, "texto": "\u201cTodavía no lo sé, pero vale la pena buscar.\u201d" },
+        { "valor": 3, "texto": "\u201cTal vez hay sentido, pero no importa al final.\u201d" },
+        { "valor": 4, "texto": "\u201cNada tiene sentido, todo es azar.\u201d" }
+      ] }
+    ]
+  },
+
   "hwd-m9-journaling": {
     "titulo": "Journaling",
     "introEyebrow": "Journaling",
