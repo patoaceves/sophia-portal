@@ -9,7 +9,7 @@
 //
 // Tipos de pregunta soportados:
 //   - "choice" : opción única de una lista (opciones: string[])
-//               · Si la pregunta tiene `correcta: <índice>`, el quiz se
+//               · Si la def (en la BD, tabla quiz_defs) tiene claves, el quiz se
 //                 evalúa con score: al final muestra cuántas se acertaron,
 //                 cuáles fueron correctas/incorrectas, y permite reintentar.
 //   - "texto"  : texto libre (textarea)
@@ -35,7 +35,6 @@ export const QUIZZES = {
         eyebrow: "Pregunta 1 de 4",
         texto: "¿Cuál es la estructura fundamental de un hábito?",
         opciones: ["Motivación, esfuerzo y resultado.", "Señal, rutina y recompensa.", "Decisión, acción y consecuencia.", "Pensamiento, emoción y memoria."],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -44,7 +43,6 @@ export const QUIZZES = {
         eyebrow: "Pregunta 2 de 4",
         texto: "¿Por qué no se pueden \"eliminar\" los hábitos?",
         opciones: ["Porque la fuerza de voluntad es limitada para todos los seres humanos.", "Porque los hábitos son genéticos y nacemos con ellos.", "Porque las rutas neuronales son como autopistas permanentes en el cerebro.", "Porque el entorno siempre nos obliga a repetir las mismas acciones."],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -53,7 +51,6 @@ export const QUIZZES = {
         eyebrow: "Pregunta 3 de 4",
         texto: "Si quieres cambiar un hábito perjudicial, ¿cuál es la estrategia que propone el autor?",
         opciones: ["Eliminar la señal por completo para que el cerebro no reaccione.", "Cambiar la rutina manteniendo la misma señal y la misma recompensa.", "Suprimir la recompensa para que el cerebro se olvide del hábito.", "Esperar a tener suficiente motivación intrínseca para dejarlo."],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -62,7 +59,6 @@ export const QUIZZES = {
         eyebrow: "Pregunta 4 de 4",
         texto: "¿En qué debería concentrarse una persona para obtener resultados reales?",
         opciones: ["En encontrar su destino predeterminado.", "En las metas a largo plazo y la motivación extrínseca.", "En sistemas de pequeñas mejoras diarias, no solo en metas.", "En aumentar su fuerza de voluntad mediante el pensamiento positivo."],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -150,7 +146,6 @@ export const QUIZZES = {
         eyebrow: "Pregunta 1 de 5",
         texto: "Aristóteles establece que ______ es aquello a lo que todas las cosas tienden.",
         opciones: ["La armonía", "El éxito", "El progreso", "El bien"],
-        correcta: 3,
         obligatoria: true,
       },
       {
@@ -159,7 +154,6 @@ export const QUIZZES = {
         eyebrow: "Pregunta 2 de 5",
         texto: "¿Se puede decir que los errores que cometemos, o acciones moralmente cuestionables, de alguna forma buscaban algún tipo de bien, aunque haya resultado en un bien aparente?",
         opciones: ["Verdadero", "Falso"],
-        correcta: 0,
         obligatoria: true,
       },
       {
@@ -425,7 +419,6 @@ export const QUIZZES = {
           "Es una relación basada únicamente en la experiencia previa del coach.",
           "Es una relación de dependencia hasta que el profesional da el alta.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -439,7 +432,6 @@ export const QUIZZES = {
           "Proviene del pueblo de Kocs (Hungría) y refería a un carruaje que transportaba a alguien de un punto A a un punto B.",
           "Fue inventada por Thomas Leonard en 1992 para su primera escuela.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -453,7 +445,6 @@ export const QUIZZES = {
           "Actuar como una \u201cpartera\u201d que asiste al alma para que el coachee engendre su propio conocimiento.",
           "Decidir por el coachee cuál es el mejor camino a seguir en su carrera.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -467,7 +458,6 @@ export const QUIZZES = {
           "Success Unlimited Network (SUN).",
           "Coach U (CU).",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -481,7 +471,6 @@ export const QUIZZES = {
           "Cobrar tarifas más altas a medida que pasa el tiempo.",
           "Delegar las responsabilidades profesionales en otros colegas.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -563,7 +552,6 @@ export const QUIZZES = {
           "Porque las empresas buscan reducir costos eliminando respuestas.",
           "Porque las respuestas están protegidas por derechos de autor.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -577,7 +565,6 @@ export const QUIZZES = {
           "Como un proceso que evita cualquier colaboración con expertos.",
           "Como un método para acelerar la producción en masa.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -591,7 +578,6 @@ export const QUIZZES = {
           "Declina notablemente hasta casi desaparecer en la secundaria.",
           "Solo cambia en función del nivel socioeconómico.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -605,7 +591,6 @@ export const QUIZZES = {
           "Aumentar la probabilidad de rechazo social sin beneficio intelectual.",
           "Evitar la reflexión profunda sobre problemas complejos.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -619,7 +604,6 @@ export const QUIZZES = {
           "¿Cuál es la fórmula secreta para mejorar la memoria?",
           "¿Cómo invertir todo el patrimonio en criptomonedas sin riesgo?",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -701,7 +685,6 @@ export const QUIZZES = {
           "Ortega y Gasset – La libertad, la elección y la responsabilidad personal.",
           "Sócrates – La evolución a través de la tensión y el diálogo.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -715,7 +698,6 @@ export const QUIZZES = {
           "¿Cuánto tiempo falta para que termine la sesión?",
           "¿Qué solución es la más rápida para este problema?",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -729,7 +711,6 @@ export const QUIZZES = {
           "Decidir por el coachee qué competencia debe trabajar.",
           "Finalizar la relación profesional de inmediato.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -743,7 +724,6 @@ export const QUIZZES = {
           "Terapia, Mentoría y Consultoría.",
           "Pasado, Presente y Futuro únicamente.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -757,7 +737,6 @@ export const QUIZZES = {
           "Se compara la sesión actual con la pasada para identificar avances y el coachee elige cómo medir su progreso.",
           "El coach contacta a la familia del coachee para reportar avances.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -787,7 +766,6 @@ export const QUIZZES = {
           "Como la etapa de modernismo y autoconciencia crítica.",
           "Como la etapa de transformaciones interinstitucionales.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -801,7 +779,6 @@ export const QUIZZES = {
           "Entre 10 y 18 años.",
           "Entre 40 y 60 años.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -815,7 +792,6 @@ export const QUIZZES = {
           "Mutualidad, abstracción y habilidad interpersonal.",
           "Visión interconectada y fusión transformadora de identidades.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -829,7 +805,6 @@ export const QUIZZES = {
           "Una caja o cubo (espacio tridimensional).",
           "Un plano hecho de líneas.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -843,7 +818,6 @@ export const QUIZZES = {
           "Para negar la existencia de instituciones.",
           "Para promover la absoluta separación entre sujeto y objeto.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -925,7 +899,6 @@ export const QUIZZES = {
           "El Nivel 1 es para percibir emociones profundas; el Nivel 2 es para escuchar solo el contenido verbal.",
           "No hay diferencia, ambas buscan dar consejos rápidos al coachee.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -939,7 +912,6 @@ export const QUIZZES = {
           "Durante la fase de contrato (acuerdo de sesión) para conectar con los valores del coachee.",
           "Nunca debe usarse porque siempre activa defensas y cierra la conversación.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -953,7 +925,6 @@ export const QUIZZES = {
           "Contar una experiencia personal similar para que el coachee no se sienta solo.",
           "Guardar silencio absoluto durante toda la sesión sin intervenir.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -967,7 +938,6 @@ export const QUIZZES = {
           "Que debe estar alineado con los valores y el entorno del coachee, sin generar conflictos en otras áreas de su vida.",
           "Que el coach debe estar de acuerdo con el objetivo para que sea válido.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -981,7 +951,6 @@ export const QUIZZES = {
           "Dignidad, justicia, paz, confianza y reconocimiento.",
           "El nombre de los familiares y amigos del coachee.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -1063,7 +1032,6 @@ export const QUIZZES = {
           "Visitante.",
           "Consultor.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1077,7 +1045,6 @@ export const QUIZZES = {
           "Reconocer la necesidad de ampliar opciones y usar preguntas tipo \u201cas-if\u201d (como si...) para abrir posibilidades.",
           "Confrontarlo duramente por su falta de compromiso.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1091,7 +1058,6 @@ export const QUIZZES = {
           "Que el resultado sea S.M.A.R.R.T. y esté bajo el control de la persona.",
           "Que la meta sea tan grande que resulte inalcanzable para motivar más.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1105,7 +1071,6 @@ export const QUIZZES = {
           "Rapport Biofísico.",
           "Contrato Financiero.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1119,7 +1084,6 @@ export const QUIZZES = {
           "De \u201c¿Por qué no podemos?\u201d a \u201c¿Cuáles podrían ser algunas de las mejores maneras de comenzar?\u201d.",
           "De \u201c¿Estás listo?\u201d a \u201c¿Sí o no?\u201d.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -1202,7 +1166,6 @@ export const QUIZZES = {
           "Alrededor del 50 a 60%.",
           "Más del 80%.",
         ],
-        correcta: 0,
         obligatoria: true,
       },
       {
@@ -1216,7 +1179,6 @@ export const QUIZZES = {
           "Es demasiado caro para la mayoría de los pacientes.",
           "Provoca pérdida de masa muscular.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1230,7 +1192,6 @@ export const QUIZZES = {
           "Menciona que dejó de trabajar por completo.",
           "Indica que perdió interés en la vida social.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1244,7 +1205,6 @@ export const QUIZZES = {
           "Mudarse a otra ciudad para empezar de nuevo.",
           "Empezar a tomar suplementos hormonales sin supervisión.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1258,7 +1218,6 @@ export const QUIZZES = {
           "Exploración (buscar nuevas posibilidades).",
           "Inmovilismo absoluto por miedo.",
         ],
-        correcta: 3,
         obligatoria: true,
       },
     ],
@@ -1289,7 +1248,6 @@ export const QUIZZES = {
           "El pensamiento estratégico depende solo del talento natural.",
           "No existe diferencia práctica entre ambos.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1303,7 +1261,6 @@ export const QUIZZES = {
           "Revisarlas para encontrar patrones que expliquen por qué tuviste éxito.",
           "Compartirlas en redes sociales para demostrar competencia.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1315,7 +1272,6 @@ export const QUIZZES = {
           "Verdadero.",
           "Falso.",
         ],
-        correcta: 0,
         obligatoria: true,
       },
       {
@@ -1329,7 +1285,6 @@ export const QUIZZES = {
           "Oportunidades donde el potencial de ganancia es mucho mayor que la desventaja potencial.",
           "Una predicción exacta del resultado de una decisión.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1343,7 +1298,6 @@ export const QUIZZES = {
           "Evitar habilidades fuera de tu campo.",
           "Memorizar datos sin integrar conocimientos.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -1373,7 +1327,6 @@ export const QUIZZES = {
           "Porque los antidepresivos garantizan la solución de problemas de vida complejos.",
           "Porque la terapia conductual es inútil en todos los casos.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1387,7 +1340,6 @@ export const QUIZZES = {
           "Limitar la interpretación negativa de un suceso para evitar que desencadene una cascada de autocrítica.",
           "Evitar planear soluciones y esperar a que las cosas se resuelvan solas.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1401,7 +1353,6 @@ export const QUIZZES = {
           "Algo exclusivo de las personas extrovertidas.",
           "Un sustituto de la rutina y la disciplina.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1415,7 +1366,6 @@ export const QUIZZES = {
           "Comer menos por la mañana mejora la energía de forma consistente.",
           "Evitar relaciones íntimas favorece la estabilidad emocional.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1429,7 +1379,6 @@ export const QUIZZES = {
           "Evitar ser torpe al empezar te convertirá en maestro más rápido.",
           "Los errores iniciales indican que no debes seguir con ese interés.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -1509,7 +1458,6 @@ export const QUIZZES = {
           "Dirigir al coachee hacia una solución rápida basada en la experiencia del coach.",
           "Comparar la historia del coachee con casos similares para encontrar un patrón.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1523,7 +1471,6 @@ export const QUIZZES = {
           "Captar la vivencia del otro como algo “otro”, respetando su alteridad sin absorberla ni juzgarla.",
           "Ignorar las emociones del coachee para mantener la objetividad técnica.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1537,7 +1484,6 @@ export const QUIZZES = {
           "Aceptar una responsabilidad ética donde el coach acompaña sin imponer una agenda ni querer “arreglar” al coachee.",
           "Mantener contacto visual forzado para demostrar autoridad.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1551,7 +1497,6 @@ export const QUIZZES = {
           "No hay diferencia; ambas buscan que el coachee entienda su pasado.",
           "La pregunta fenomenológica siempre debe ser cerrada para evitar confusiones.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1565,7 +1510,6 @@ export const QUIZZES = {
           "Favoreciendo el lenguaje del coachee y manteniendo silencios que den espacio a que el sentido tome forma por sí mismo.",
           "Concluyendo la sesión con una enseñanza moral sobre lo aprendido.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -1595,7 +1539,6 @@ export const QUIZZES = {
           "Una carrera de obstáculos.",
           "Un rompecabezas.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1609,7 +1552,6 @@ export const QUIZZES = {
           "Usa gráficos complejos que impresionan a los expertos.",
           "Evita el humor para mantener seriedad científica.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1623,7 +1565,6 @@ export const QUIZZES = {
           "Pedir siempre la aprobación de un mentor antes de actuar.",
           "No practicar y confiar en el talento natural.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1637,7 +1578,6 @@ export const QUIZZES = {
           "Omitir los experimentos difíciles para simplificar el contenido.",
           "Enseñar solo a estudiantes avanzados para no confundir a principiantes.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1651,7 +1591,6 @@ export const QUIZZES = {
           "Creer que la felicidad solo se alcanza con más dinero y posesiones.",
           "Practicar gratitud como herramienta para reajustar la perspectiva.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -1731,7 +1670,6 @@ export const QUIZZES = {
           "Demostrar que el coach tiene más conocimiento que el coachee.",
           "Evitar que el coachee responda con honestidad.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1745,7 +1683,6 @@ export const QUIZZES = {
           "Dirigir la conversación hacia el objetivo acordado, asegurando que la pregunta esté al servicio del coachee.",
           "Darle un consejo directo sobre lo que debe hacer con su vida.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1759,7 +1696,6 @@ export const QUIZZES = {
           "No hay diferencia; el cerebro siempre piensa de la misma manera.",
           "El pensamiento creativo solo ocurre cuando el coachee está dormido.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1773,7 +1709,6 @@ export const QUIZZES = {
           "Pregunta de escala numérica.",
           "Retroalimentación reflejante.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1787,7 +1722,6 @@ export const QUIZZES = {
           "Evaluar el desempeño del coach durante el último mes.",
           "Obligar al coachee a firmar un nuevo contrato financiero.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -1817,7 +1751,6 @@ export const QUIZZES = {
           "Como una enfermedad exclusivamente biológica.",
           "Como la falta de relaciones sociales profundas.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1831,7 +1764,6 @@ export const QUIZZES = {
           "Tener una dieta equilibrada y ejercicio moderado.",
           "Envenenarse con estrés crónico.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1845,7 +1777,6 @@ export const QUIZZES = {
           "Que hace a las personas incapaces de sentir emociones positivas.",
           "Que se corrige automáticamente con el tiempo sin intervención.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1859,7 +1790,6 @@ export const QUIZZES = {
           "La mente creando historias ficticias donde uno es siempre el protagonista.",
           "Un método terapéutico basado en guiones de cine.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1873,7 +1803,6 @@ export const QUIZZES = {
           "Mejora del sueño y mayor capacidad de descanso.",
           "Eliminación de la ansiedad de forma natural.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -1953,7 +1882,6 @@ export const QUIZZES = {
           "La supervivencia inmediata y las reacciones automáticas de “lucha o huida”.",
           "La creación de metáforas y visualizaciones artísticas.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1967,7 +1895,6 @@ export const QUIZZES = {
           "Los matices en el tono de voz del coach activan la confianza o la defensa emocional del coachee.",
           "El cerebro límbico no tiene relación con el lenguaje, solo con el hambre.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -1981,7 +1908,6 @@ export const QUIZZES = {
           "La función de sentir miedo ante lo desconocido para evitar el cambio.",
           "El almacenamiento de grasa corporal para épocas de escasez.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -1995,7 +1921,6 @@ export const QUIZZES = {
           "El cerebro se agota y pierde la capacidad de tomar decisiones.",
           "Se activan únicamente los instintos de supervivencia del tronco encefálico.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2009,7 +1934,6 @@ export const QUIZZES = {
           "Darle la razón al coachee para que se sienta cómodo en su zona de confort.",
           "Analizar el trauma infantil que causó el miedo durante toda la sesión.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -2039,7 +1963,6 @@ export const QUIZZES = {
           "La habilidad de trabajar muchas horas seguidas.",
           "La ausencia total de sentimientos negativos.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2053,7 +1976,6 @@ export const QUIZZES = {
           "Creatividad.",
           "Adaptabilidad.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2067,7 +1989,6 @@ export const QUIZZES = {
           "La intensidad inmediata de la reacción emocional.",
           "La cantidad de eventos negativos que puedes soportar sin cambiar de trabajo.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2081,7 +2002,6 @@ export const QUIZZES = {
           "Mantener exactamente la misma conducta sin ninguna alteración.",
           "Usar el evento negativo para mejorar y subir tu nueva línea base.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2095,7 +2015,6 @@ export const QUIZZES = {
           "Dormir menos siempre aumenta la tolerancia.",
           "Comer poco mejora la adaptabilidad.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -2175,7 +2094,6 @@ export const QUIZZES = {
           "El coachee se confunde y deja de actuar.",
           "Solo cambia el entorno físico, pero no lo que la persona hace.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2189,7 +2107,6 @@ export const QUIZZES = {
           "Confusión entre Legado y Visión.",
           "No hay confusión, es una observación correcta de la realidad.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2203,7 +2120,6 @@ export const QUIZZES = {
           "Nivel de Capacidad (preguntar cómo podría desarrollar las habilidades necesarias).",
           "Nivel de Legado (preguntar qué dirán de él en 100 años).",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2217,7 +2133,6 @@ export const QUIZZES = {
           "Obligar al coachee a escribir 10 páginas diarias sobre sus problemas.",
           "Que el coachee vigile a sus compañeros de trabajo.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2231,7 +2146,6 @@ export const QUIZZES = {
           "Si tu transformación dejara una huella permanente en el mundo dentro de 100 años, ¿cuál sería esa obra?",
           "¿Dónde y con quién vas a realizar esta acción?",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -2503,7 +2417,6 @@ export const QUIZZES = {
           "La ausencia de títulos universitarios prestigiosos.",
           "La economía y la automatización.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2517,7 +2430,6 @@ export const QUIZZES = {
           "Conciencia (conscientiousness).",
           "Hostilidad.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2531,7 +2443,6 @@ export const QUIZZES = {
           "Aumentar radicalmente las horas de trabajo sin límites.",
           "Evitar cualquier tipo de planificación a largo plazo.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2545,7 +2456,6 @@ export const QUIZZES = {
           "Ignorar las señales internas y seguir trabajando más duro.",
           "Cambiar de carrera inmediatamente para evitar el estrés.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2559,7 +2469,6 @@ export const QUIZZES = {
           "Planificar por pasos, invertir el trabajo soñado y crear una lista de tareas a 5–7 años.",
           "Evitar formación adicional y confiar en que el jefe notará el esfuerzo.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -2629,7 +2538,6 @@ export const QUIZZES = {
           "Porque se enfoca únicamente en el entorno físico del coachee.",
           "Porque el coach da las órdenes desde una posición de autoridad.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2643,7 +2551,6 @@ export const QUIZZES = {
           "Identificar quiénes son los enemigos del coachee.",
           "Determinar cuánto dinero quiere ganar el coachee en el próximo mes.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2657,7 +2564,6 @@ export const QUIZZES = {
           "Ignorar el tono emocional del coachee para ser objetivo.",
           "Hablar únicamente de los problemas del coach.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2671,7 +2577,6 @@ export const QUIZZES = {
           "Identidad.",
           "Capacidades.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2685,7 +2590,6 @@ export const QUIZZES = {
           "Una crítica constructiva sobre los errores del coachee.",
           "El cierre inmediato de la sesión sin preguntas.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -2712,7 +2616,6 @@ export const QUIZZES = {
           "Que servir a los demás es irrelevante para la satisfacción laboral.",
           "Que lograr ingresos suficientes elimina toda insatisfacción.",
         ],
-        correcta: 0,
         obligatoria: true,
       },
       {
@@ -2726,7 +2629,6 @@ export const QUIZZES = {
           "Éxito ganado y servicio a los demás.",
           "Flexibilidad horaria y reconocimiento público.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2740,7 +2642,6 @@ export const QUIZZES = {
           "Recibir aumentos salariales automáticos por antigüedad.",
           "Evitar responsabilidades para reducir el estrés.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2754,7 +2655,6 @@ export const QUIZZES = {
           "Hacer café para compañeros y servir a otros.",
           "Cambiar de puesto dentro de la empresa.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2768,7 +2668,6 @@ export const QUIZZES = {
           "Evitar la interacción con colegas.",
           "Priorizar únicamente la remuneración económica.",
         ],
-        correcta: 0,
         obligatoria: true,
       },
     ],
@@ -2883,7 +2782,6 @@ export const QUIZZES = {
           "Una falta de fe que indica que la persona es mala.",
           "Un sentimiento que solo experimentan las personas que no tienen éxito.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2897,7 +2795,6 @@ export const QUIZZES = {
           "Que primero debe estudiar mucha filosofía antes de poder actuar.",
           "Que los demás son responsables de quién es él hoy.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2911,7 +2808,6 @@ export const QUIZZES = {
           "Salir del anonimato social y asumir la propia finitud (ser-para-la-muerte) para elegir una vida propia.",
           "Cambiar de personalidad cada día para ser más flexible.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -2925,7 +2821,6 @@ export const QUIZZES = {
           "Convenciendo al coachee de que nada tiene sentido y que no vale la pena esforzarse.",
           "Buscando soluciones mágicas que eliminen todos los problemas del mundo.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2939,7 +2834,6 @@ export const QUIZZES = {
           "Culpar a los demás por la situación actual.",
           "Diseñar un plan de acción financiero.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -2966,7 +2860,6 @@ export const QUIZZES = {
           "Organizar la agenda es para el trabajo y priorizar es para la familia.",
           "Priorizar consiste en hacer las tareas más fáciles primero para ahorrar energía.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2980,7 +2873,6 @@ export const QUIZZES = {
           "Quiénes son las personas que le caen mal al coachee.",
           "Cuántas horas libres tiene el coachee al día.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -2994,7 +2886,6 @@ export const QUIZZES = {
           "Evaluar si el coachee sabe colorear correctamente.",
           "Comparar al coachee con otros clientes del coach.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3008,7 +2899,6 @@ export const QUIZZES = {
           "Porque el coach decide qué área es la más importante.",
           "Porque es una regla matemática obligatoria.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3022,7 +2912,6 @@ export const QUIZZES = {
           "Tirando una moneda al aire mientras se mira la rueda.",
           "Pidiendo al coach que elija la rueda que más le guste.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -3093,7 +2982,6 @@ export const QUIZZES = {
           "Ganar discusiones utilizando trucos retóricos.",
           "Ignorar la realidad para vivir en la imaginación.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3107,7 +2995,6 @@ export const QUIZZES = {
           "Cuando el coach no utiliza un tono de voz adecuado.",
           "Cuando el coachee olvida sus metas de la semana anterior.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3121,7 +3008,6 @@ export const QUIZZES = {
           "La solución final y perfecta que no cambia más.",
           "Una pérdida de tiempo que debe evitarse.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3135,7 +3021,6 @@ export const QUIZZES = {
           "Elegir solo uno de los dos extremos: o acepto o cambio.",
           "Criticar al coachee por tener pensamientos contradictorios.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3149,7 +3034,6 @@ export const QUIZZES = {
           "Una \"Autonomía responsable\" que integre la estabilidad con la libertad de acción.",
           "Pelear internamente hasta que una de las dos ideas gane.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
     ],
@@ -3220,7 +3104,6 @@ export const QUIZZES = {
           "Porque es reemplazable con siestas largas durante el día.",
           "Porque permite ver más contenido en pantallas sin esfuerzo.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3234,7 +3117,6 @@ export const QUIZZES = {
           "La obsesión por la productividad y la prisa (multitarea).",
           "Dormir siempre a la misma hora.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -3248,7 +3130,6 @@ export const QUIZZES = {
           "Aparatos electrónicos que miden la calidad del sueño.",
           "Técnicas de respiración para conciliar el sueño.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
       {
@@ -3262,7 +3143,6 @@ export const QUIZZES = {
           "La luz azul tiene una función; el problema es usar dispositivos que activan cognitivamente al cerebro en las horas previas al sueño.",
           "Mirar el móvil en la cama ayuda a conciliar el sueño porque distrae la mente.",
         ],
-        correcta: 2,
         obligatoria: true,
       },
       {
@@ -3276,7 +3156,6 @@ export const QUIZZES = {
           "Que bastan sesiones de meditación para recuperar los ciclos de sueño perdidos.",
           "Que comer mucho por la noche compensa la falta de sueño.",
         ],
-        correcta: 1,
         obligatoria: true,
       },
     ],
@@ -3324,7 +3203,781 @@ export const QUIZZES = {
         obligatoria: true,
       },
     ],
-  }
+  },
+
+  // ── HWD M3-M9 · contenido del Excel (claves correctas viven en la BD: tabla quiz_defs) ──
+
+  "hwd-m3-actividad-1": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad",
+    "introTitle": "Presencia consciente y mindfulness",
+    "introLead": [
+      "Cuatro preguntas sobre lo que viste en el video. Algunas tienen más de una respuesta correcta. Se califican al terminar y puedes reintentarlas."
+    ],
+    "doneTitle": "¡Listo! Actividad completada",
+    "doneLead": "Gracias por participar. Revisa abajo tus respuestas.",
+    "preguntas": [
+      {
+        "id": "vivir_presencia",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 1 de 4",
+        "texto": "¿Qué significa vivir con presencia consciente?",
+        "opciones": [
+          "Estar analizando el momento presente.",
+          "No juzgar, pensar ni hacer nada.",
+          "Traer la mente al presente sin juicio ni apego."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "sin_juicio_apego",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 2 de 4",
+        "texto": "¿Por qué la presencia consciente requiere no tener juicio ni apego?",
+        "opciones": [
+          "Porque el juicio es un rechazo del momento presente, pero si nos apegamos entonces no podremos estar conscientes en el momento, por miedo a perderlo.",
+          "Porque al juzgar produzco pensamientos negativos.",
+          "Porque el apego me hace concentrarme en exceso."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "habilidades_que",
+        "tipo": "multi",
+        "eyebrow": "Pregunta 3 de 4",
+        "texto": "¿Cuáles son las habilidades qué del mindfulness?",
+        "opciones": [
+          "Observar",
+          "Describir",
+          "Anclar",
+          "Participar",
+          "Recordar",
+          "Olvidar"
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "habilidades_como",
+        "tipo": "multi",
+        "eyebrow": "Pregunta 4 de 4",
+        "texto": "¿Cuáles son las habilidades cómo del mindfulness?",
+        "opciones": [
+          "Imaginar",
+          "No juzgar",
+          "Mente en blanco",
+          "Una cosa a la vez",
+          "Ser efectivo",
+          "Ser afectivo"
+        ],
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m3-journaling": {
+    "titulo": "Journaling de mente sabia",
+    "introEyebrow": "Journaling",
+    "introTitle": "Journaling de mente sabia",
+    "introLead": [
+      "Reflexiona sobre los aspectos de tu vida que te hacen más difícil vivir la presencia consciente."
+    ],
+    "preguntas": [
+      {
+        "id": "eventos_pasado",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 1 de 4",
+        "texto": "Escribe los eventos del pasado a los que habitualmente vuelves con la mente.",
+        "obligatoria": true
+      },
+      {
+        "id": "situaciones_futuro",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 2 de 4",
+        "texto": "Escribe las situaciones del futuro a las que vas con la imaginación.",
+        "obligatoria": true
+      },
+      {
+        "id": "lugares",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 3 de 4",
+        "texto": "Escribe los lugares (físicos o digitales) a los que viajas con la imaginación o memoria.",
+        "obligatoria": true
+      },
+      {
+        "id": "pendientes",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 4 de 4",
+        "texto": "Escribe los pendientes del trabajo o de tus estudios que no te permiten relajarte.",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m3-meditacion": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad · Práctica de mindfulness",
+    "introTitle": "Práctica guiada de mindfulness",
+    "introLead": [
+      "Siéntate con la espalda recta pero sin rigidez. Apoya los pies en el suelo. Deja que tus manos descansen sobre las piernas. Cierra suavemente los ojos o baja la mirada.",
+      "Vamos a practicar las habilidades básicas de mindfulness (observar, describir, participar; sin juzgar, una sola cosa a la vez y con efectividad), que consisten en su esencia en estar aquí, sin querer cambiar nada. Duración total: 10 minutos."
+    ],
+    "doneTitle": "¡Listo! Práctica completada",
+    "doneLead": "Gracias por darte este espacio.",
+    "preguntas": [
+      {
+        "id": "experiencia",
+        "tipo": "texto",
+        "eyebrow": "Tu experiencia",
+        "texto": "Después, narra tu experiencia: describe la sensación general (vértigo, aburrimiento, vacío, emoción, gratitud, etc.).",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m4-journaling": {
+    "titulo": "Journaling",
+    "introEyebrow": "Journaling",
+    "introTitle": "Tu relación con tu cuerpo",
+    "introLead": [
+      "Tómate unos minutos para reflexionar con honestidad."
+    ],
+    "preguntas": [
+      {
+        "id": "relacion_cuerpo",
+        "tipo": "texto",
+        "eyebrow": "Reflexión",
+        "texto": "¿Cómo describirías tu relación con tu cuerpo? ¿Es un medio para algo más? ¿Es mi aliado? ¿Es un obstáculo? ¿Es lo más importante para mí? ¿Es mi todo?",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m4-reto": {
+    "titulo": "Dinámica",
+    "introEyebrow": "Dinámica · Reto 24 horas",
+    "introTitle": "Reto de las próximas 24 horas",
+    "introLead": [
+      "Elige uno de estos tres retos y lógralo en las próximas 24 horas."
+    ],
+    "doneTitle": "¡Reto aceptado!",
+    "doneLead": "Vuelve mañana y cuéntanos cómo te fue en el foro del curso.",
+    "preguntas": [
+      {
+        "id": "reto",
+        "tipo": "choice",
+        "eyebrow": "Elige tu reto",
+        "texto": "¿Cuál reto vas a lograr en las próximas 24 horas?",
+        "opciones": [
+          "Caminar o correr 10,000 pasos.",
+          "Comidas con mis porciones adecuadas y los grupos alimenticios completos, con 2 litros de agua.",
+          "Higiene de sueño: dormir entre 7-8 horas y no interactuar con pantallas 1 hora antes de dormir."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "compromiso",
+        "tipo": "texto",
+        "eyebrow": "Tu plan",
+        "texto": "¿Cómo lo vas a lograr? Describe brevemente tu plan (horario, lugar, qué necesitas preparar).",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m5-actividad-1": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad",
+    "introTitle": "Claves del bienestar emocional",
+    "introLead": [
+      "Siete preguntas de opción múltiple sobre lo que viste en el video. Se califican al terminar y puedes reintentarlas."
+    ],
+    "doneTitle": "¡Listo! Actividad completada",
+    "doneLead": "Gracias por participar. Revisa abajo tus respuestas.",
+    "preguntas": [
+      {
+        "id": "proposito_bienestar",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 1 de 7",
+        "texto": "¿Qué describe mejor el propósito del bienestar emocional?",
+        "opciones": [
+          "Evitar las emociones negativas y mantener solo las positivas.",
+          "Controlar las emociones mediante la razón y la fuerza de voluntad.",
+          "Identificar, comprender y regular las emociones de forma flexible y con sentido.",
+          "Reprimir las emociones para mantener estabilidad emocional."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "conciencia_emocional",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 2 de 7",
+        "texto": "¿Qué significa “conciencia emocional”?",
+        "opciones": [
+          "Reprimir las emociones negativas para no afectarse.",
+          "Saber qué se siente y poder nombrar las emociones con claridad.",
+          "Analizar racionalmente las emociones de los demás.",
+          "Cambiar las emociones sin reconocerlas."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "validacion_emocional",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 3 de 7",
+        "texto": "¿Qué implica la validación emocional?",
+        "opciones": [
+          "Evitar el malestar ignorando los sentimientos.",
+          "Justificar conductas impulsivas mediante las emociones.",
+          "Reconocer que toda emoción tiene una función, incluso las dolorosas.",
+          "Cambiar de inmediato cualquier emoción desagradable."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "regulacion_objetivo",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 4 de 7",
+        "texto": "¿Cuál es el objetivo principal de la regulación emocional?",
+        "opciones": [
+          "Eliminar completamente las emociones negativas.",
+          "Disminuir el sufrimiento y aumentar las emociones positivas.",
+          "Sustituir las emociones por pensamientos racionales.",
+          "Controlar las emociones de los demás para evitar conflictos."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "linehan_bienestar",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 5 de 7",
+        "texto": "Según Linehan (2015), el bienestar emocional resulta de:",
+        "opciones": [
+          "Mantener una actitud positiva en todo momento.",
+          "Equilibrar aceptación y cambio, y construir una vida valiosa.",
+          "Controlar los impulsos mediante la razón.",
+          "Evitar la tristeza y el dolor emocional."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "practica_regulacion",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 6 de 7",
+        "texto": "¿Qué práctica favorece la regulación emocional efectiva?",
+        "opciones": [
+          "Evadir los conflictos emocionales para evitar el estrés.",
+          "Analizar el origen racional de las emociones.",
+          "Observar sin juzgar y describir las emociones presentes.",
+          "Buscar distracción ante las emociones intensas."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "camino_medio",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 7 de 7",
+        "texto": "¿Qué representa el “camino del medio” en la teoría dialéctica?",
+        "opciones": [
+          "Un punto neutro entre emociones extremas.",
+          "La negación de las emociones intensas.",
+          "El equilibrio entre aceptar lo que se siente y buscar el cambio.",
+          "La represión de los impulsos para alcanzar la calma."
+        ],
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m5-journaling": {
+    "titulo": "Journaling",
+    "introEyebrow": "Journaling",
+    "introTitle": "Cultivar emociones positivas",
+    "introLead": [
+      "Las emociones positivas son como semillas. Algunas aparecen espontáneamente; otras requieren tierra fértil, agua, paciencia y luz. Como dice Barbara Fredrickson, las emociones positivas tienen un “efecto de ampliación y construcción”: cada vez que experimentas alegría, gratitud, interés, asombro o amor, no solo te sientes bien en ese instante, sino que literalmente expandes tu repertorio de pensamientos y acciones, construyendo recursos psicológicos, sociales y físicos que te acompañarán toda la vida.",
+      "Vamos a aplicar las habilidades qué y cómo del mindfulness para cultivar las emociones positivas. A veces el bienestar no está en cambiar la vida, sino en mirar distinto lo que ya tenemos."
+    ],
+    "preguntas": [
+      {
+        "id": "que_emociones",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 1 de 3",
+        "texto": "¿Qué emociones sentiste?",
+        "obligatoria": true
+      },
+      {
+        "id": "donde_cuerpo",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 2 de 3",
+        "texto": "¿En qué parte de tu cuerpo las sentiste?",
+        "obligatoria": true
+      },
+      {
+        "id": "como_describes",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 3 de 3",
+        "texto": "¿Cómo describirías esas emociones? (Color, temperatura, tamaño, forma, etc.)",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m6-dinamica": {
+    "titulo": "Dinámica",
+    "introEyebrow": "Dinámica",
+    "introTitle": "¿A qué te dedicas?",
+    "introLead": [
+      "Acércate a alguien o llama por teléfono y sigue este ejercicio: pregúntense, como perfectos desconocidos, a qué se dedican. Pide a la otra persona que anote tu respuesta y te la entregue o te la lea de vuelta.",
+      "Analiza, desde la letra o voz de la otra persona, tu respuesta: aquello a lo que tú te dedicas."
+    ],
+    "preguntas": [
+      {
+        "id": "respuesta_anotada",
+        "tipo": "texto",
+        "eyebrow": "Paso 1",
+        "texto": "Escribe la respuesta que anotó la otra persona: ¿a qué dijiste que te dedicas?",
+        "obligatoria": true
+      },
+      {
+        "id": "vocacion",
+        "tipo": "texto",
+        "eyebrow": "Paso 2",
+        "texto": "Verdaderamente, ¿a eso te dedicas? ¿Ese es tu llamado? ¿Tu misión? Establécelo de nuevo bajo la luz del concepto de vocación.",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m6-journaling": {
+    "titulo": "Journaling",
+    "introEyebrow": "Journaling",
+    "introTitle": "Tu relación con el dinero",
+    "introLead": [
+      "¿Qué emociones experimentas cuando piensas en el dinero? Apóyate en este banco de palabras: tranquilidad, seguridad, alegría, entusiasmo, gratitud, orgullo, esperanza, confianza, ansiedad, preocupación, miedo, culpa, envidia, frustración, enojo, vergüenza, deseo, desconfianza, compasión, libertad, responsabilidad…"
+    ],
+    "preguntas": [
+      {
+        "id": "emociones_dinero",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 1 de 6",
+        "texto": "¿Qué emociones experimento cuando pienso en el dinero? (Usa el banco de palabras como apoyo.)",
+        "obligatoria": true
+      },
+      {
+        "id": "presencia_acerca",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 2 de 6",
+        "texto": "Describe un momento o un tipo de momentos en los que la presencia del dinero me ha acercado a la felicidad.",
+        "obligatoria": true
+      },
+      {
+        "id": "presencia_frustra",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 3 de 6",
+        "texto": "Ahora, momentos en los que la presencia del dinero me ha frustrado la felicidad.",
+        "obligatoria": true
+      },
+      {
+        "id": "ausencia_acerca",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 4 de 6",
+        "texto": "¿En qué momentos la ausencia de dinero me ha acercado a la felicidad?",
+        "obligatoria": true
+      },
+      {
+        "id": "costumbre",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 5 de 6",
+        "texto": "Piensa en una costumbre relacionada al dinero que poseas, la cual consideras poco deseable (gastos en cierto tipo de cosas, sentimientos, envidias, etc.).",
+        "obligatoria": true
+      },
+      {
+        "id": "tres_pasos",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 6 de 6",
+        "texto": "¿Qué puedes hacer para cambiarla? Menciona un hilo de 3 pasos.",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m7-actividad-1": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad",
+    "introTitle": "La clave de los vínculos vitales",
+    "introLead": [
+      "Cinco preguntas de opción múltiple sobre lo que viste en el video. Se califican al terminar y puedes reintentarlas."
+    ],
+    "doneTitle": "¡Listo! Actividad completada",
+    "doneLead": "Gracias por participar. Revisa abajo tus respuestas.",
+    "preguntas": [
+      {
+        "id": "identidad_vinculos",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 1 de 5",
+        "texto": "¿Cuál es la relación fundamental entre la identidad del ser humano y sus vínculos?",
+        "opciones": [
+          "El individuo es un ser aislado que decide opcionalmente relacionarse con otros.",
+          "La identidad se construye únicamente a través de logros y bienestar interno.",
+          "El ser humano es constitutivamente referido a los demás; su identidad se construye en el encuentro.",
+          "Los vínculos son un añadido que solo sirven para complementar una vida que ya está completa."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "calidad_vinculos",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 2 de 5",
+        "texto": "¿Qué concluye la psicología contemporánea sobre la calidad de los vínculos y el bienestar?",
+        "opciones": [
+          "Lo importante para la salud emocional es simplemente “tener mucha gente alrededor”.",
+          "Los vínculos seguros elevan la resiliencia y favorecen la regulación afectiva.",
+          "El impacto de los vínculos tóxicos se limita únicamente al área social, sin afectar el cuerpo.",
+          "La madurez humana consiste en aprender a no depender de ningún vínculo emocional."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "amar_bien",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 3 de 5",
+        "texto": "¿Qué describe mejor la condición necesaria para “amar bien”?",
+        "opciones": [
+          "Poseer una buena intención y sentir un afecto intenso por el otro.",
+          "Priorizar las necesidades del otro por encima de los propios valores.",
+          "Tener conciencia, autoconocimiento, regulación emocional e integración de límites.",
+          "Evitar cualquier tipo de fricción o tensión en la relación."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "dilema_erizo",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 4 de 5",
+        "texto": "¿A qué se refiere el “dilema del erizo” de Schopenhauer aplicado a las relaciones humanas?",
+        "opciones": [
+          "A la necesidad de mantenerse alejados para evitar cualquier tipo de sufrimiento.",
+          "A la búsqueda de una distancia justa que equilibre la necesidad de calor y el riesgo de ser herido.",
+          "A la imposibilidad total de encontrar calor en los vínculos humanos.",
+          "Al deseo de fusión total donde las individualidades desaparecen por completo."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "madurez_afectiva",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 5 de 5",
+        "texto": "¿En qué consiste la madurez afectiva?",
+        "opciones": [
+          "En utilizar al otro como un salvador que repare nuestras heridas del pasado.",
+          "En blindarse emocionalmente para que nadie pueda ver nuestra vulnerabilidad.",
+          "En la integración de vulnerabilidad sin fusión, límites sin rigidez y apertura sin autoabandono.",
+          "En alcanzar la autosuficiencia total para no necesitar el cuidado de los demás."
+        ],
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m7-journaling": {
+    "titulo": "Journaling",
+    "introEyebrow": "Journaling",
+    "introTitle": "La metáfora de los erizos",
+    "introLead": [
+      "De acuerdo a la metáfora de los erizos:"
+    ],
+    "preguntas": [
+      {
+        "id": "como_hiero",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 1 de 2",
+        "texto": "Piensa en una persona muy cercana a ti (un familiar, una amistad, tu pareja o un compañero de trabajo). Identifica una forma en la que la sueles herir. ¿Qué proteges / qué buscas / qué esperas con ese pinchazo?",
+        "obligatoria": true
+      },
+      {
+        "id": "como_me_hieren",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 2 de 2",
+        "texto": "Piensa en otra persona muy cercana a ti. Identifica una forma en la que esa persona te suele herir. ¿Cómo podrías reaccionar sin pinchar de vuelta? Interpreta: ¿de dónde crees que viene su acción de lastimar?",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m7-dinamica": {
+    "titulo": "Dinámica",
+    "introEyebrow": "Dinámica · Consultoría de comunicación",
+    "introTitle": "El mensaje de Lucía: DEAR MAN, AVES y VIDA",
+    "introLead": [
+      "En esta actividad actuarás como consultor experto en comunicación. El escenario: Lucía le prestó $500 a su amiga Carla hace dos meses. Carla prometió pagarlos en una semana, pero no lo ha hecho. Lucía necesita el dinero para pagar su propia renta, pero tiene miedo de que Carla se enoje si se lo cobra.",
+      "El borrador “desastroso” de Lucía: “Hola Carla, perdón por molestarte :( Oye, no sé si te acuerdas de lo del dinero... es que igual y ya se te olvidó, pero bueno, no pasa nada, solo que estoy un poco corta de dinero porque mi jefe no me ha pagado (mentira para no sonar dura) y me preguntaba si de casualidad podrías depositarme, si no puedes no importa, perdón de nuevo.”",
+      "Tu misión: corregirlo aplicando las lentes de DEAR MAN (objetivo), AVES (relación) y VIDA (autorespeto)."
+    ],
+    "doneTitle": "¡Listo! Dinámica completada",
+    "doneLead": "Gran trabajo como consultor. Revisa abajo tus respuestas.",
+    "preguntas": [
+      {
+        "id": "dear_d",
+        "tipo": "texto",
+        "eyebrow": "Paso 1 · DEAR MAN — Describir",
+        "texto": "(D) Describir: completa la frase con los hechos. “Hace ___ te presté ___ y acordamos que me pagarías en ___.”",
+        "obligatoria": true
+      },
+      {
+        "id": "dear_e",
+        "tipo": "texto",
+        "eyebrow": "Paso 1 · DEAR MAN — Expresar",
+        "texto": "(E) Expresar: “Como no he recibido el pago, me siento ___ con mis propios gastos.”",
+        "obligatoria": true
+      },
+      {
+        "id": "dear_a",
+        "tipo": "texto",
+        "eyebrow": "Paso 1 · DEAR MAN — Asertar",
+        "texto": "(A) Asertar: “Por favor, necesito que me hagas el depósito a más tardar el ___.”",
+        "obligatoria": true
+      },
+      {
+        "id": "dear_r",
+        "tipo": "texto",
+        "eyebrow": "Paso 1 · DEAR MAN — Reforzar",
+        "texto": "(R) Reforzar: “Así podremos dejar este tema atrás y ___.”",
+        "obligatoria": true
+      },
+      {
+        "id": "vida_eliminar",
+        "tipo": "multi",
+        "eyebrow": "Paso 2 · Filtro VIDA (Autorespeto)",
+        "texto": "Lucía violó dos reglas de VIDA en su borrador original. ¿Qué frases debemos ELIMINAR para mantener su dignidad?",
+        "opciones": [
+          "“Hola Carla”",
+          "“Perdón por molestarte”",
+          "“Mi jefe no me ha pagado”",
+          "“Estoy un poco corta de dinero”"
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "aves_cierre",
+        "tipo": "choice",
+        "eyebrow": "Paso 3 · Filtro AVES (Cuidar la relación)",
+        "texto": "Elige la frase de cierre que cumple mejor con la función de Validar (V) y ser Amable (A):",
+        "opciones": [
+          "“Espero que no me falles otra vez.”",
+          "“Entiendo que has tenido gastos fuertes últimamente y sé que no lo haces por maldad, pero realmente necesito el dinero.”",
+          "“Págame cuando puedas, amiga.”"
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "mensaje_final",
+        "tipo": "texto",
+        "eyebrow": "Paso 4 · El resultado final",
+        "texto": "Escribe el mensaje final combinando los pasos anteriores (D + validación AVES + E + A + R).",
+        "obligatoria": true
+      },
+      {
+        "id": "reflexion_final",
+        "tipo": "texto",
+        "eyebrow": "Reflexión final",
+        "texto": "Comparado con el borrador original lleno de disculpas, ¿cómo crees que se sentirá Lucía consigo misma después de enviar esta nueva versión?",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m8-actividad-1": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad",
+    "introTitle": "La belleza más allá del arte",
+    "introLead": [
+      "Cuatro preguntas sobre lo que viste en el video. Una tiene más de una respuesta correcta. Se califican al terminar y puedes reintentarlas."
+    ],
+    "doneTitle": "¡Listo! Actividad completada",
+    "doneLead": "Gracias por participar. Revisa abajo tus respuestas.",
+    "preguntas": [
+      {
+        "id": "frase_ee",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 1 de 4",
+        "texto": "Esta frase describe mejor la Estética existencial:",
+        "opciones": [
+          "Es un amor por las bellas artes.",
+          "Es romantizar cada momento sencillo y convertirlo en especial.",
+          "El arte de habitar la vida.",
+          "Vivir en una dimensión artística continua."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "elementos_ee",
+        "tipo": "multi",
+        "eyebrow": "Pregunta 2 de 4",
+        "texto": "Selecciona los elementos a los cuales accede una persona que busca integrar la estética existencial en su vida:",
+        "opciones": [
+          "Bondad",
+          "Verdad",
+          "Belleza",
+          "Maestría",
+          "Intelectualismo"
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "bellas_artes",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 3 de 4",
+        "texto": "¿El aprecio o práctica de las bellas artes es un ejemplo de una actitud de Estética Existencial?",
+        "opciones": [
+          "Verdadero",
+          "Falso"
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "romantizar",
+        "tipo": "choice",
+        "eyebrow": "Pregunta 4 de 4",
+        "texto": "Para integrar la Estética existencial, ¿habría que romantizar la vida en algún punto o de alguna manera?",
+        "opciones": [
+          "Verdadero",
+          "Falso"
+        ],
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m8-cuadrante": {
+    "titulo": "Actividad",
+    "introEyebrow": "Actividad · Lo importante y lo urgente",
+    "introTitle": "El cuadrante de lo importante y lo urgente",
+    "introLead": [
+      "Piensa en el cuadrante que cruza dos ejes: importante / no importante y urgente / no urgente. La Estética Existencial vive en lo importante pero NO urgente: por eso solemos relegarla."
+    ],
+    "preguntas": [
+      {
+        "id": "cuadrante",
+        "tipo": "texto",
+        "eyebrow": "Paso 1",
+        "texto": "Anota varios elementos o actividades de tu vida en el cuadrante que corresponda (importante y urgente / importante no urgente / urgente no importante / ni urgente ni importante).",
+        "obligatoria": true
+      },
+      {
+        "id": "tiempo_importante",
+        "tipo": "texto",
+        "eyebrow": "Paso 2",
+        "texto": "Según lo que anotaste en importante pero NO urgente: ¿qué tanto tiempo le dedicas a eso? ¿Cómo te puedes comprometer para aterrizarlo en tu vida?",
+        "obligatoria": true
+      },
+      {
+        "id": "tecnica",
+        "tipo": "texto",
+        "eyebrow": "Paso 3",
+        "texto": "Hemos dicho que la Estética Existencial está en lo no urgente pero importante… reflexiona: ¿cuál es una técnica o acción que podrías utilizar para no relegarla?",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m8-journaling": {
+    "titulo": "Journaling",
+    "introEyebrow": "Journaling",
+    "introTitle": "Abrirse a la belleza del mundo",
+    "introLead": [
+      "Aprender a abrirse a la belleza del mundo y de la propia vida no es fácil. No basta hacer una cosa esporádicamente, sino abrirse progresivamente a una realidad maravillosa que nos rodea por completo y en la que estamos inmersos.",
+      "Actividades a realizar esta semana: (1) Contempla durante 15 minutos el mundo que te rodea (desde una ventana, un mirador, un atardecer). No tomes fotos, no escuches podcasts, ni hables: simplemente observa con calma y disfruta. (2) Ve a un parque cercano y pasea lentamente durante media hora, sin música, podcasts ni llamadas: observa los árboles, el camino, a las demás personas. (3) Si crees que Dios existe y que te escucha, dedica 10 minutos a platicar con Él; o si prefieres, dedica 10 minutos a enlistar y pensar sobre todas las cosas por las que estás agradecido.",
+      "Si todas estas cosas te parecen imposibles, quizá deberías empezar estableciendo períodos de “ayuno” de notificaciones: desactivarlas por un rato, dejar el teléfono aparte en ciertos momentos. Es prácticamente imposible abrirse a la belleza del mundo si vivimos secuestrados por las notificaciones."
+    ],
+    "preguntas": [
+      {
+        "id": "notas_actividades",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 1 de 2",
+        "texto": "Escribe, brevemente (a mano, de ser posible, y luego captúralo aquí), lo que te parecieron las actividades que realizaste y lo que descubriste al hacerlas.",
+        "obligatoria": true
+      },
+      {
+        "id": "tres_actividades",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 2 de 2",
+        "texto": "Ahora, escoge 3 actividades (pueden ser las 3 sugeridas u otras que se parezcan y te atraigan especialmente). Ponte la meta de realizarlas cada semana, durante toda tu vida.",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m9-journaling": {
+    "titulo": "Journaling",
+    "introEyebrow": "Journaling",
+    "introTitle": "Tu perfil de actitud frente a la vida",
+    "introLead": [
+      "Identifica tu perfil de actitud frente a la vida. Piensa en tu postura respecto al significado de esta vida que caminas cada día, en cada momento."
+    ],
+    "preguntas": [
+      {
+        "id": "fenomeno",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 1 de 4",
+        "texto": "Describe el fenómeno: si eres perfil 1, ¿cuál es tu estrella polar? Si eres perfil 2, describe la búsqueda: ¿es alegre, frustrante, solitaria? Si eres perfil 3, describe tu aceptación o frustración respecto del vivir por vivir. Si eres perfil 4, ¿cómo llegaste a la conclusión del sinsentido de la vida?",
+        "obligatoria": true
+      },
+      {
+        "id": "por_que",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 2 de 4",
+        "texto": "Explica por qué crees que te encuentras ahí. Desglosa algunos hechos.",
+        "obligatoria": true
+      },
+      {
+        "id": "impacto",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 3 de 4",
+        "texto": "Describe la forma en que impacta tu vida y la de los demás (utiliza una frase o conversación puntual), las consecuencias generales e incluso algún evento puntual donde reluzca con detalle esta postura.",
+        "obligatoria": true
+      },
+      {
+        "id": "satisfaccion",
+        "tipo": "texto",
+        "eyebrow": "Reflexión 4 de 4",
+        "texto": "Describe tu nivel de satisfacción con tu situación de fe y filosofía de vida (imagina una escala del 1 al 10: ¿en qué número estás y en cuál quisieras estar?). Identifica qué dificulta que te encuentres en el nivel donde quisieras estar, incluso si quisieras ser otro perfil.",
+        "obligatoria": true
+      }
+    ]
+  },
+
+  "hwd-m9-dinamica": {
+    "titulo": "Dinámica",
+    "introEyebrow": "Dinámica · Trascendencia",
+    "introTitle": "Salir de la inmanencia",
+    "introLead": [
+      "Para fortalecer el elemento de Fe y filosofía de vida, es esencial salir de la inmanencia y conectar con algo más allá de ti mismo. Es necesario trascender tres elementos: pasar de estar enfocado solamente en uno mismo a vivir también para los demás; pasar de lo inmediato hacia el sentido profundo; y pasar de lo finito y pasajero a lo absoluto y eterno."
+    ],
+    "doneTitle": "¡Dinámica registrada!",
+    "doneLead": "Cuando completes tu actividad, vuelve y comparte tu experiencia en el foro del curso.",
+    "preguntas": [
+      {
+        "id": "actividad_elegida",
+        "tipo": "choice",
+        "eyebrow": "Elige tu actividad",
+        "texto": "Elige una de las siguientes tres actividades para fortalecer la dimensión trascendente en tu vida:",
+        "opciones": [
+          "Hablar con una persona que sea una referencia religiosa, espiritual o moral para ti: preguntarle cómo conecta con la dimensión trascendente y qué lecturas, prácticas o ritos sigue.",
+          "Participar de un voluntariado, unas misiones o un programa de ayuda social, involucrándote directamente con las personas (no solo apoyo técnico, moral o económico).",
+          "Participar de un retiro (gestionado o auto-gestionado, en silencio, solitario o con más personas), reservando al menos un día para conectar de modo más profundo con estas cuestiones."
+        ],
+        "obligatoria": true
+      },
+      {
+        "id": "experiencia",
+        "tipo": "texto",
+        "eyebrow": "Tu experiencia",
+        "texto": "Al terminar tu actividad: ¿cómo te sentiste? ¿Notas que tu vida ha cobrado un sentido más fuerte, o te sientes más pleno o más listo para enfrentar la incertidumbre de la vida?",
+        "obligatoria": true
+      }
+    ]
+  },
+
+
 };
 
 export function getQuizDef(key) {

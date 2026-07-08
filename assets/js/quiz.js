@@ -33,6 +33,29 @@ import { getQuizDef } from "./quiz-defs.js";
  * @param {string} [opts.nextLabel]
  * @param {() => Promise<void>} [opts.onComplete] · para marcar la lección
  */
+// Separador para respuestas de preguntas tipo "multi" (varias opciones).
+const MULTI_SEP = " || ";
+
+// Las claves correctas ya NO viven en quiz-defs.js: viven en la BD
+// (tabla quiz_defs) y el backend las devuelve únicamente después de un
+// submit (o al consultar resultados de un quiz ya completado). Este helper
+// las inyecta en la def local para que el resumen y el score rendericen.
+function applyClaves(def, claves) {
+  if (!claves || typeof claves !== "object") return;
+  for (const p of (def.preguntas || [])) {
+    const c = claves[p.id];
+    if (c === undefined) continue;
+    if (Array.isArray(c)) {
+      p.correctas = c
+        .map((texto) => (p.opciones || []).indexOf(texto))
+        .filter((i) => i >= 0);
+    } else {
+      const i = (p.opciones || []).indexOf(c);
+      if (i >= 0) p.correcta = i;
+    }
+  }
+}
+
 export async function mountQuiz({ container, quizKey, leccionId, inscripcionId, nextHref, nextLabel, onComplete }) {
   if (!container) return;
 
@@ -88,6 +111,7 @@ export async function mountQuiz({ container, quizKey, leccionId, inscripcionId, 
       // defecto. Esto le permite ver el resumen Y avanzar a la siguiente
       // lección sin tener que re-submittear.
       // Excepción: para quizzes scored solo lo mostramos si aprobó.
+      if (prev.claves) applyClaves(def, prev.claves);
       const score = calcularScore(def, state.respuestas);
       const puedeAvanzar = !score || score.aprobado;
       if (puedeAvanzar) {
@@ -177,6 +201,8 @@ function renderPregunta(state, idx) {
   let body = "";
   if (p.tipo === "choice") {
     body = renderChoiceList(p, value);
+  } else if (p.tipo === "multi") {
+    body = renderMultiList(p, value);
   } else if (p.tipo === "escala") {
     body = renderEscala(p, value);
   } else if (p.tipo === "texto") {
@@ -185,7 +211,7 @@ function renderPregunta(state, idx) {
 
   // Botón "Siguiente / Enviar": para choice/escala aparece al responder; para
   // texto siempre visible (porque puede ser opcional o requerir confirmar).
-  const showNext = p.tipo === "texto" || isAnswered || !p.obligatoria;
+  const showNext = p.tipo === "texto" || p.tipo === "multi" || isAnswered || !p.obligatoria;
   const nextLabel = isLast ? "Completar" : "Siguiente";
 
   return `
@@ -233,6 +259,31 @@ function renderChoiceList(p, value) {
   const isBinary = (p.opciones || []).length === 2
     && (p.opciones || []).every((o) => (o || "").length <= 6);
   return `<div class="quiz-choice-list ${isBinary ? "quiz-choice-list--binary" : ""}">${opts}</div>`;
+}
+
+// Pregunta tipo "multi": selección múltiple con checkboxes. La respuesta se
+// guarda como los textos de las opciones elegidas unidos por MULTI_SEP.
+function renderMultiList(p, value) {
+  const selected = new Set((value || "").split(MULTI_SEP).map((s) => s.trim()).filter(Boolean));
+  const opts = (p.opciones || []).map((opt) => {
+    const active = selected.has(opt);
+    return `
+      <button
+        class="quiz-choice quiz-choice--multi ${active ? "is-active" : ""}"
+        data-quiz-action="choose-multi"
+        data-value="${escapeHtml(opt)}"
+        type="button"
+        aria-pressed="${active ? "true" : "false"}"
+      >
+        <span class="quiz-choice__radio quiz-choice__radio--square" aria-hidden="true"></span>
+        <span class="quiz-choice__label">${escapeHtml(opt)}</span>
+      </button>
+    `;
+  }).join("");
+  return `
+    <p class="quiz-optional-note">Selecciona todas las que apliquen.</p>
+    <div class="quiz-choice-list">${opts}</div>
+  `;
 }
 
 // Pregunta tipo escala Likert 1–5 con las "bolitas" (mismas clases CSS que la
@@ -350,8 +401,8 @@ function renderResumenConScore(state) {
 
   const items = scored.map((p) => {
     const respuestaUsuario = state.respuestas[p.id];
-    const opcionCorrecta = p.opciones[p.correcta];
-    const acerto = respuestaUsuario === opcionCorrecta;
+    const opcionCorrecta = correctaLabel(p);
+    const acerto = esCorrecta(p, respuestaUsuario);
     const userHtml = respuestaUsuario
       ? `<div class="quiz-resumen-item__user">Tu respuesta: <strong>${escapeHtml(respuestaUsuario)}</strong></div>`
       : `<div class="quiz-resumen-item__user quiz-resumen-item__user--empty">No respondida</div>`;
@@ -407,13 +458,26 @@ function renderResumenConScore(state) {
  * Devuelve { scored, aciertos, total, pct, aprobado } o null si no aplica.
  * Umbral de aprobación: 60%.
  */
+function esCorrecta(p, respuesta) {
+  if (Array.isArray(p.correctas)) {
+    const esperado = new Set(p.correctas.map((i) => p.opciones[i]));
+    const dado = new Set((respuesta || "").split(MULTI_SEP).map((s) => s.trim()).filter(Boolean));
+    return esperado.size === dado.size && [...esperado].every((s) => dado.has(s));
+  }
+  return respuesta === p.opciones[p.correcta];
+}
+
+function correctaLabel(p) {
+  if (Array.isArray(p.correctas)) return p.correctas.map((i) => p.opciones[i]).join(", ");
+  return p.opciones[p.correcta];
+}
+
 function calcularScore(def, respuestas) {
   if (!hasScoring(def)) return null;
-  const scored = def.preguntas.filter((p) => typeof p.correcta === "number");
+  const scored = def.preguntas.filter((p) => typeof p.correcta === "number" || Array.isArray(p.correctas));
   let aciertos = 0;
   for (const p of scored) {
-    const opcionCorrecta = p.opciones[p.correcta];
-    if (respuestas[p.id] === opcionCorrecta) aciertos += 1;
+    if (esCorrecta(p, respuestas[p.id])) aciertos += 1;
   }
   const total = scored.length;
   const pct = total > 0 ? Math.round((aciertos / total) * 100) : 0;
@@ -422,7 +486,7 @@ function calcularScore(def, respuestas) {
 }
 
 function hasScoring(def) {
-  return (def?.preguntas || []).some((p) => typeof p.correcta === "number");
+  return (def?.preguntas || []).some((p) => typeof p.correcta === "number" || Array.isArray(p.correctas));
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -552,6 +616,20 @@ function clickHandler(state, e) {
     return;
   }
 
+  if (action === "choose-multi") {
+    const opt = btn.dataset.value;
+    const current = new Set((state.respuestas[p.id] || "").split(MULTI_SEP).map((s) => s.trim()).filter(Boolean));
+    if (current.has(opt)) current.delete(opt); else current.add(opt);
+    // Preservar el orden de p.opciones al serializar
+    state.respuestas[p.id] = (p.opciones || []).filter((o) => current.has(o)).join(MULTI_SEP);
+    persistState(state);
+    btn.classList.toggle("is-active");
+    btn.setAttribute("aria-pressed", btn.classList.contains("is-active") ? "true" : "false");
+    const nextBtn = state.container.querySelector('[data-quiz-action="next"]');
+    if (nextBtn && p.obligatoria) nextBtn.disabled = !isAnswerValid(p, state.respuestas[p.id]);
+    return;
+  }
+
   if (action === "escala") {
     const v = parseInt(btn.getAttribute("data-value"), 10);
     // Guardamos como string: submit-quiz valida que cada respuesta sea string,
@@ -622,16 +700,15 @@ async function submit(state) {
   render(state);
 
   try {
-    const _score = calcularScore(state.def, state.respuestas); // null si es reflexivo
+    // v2: el backend califica contra las claves en la BD (tabla quiz_defs)
+    // y devuelve { evaluacion, claves }. Ya no se manda score del cliente.
     const res = await api.submitQuiz({
       leccionId: state.leccionId,
       inscripcionId: state.inscripcionId,
       actividad: state.quizKey,
       respuestas: state.respuestas,
-      score: _score
-        ? { aciertos: _score.aciertos, total: _score.total, pct: _score.pct, aprobado: _score.aprobado }
-        : null,
     });
+    if (res?.claves) applyClaves(state.def, res.claves);
     state.completedAt = res?.completedAt || new Date().toISOString();
     state.submitted = true;
     // Limpiamos el borrador local — ya está persistido en backend
@@ -668,6 +745,10 @@ async function submit(state) {
 function isAnswerValid(pregunta, value) {
   if (pregunta.tipo === "choice") {
     return typeof value === "string" && (pregunta.opciones || []).includes(value);
+  }
+  if (pregunta.tipo === "multi") {
+    const sel = (value || "").split(MULTI_SEP).map((s) => s.trim()).filter(Boolean);
+    return sel.length > 0 && sel.every((s) => (pregunta.opciones || []).includes(s));
   }
   if (pregunta.tipo === "escala") {
     const n = parseInt(value, 10);

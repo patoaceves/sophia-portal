@@ -2,9 +2,11 @@
 //
 // Devuelve la última respuesta del user autenticado a un quiz, dada la lección.
 // Si no completó, devuelve { tieneResultados: false }.
+// v2: si la actividad tiene claves en quiz_defs, devuelve también { claves, score }
+// para que el resumen renderice correcto/incorrecto al revisitar.
 //
 // GET /get-resultados-quiz?leccionId=<UUID>
-// Response: { tieneResultados, respuestaId?, actividad?, respuestas?, completedAt? }
+// Response: { tieneResultados, respuestaId?, actividad?, respuestas?, score?, claves?, completedAt? }
 
 // ════════════════════════════════════════════════════════════════════
 // SHARED HELPERS (inlined for dashboard deploy)
@@ -177,12 +179,27 @@ Deno.serve(async (req) => {
     }
 
     const p = row.respuestas ?? {};
+
+    // v2: si la actividad tiene claves en quiz_defs, devolver también las
+    // claves y el score guardado para que el resumen renderice correcto/
+    // incorrecto al revisitar. (Las claves solo se revelan a quien ya
+    // completó la actividad: este endpoint requiere un submit previo.)
+    let claves: Record<string, unknown> | null = null;
+    if (p.actividad) {
+      const { data: defRow } = await db
+        .from("quiz_defs").select("definicion").eq("clave", p.actividad).maybeSingle();
+      const c = (defRow?.definicion as { claves?: Record<string, unknown> } | null)?.claves;
+      if (c && Object.keys(c).length > 0) claves = c;
+    }
+
     span.end({ persona: persona.id, respuesta: row.id });
     return jsonResponse(req, {
       tieneResultados: true,
       respuestaId: row.id,
       actividad: p.actividad ?? null,
       respuestas: p.respuestas ?? null,
+      score: p.score ?? null,
+      claves,
       completedAt: p.completedAt ?? row.completado_en ?? null,
     });
   } catch (err) {

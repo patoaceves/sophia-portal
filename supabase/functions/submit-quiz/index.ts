@@ -1,12 +1,13 @@
 // SOPHIA Portal · submit-quiz (Postgres, inlined)
 //
 // Guarda las respuestas de un quiz (actividad en clase) en respuestas_quiz.
-// Los quizzes NO puntúan: solo se registran las respuestas tal cual.
-// Idempotente por (leccion_id + inscripcion_id).
+// v2: si la actividad tiene claves en quiz_defs, el backend califica y
+// devuelve { evaluacion, claves }. Las claves ya no viven en el frontend.
+// Idempotente por (leccion_id + inscripcion_id): el último intento gana.
 //
 // POST /submit-quiz
 // Body: { leccionId, inscripcionId?, actividad: string, respuestas: Record<string,string> }
-// Response: { ok: true, respuestaId, alreadySubmitted? }
+// Response: { ok: true, respuestaId, updated?, evaluacion?, claves?, completedAt }
 
 // ════════════════════════════════════════════════════════════════════
 // SHARED HELPERS (inlined for dashboard deploy)
@@ -146,6 +147,37 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const MAX_ANSWER_LEN = 5000;
 
+
+// ─────────────────────────────────────────────────────────────────────
+// Evaluación server-side (v2): las claves correctas viven en la tabla
+// quiz_defs (definicion->claves = { preguntaId: textoCorrecta | [textos] }).
+// El frontend YA NO conoce las claves; se le devuelven junto con la
+// evaluación únicamente después de un submit.
+// ─────────────────────────────────────────────────────────────────────
+const MULTI_SEP = " || ";
+
+function evaluar(claves: Record<string, unknown>, respuestas: Record<string, string>) {
+  const porPregunta: Record<string, boolean> = {};
+  let aciertos = 0;
+  let total = 0;
+  for (const [pid, clave] of Object.entries(claves)) {
+    total += 1;
+    const resp = respuestas[pid] ?? "";
+    let ok = false;
+    if (Array.isArray(clave)) {
+      const esperado = new Set((clave as string[]).map((s) => s.trim()));
+      const dado = new Set(resp.split(MULTI_SEP).map((s) => s.trim()).filter(Boolean));
+      ok = esperado.size === dado.size && [...esperado].every((s) => dado.has(s));
+    } else {
+      ok = resp.trim() === String(clave).trim();
+    }
+    porPregunta[pid] = ok;
+    if (ok) aciertos += 1;
+  }
+  const pct = total > 0 ? Math.round((aciertos / total) * 100) : 0;
+  return { aciertos, total, pct, aprobado: pct >= 60, porPregunta };
+}
+
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
   if (cors) return cors;
@@ -229,10 +261,28 @@ Deno.serve(async (req) => {
     // hacía que un "volver a contestar" se perdiera. Ahora siempre se guarda
     // el último intento.
     const completedAt = new Date().toISOString();
+
+    // v2: evaluación server-side si hay claves registradas para esta actividad
+    let evaluacion: ReturnType<typeof evaluar> | null = null;
+    let clavesOut: Record<string, unknown> | null = null;
+    {
+      const { data: defRow, error: dErr } = await db
+        .from("quiz_defs").select("definicion").eq("clave", actividad).maybeSingle();
+      if (dErr) throw new ApiError(500, "db_error", dErr.message);
+      const claves = (defRow?.definicion as { claves?: Record<string, unknown> } | null)?.claves;
+      if (claves && Object.keys(claves).length > 0) {
+        evaluacion = evaluar(claves, respuestas);
+        clavesOut = claves;
+      }
+    }
+
     const payload = {
-      version: 1,
+      version: 2,
       actividad,
       respuestas,
+      ...(evaluacion
+        ? { score: { aciertos: evaluacion.aciertos, total: evaluacion.total, pct: evaluacion.pct, aprobado: evaluacion.aprobado } }
+        : {}),
       completedAt,
     };
 
@@ -251,7 +301,7 @@ Deno.serve(async (req) => {
         .eq("id", existing.id);
       if (uErr) throw new ApiError(500, "db_error", uErr.message);
       span.end({ persona: persona.id, respuesta: existing.id, updated: true });
-      return jsonResponse(req, { ok: true, respuestaId: existing.id, updated: true });
+      return jsonResponse(req, { ok: true, respuestaId: existing.id, updated: true, evaluacion, claves: clavesOut, completedAt });
     }
 
     // Insert (primer intento)
@@ -267,7 +317,7 @@ Deno.serve(async (req) => {
     if (cErr) throw new ApiError(500, "db_error", cErr.message);
 
     span.end({ persona: persona.id, respuesta: created.id, actividad });
-    return jsonResponse(req, { ok: true, respuestaId: created.id });
+    return jsonResponse(req, { ok: true, respuestaId: created.id, evaluacion, claves: clavesOut, completedAt });
   } catch (err) {
     span.end({ error: true });
     return errorResponse(req, err);
