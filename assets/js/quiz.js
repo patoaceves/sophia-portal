@@ -608,6 +608,14 @@ function renderResumenPerfiles(state) {
     ? `<p class="quiz-perfil__ref"><span>Referentes:</span> ${escapeHtml(perfil.referentes.join(" \u00b7 "))}</p>`
     : "";
 
+  const imgs = (perfil.imagenes && perfil.imagenes.length)
+    ? `<div class="quiz-perfil__imgs">${perfil.imagenes.map((im) => `
+        <figure class="quiz-perfil__figure">
+          <img class="quiz-perfil__img" src="${escapeHtml(im.src)}" alt="${escapeHtml(im.alt || perfil.nombre)}" loading="lazy" referrerpolicy="no-referrer" />
+          ${im.caption ? `<figcaption class="quiz-perfil__caption">${escapeHtml(im.caption)}</figcaption>` : ""}
+        </figure>`).join("")}</div>`
+    : "";
+
   return `
     <div class="quiz-resumen quiz-resumen--reflexivo quiz-resumen--perfil">
       <div class="quiz-resumen__head">
@@ -618,6 +626,7 @@ function renderResumenPerfiles(state) {
         <span class="quiz-perfil__eyebrow">Tu perfil de actitud frente a la vida</span>
         <h2 class="quiz-perfil__nombre">${escapeHtml(perfil.nombre)}</h2>
         <p class="quiz-perfil__resumen">${escapeHtml(perfil.resumen || "")}</p>
+        ${imgs}
         ${perfil.mensaje ? `<p class="quiz-perfil__mensaje">${escapeHtml(perfil.mensaje)}</p>` : ""}
         ${referentes}
       </div>

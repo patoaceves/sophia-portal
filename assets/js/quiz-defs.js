@@ -3931,28 +3931,44 @@ export const QUIZZES = {
         "resumen": "Tienes una estrella polar que guía tu vida con propósito y sentido.",
         "mensaje": "La virtud y el servicio son caminos hacia la felicidad.",
         "referentes": ["Frodo Bolsón", "Obi-Wan Kenobi"],
-        "color": "#2f9e5b"
+        "color": "#2f9e5b",
+        "imagenes": [
+          { "src": "https://lumiere-a.akamaihd.net/v1/images/628cdaa1dbbde50001de0bd3-image_6c311046.jpeg?region=192%2C0%2C1152%2C864", "alt": "Obi-Wan Kenobi", "caption": "Obi-Wan Kenobi" },
+          { "src": "https://static.wikitide.net/greatcharacterswiki/thumb/8/81/FRODO.jpeg/300px-FRODO.jpeg", "alt": "Frodo", "caption": "Frodo" }
+        ]
       },
       "2": {
         "nombre": "Buscador incansable",
         "resumen": "Estás en un proceso de búsqueda incansable de propósito y sentido.",
         "mensaje": "La felicidad se encuentra en la búsqueda con propósito.",
         "referentes": ["Harry Potter", "Hamlet"],
-        "color": "#c98a12"
+        "color": "#c98a12",
+        "imagenes": [
+          { "src": "https://im.rediff.com/movies/2011/jul/11slide1.jpg", "alt": "Harry Potter", "caption": "Harry Potter" },
+          { "src": "https://images.fineartamerica.com/images-medium-large-5/-hamlet-with-yoricks-skull-mary-evans-picture-library.jpg", "alt": "Hamlet", "caption": "Hamlet" }
+        ]
       },
       "3": {
         "nombre": "Pesimista resignado",
         "resumen": "Tienes deseo de encontrar un sentido mayor a tu vida, pero te has resignado a seguir existiendo.",
         "mensaje": "Aun desde la resignación, puedes construir pequeños significados cotidianos.",
         "referentes": ["Sísifo", "Wall-E"],
-        "color": "#3a6ea5"
+        "color": "#3a6ea5",
+        "imagenes": [
+          { "src": "https://bloximages.chicago2.vip.townnews.com/nrcolumbus.com/content/tncms/assets/v3/editorial/2/56/256854d1-57f4-5001-8303-37ecd6ce79a6/62e8540e8d8a8.image.jpg", "alt": "Wall-E", "caption": "Wall-E" },
+          { "src": "https://cdn.britannica.com/65/216665-050-A83A782E/Sisyphus-Titian-1548-49-Prado-Museum-Madrid.jpg", "alt": "Sísifo", "caption": "Sísifo" }
+        ]
       },
       "4": {
         "nombre": "Pesimista alienado",
         "resumen": "No hay un propósito o sentido mayor que guíe tu vida, ni tienes esperanza de que exista.",
         "mensaje": "Incluso en el desencanto, elegir crear significado es un acto de libertad.",
         "referentes": ["Mersault (El extranjero)", "Rick Sánchez"],
-        "color": "#c0443a"
+        "color": "#c0443a",
+        "imagenes": [
+          { "src": "https://wallpapers.com/images/hd/mugshot-photo-of-rick-sanchez-sad-sv1s7hpdvp9kmtks.jpg", "alt": "Rick Sánchez", "caption": "Rick Sánchez" },
+          { "src": "https://m.media-amazon.com/images/I/61ZqA+tFhjL._UF894,1000_QL80_.jpg", "alt": "El extranjero", "caption": "El extranjero" }
+        ]
       }
     },
     "preguntas": [

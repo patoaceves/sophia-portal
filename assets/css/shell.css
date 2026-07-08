@@ -9311,3 +9311,36 @@ button.foro-preview-item__thumb {
   letter-spacing: 0.05em;
   font-size: 0.78rem;
 }
+
+/* Test de perfiles · imágenes de personajes en el resultado */
+.quiz-perfil__imgs {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 16px 0 4px;
+}
+.quiz-perfil__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.quiz-perfil__img {
+  width: 150px;
+  height: 150px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 5px solid var(--perfil-color, var(--color-accent));
+  background: var(--color-surface-2, #faf7f2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.quiz-perfil__caption {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink-soft, #6b6357);
+}
+@media (max-width: 520px) {
+  .quiz-perfil__img { width: 120px; height: 120px; }
+}
