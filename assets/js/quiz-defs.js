@@ -3319,8 +3319,9 @@ export const QUIZZES = {
     "introTitle": "Práctica guiada de mindfulness",
     "introLead": [
       "Siéntate con la espalda recta pero sin rigidez. Apoya los pies en el suelo. Deja que tus manos descansen sobre las piernas. Cierra suavemente los ojos o baja la mirada.",
-      "Vamos a practicar las habilidades básicas de mindfulness (observar, describir, participar; sin juzgar, una sola cosa a la vez y con efectividad), que consisten en su esencia en estar aquí, sin querer cambiar nada. Duración total: 10 minutos."
+      "Vamos a practicar las habilidades básicas de mindfulness (observar, describir, participar; sin juzgar, una sola cosa a la vez y con efectividad), que consisten en su esencia en estar aquí, sin querer cambiar nada. Reproduce el audio y déjate guiar. Duración total: 10 minutos."
     ],
+    "introAudio": "/assets/audio/hwd-m3-meditacion.m4a",
     "doneTitle": "¡Listo! Práctica completada",
     "doneLead": "Gracias por darte este espacio.",
     "preguntas": [
@@ -3494,8 +3495,9 @@ export const QUIZZES = {
     "introTitle": "Cultivar emociones positivas",
     "introLead": [
       "Las emociones positivas son como semillas. Algunas aparecen espontáneamente; otras requieren tierra fértil, agua, paciencia y luz. Como dice Barbara Fredrickson, las emociones positivas tienen un “efecto de ampliación y construcción”: cada vez que experimentas alegría, gratitud, interés, asombro o amor, no solo te sientes bien en ese instante, sino que literalmente expandes tu repertorio de pensamientos y acciones, construyendo recursos psicológicos, sociales y físicos que te acompañarán toda la vida.",
-      "Vamos a aplicar las habilidades qué y cómo del mindfulness para cultivar las emociones positivas. A veces el bienestar no está en cambiar la vida, sino en mirar distinto lo que ya tenemos."
+      "Vamos a aplicar las habilidades qué y cómo del mindfulness para cultivar las emociones positivas. A veces el bienestar no está en cambiar la vida, sino en mirar distinto lo que ya tenemos. Escucha el audio y, al terminar, responde las preguntas."
     ],
+    "introAudio": "/assets/audio/hwd-m5-journaling.m4a",
     "preguntas": [
       {
         "id": "que_emociones",

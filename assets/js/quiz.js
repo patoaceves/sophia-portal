@@ -179,11 +179,26 @@ function renderIntro(state) {
     .filter(Boolean)
     .map((p) => `<p class="test-intro__lead">${escapeHtml(p)}</p>`)
     .join("");
+  // Audio embebido en la actividad (ej. meditación guiada M3, journaling M5).
+  // Mismo player nativo que las lecciones tipo `audio` (clases .leccion-audio).
+  const audioHtml = def.introAudio
+    ? `
+      <div class="leccion-audio" style="margin: var(--s-5) 0;">
+        <div class="leccion-audio__icon" aria-hidden="true">${icon("lessonAudio")}</div>
+        <audio class="leccion-audio__player" controls preload="metadata">
+          <source src="${escapeHtml(def.introAudio)}" type="audio/mp4">
+          <source src="${escapeHtml(def.introAudio)}" type="audio/mpeg">
+          Tu navegador no puede reproducir este audio.
+          <a href="${escapeHtml(def.introAudio)}" target="_blank" rel="noopener">Descárgalo aquí</a>.
+        </audio>
+      </div>`
+    : "";
   return `
     <div class="test-intro">
       <span class="test-intro__eyebrow">${escapeHtml(def.introEyebrow || "Actividad")}</span>
       <h2 class="test-intro__title">${escapeHtml(def.introTitle || def.titulo)}</h2>
       ${leadHtml}
+      ${audioHtml}
       <button class="btn btn-accent btn-lg" data-quiz-action="start" type="button">
         <span>Comenzar actividad</span>
         ${icon("arrowRight")}
