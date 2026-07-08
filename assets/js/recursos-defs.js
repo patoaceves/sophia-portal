@@ -11,6 +11,16 @@
 export const RECURSOS = {
   "fundamentos-de-coaching": [
     {
+      titulo: "Manual SOPHIA · Fundamentos de Coaching I",
+      autor: "SOPHIA Centro de Formacion en Humanidades",
+      descripcion:
+        "Manual oficial del programa: marco humanista, modelo de sesion, herramientas y ejercicios de las 19 sesiones.",
+      tipo: "pdf",
+      url: "/assets/pdf/coaching-manual-sophia.pdf",
+      idioma: "Espanol",
+      tamano: "7.7 MB",
+    },
+    {
       titulo: "The Complete Handbook of Coaching",
       autor: "Eds. E. Cox, T. Bachkirova y D. Clutterbuck",
       descripcion:

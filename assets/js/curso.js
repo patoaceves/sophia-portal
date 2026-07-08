@@ -564,9 +564,11 @@ function renderResumenTab(ctx) {
       </div>
     `}
 
+    ${ctx.slug === "fundamentos-de-coaching" ? "" : `
     <div class="resumen-row resumen-row--single">
       ${renderRyffCajita(ctx)}
     </div>
+    `}
 
     ${isHappinessWorkshop ? `
       <section class="pillar-grid">
