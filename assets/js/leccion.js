@@ -177,9 +177,12 @@ async function renderLeccion(persona, payload, cursoContext) {
   // El componente vive en tarea.js y guarda en tabla "Actividades en Clase".
   const isTarea = leccion.tipo === "tarea";
 
+  const moduloLabel = (modInfo?.titulo ?? modCompleto?.titulo)
+    ? `Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""} · ${modInfo?.titulo ?? modCompleto?.titulo}`
+    : `Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""}`;
   renderShell({
     persona,
-    title: leccion.titulo,
+    title: moduloLabel,
     activePath: "/app/cursos",
     contentHtml: `
       ${renderCheckpointBar(modLecciones, idxHere, modInfo?.orden ?? modCompleto?.orden ?? "")}
@@ -194,8 +197,8 @@ async function renderLeccion(persona, payload, cursoContext) {
             ${icon(lessonIcon(leccion.tipo))}
             <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
           </div>
-          <h2 class="page-title leccion-page__title">Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""} · ${escapeHtml(modInfo?.titulo ?? modCompleto?.titulo ?? leccion.titulo)}</h2>
-          <p class="leccion-page__subtitulo" style="margin-top:var(--s-1);color:var(--color-text-muted);font-size:1.1rem;line-height:1.35;">${escapeHtml(leccion.titulo)}${modLecciones.length > 0 ? ` · Lección ${idxHere + 1} de ${modLecciones.length}` : ""}</p>
+          <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
+          <p class="leccion-page__subtitulo" style="margin-top:var(--s-1);color:var(--color-text-muted);font-size:1.1rem;line-height:1.35;">${modLecciones.length > 0 ? `Lección ${idxHere + 1} de ${modLecciones.length} · ` : ""}${escapeHtml(moduloLabel)}</p>
           ${ponente ? `
             <div class="leccion-page__ponente">
               ${icon("instructor")}
