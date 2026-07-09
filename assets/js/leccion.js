@@ -182,7 +182,7 @@ async function renderLeccion(persona, payload, cursoContext) {
     title: leccion.titulo,
     activePath: "/app/cursos",
     contentHtml: `
-      ${renderCheckpointBar(modLecciones, idxHere)}
+      ${renderCheckpointBar(modLecciones, idxHere, modInfo?.orden ?? modCompleto?.orden ?? "")}
 
       <article class="leccion-page">
         <header class="leccion-page__header">
@@ -192,9 +192,7 @@ async function renderLeccion(persona, payload, cursoContext) {
           </a>
           ${modInfo || modCompleto ? `
             <div class="leccion-page__crumb">
-              <span class="leccion-page__crumb-modulo">Módulo ${modInfo?.orden ?? modCompleto?.orden} · ${escapeHtml(modInfo?.titulo ?? modCompleto?.titulo ?? "")}</span>
               ${modLecciones.length > 0 ? `
-                <span class="leccion-page__crumb-sep">·</span>
                 <span class="leccion-page__crumb-leccion">Lección ${idxHere + 1} de ${modLecciones.length}</span>
               ` : ""}
             </div>
@@ -203,7 +201,7 @@ async function renderLeccion(persona, payload, cursoContext) {
             ${icon(lessonIcon(leccion.tipo))}
             <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
           </div>
-          <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
+          <h2 class="page-title leccion-page__title">Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""} · ${escapeHtml(modInfo?.titulo ?? modCompleto?.titulo ?? leccion.titulo)}</h2>
           ${ponente ? `
             <div class="leccion-page__ponente">
               ${icon("instructor")}
@@ -510,7 +508,7 @@ async function renderLeccion(persona, payload, cursoContext) {
 // ────────────────────────────────────────────────────────────────────
 // Checkpoint bar (sticky top of the lesson body)
 // ────────────────────────────────────────────────────────────────────
-function renderCheckpointBar(modLecciones, idxHere) {
+function renderCheckpointBar(modLecciones, idxHere, modOrden) {
   if (modLecciones.length === 0) {
     return `<div class="leccion-progress-bar"><div class="leccion-progress-bar__fill" style="width: 50%;"></div></div>`;
   }
@@ -534,7 +532,7 @@ function renderCheckpointBar(modLecciones, idxHere) {
                 ${isDone ? icon("check") : ""}
                 ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
               </a>
-              <span class="checkpoint__label">${escapeHtml(shortenTitle(l.titulo))}</span>
+              <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">${modOrden}.${i + 1}</span>
             </li>
           `;
         }).join("")}
