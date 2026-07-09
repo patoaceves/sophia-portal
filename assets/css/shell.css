@@ -9423,3 +9423,9 @@ button.foro-preview-item__thumb {
   min-width: 1.1em;
 }
 .sidebar__module-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Título de la barra superior en la página de lección: módulo, rojo + bold */
+.app-header__title--modulo {
+  color: var(--color-accent);
+  font-weight: 700;
+}

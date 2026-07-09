@@ -10,6 +10,15 @@ function sidebarIcon(name) {
   return `<span class="sidebar__icon">${icon(name)}</span>`;
 }
 
+// Limpia el título del módulo quitando prefijos de número/sesión ("Sesión 1: X"
+// o "1: X" -> "X") para no repetir el número al anteponer "Módulo N:".
+function cleanModuloTitulo(t) {
+  return String(t || "")
+    .replace(/^\s*sesi[oó]n\s*\d+\s*[:.\-–·]?\s*/i, "")
+    .replace(/^\s*\d+\s*[:.\-–·]\s*/, "")
+    .trim();
+}
+
 const NAV_GROUPS = [
   {
     label: "Aprendizaje",
@@ -330,8 +339,7 @@ async function loadModulesTree(box, slug) {
     box.innerHTML = modulos.map((m) => `
       <a class="sidebar__module-link" title="${escapeHtml(m.titulo || "")}"
          href="/app/curso?slug=${encodeURIComponent(slug)}&tab=temario#modulo-${encodeURIComponent(m.id)}">
-        <span class="sidebar__module-num">${escapeHtml(String(m.orden))}</span>
-        <span class="sidebar__module-name">${escapeHtml(m.titulo || "")}</span>
+        <span class="sidebar__module-name">Módulo ${escapeHtml(String(m.orden))}: ${escapeHtml(cleanModuloTitulo(m.titulo))}</span>
       </a>`).join("");
   } catch (e) {
     console.warn("[sidebar] modulos:", e);
@@ -351,7 +359,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-export { escapeHtml, ICONS, icon };
+export { escapeHtml, ICONS, icon, cleanModuloTitulo };
 
 /**
  * Live-update del avatar del sidebar sin re-renderear todo el shell.

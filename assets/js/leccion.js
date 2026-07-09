@@ -12,7 +12,7 @@
 
 import { requireAuth } from "./auth.js";
 import { api } from "./api.js";
-import { renderShell, escapeHtml } from "./ui-shell.js";
+import { renderShell, escapeHtml, cleanModuloTitulo } from "./ui-shell.js";
 import { icon, lessonIcon, lessonTipoLabel } from "./icons.js";
 import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
@@ -177,9 +177,9 @@ async function renderLeccion(persona, payload, cursoContext) {
   // El componente vive en tarea.js y guarda en tabla "Actividades en Clase".
   const isTarea = leccion.tipo === "tarea";
 
-  const moduloLabel = (modInfo?.titulo ?? modCompleto?.titulo)
-    ? `Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""} · ${modInfo?.titulo ?? modCompleto?.titulo}`
-    : `Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""}`;
+  const _modOrden = modInfo?.orden ?? modCompleto?.orden ?? "";
+  const _modTitulo = cleanModuloTitulo(modInfo?.titulo ?? modCompleto?.titulo ?? "");
+  const moduloLabel = _modTitulo ? `Módulo ${_modOrden}: ${_modTitulo}` : `Módulo ${_modOrden}`;
   renderShell({
     persona,
     title: moduloLabel,
@@ -198,7 +198,8 @@ async function renderLeccion(persona, payload, cursoContext) {
             <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
           </div>
           <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
-          <p class="leccion-page__subtitulo" style="margin-top:var(--s-1);color:var(--color-text-muted);font-size:1.1rem;line-height:1.35;">${modLecciones.length > 0 ? `Lección ${idxHere + 1} de ${modLecciones.length} · ` : ""}${escapeHtml(moduloLabel)}</p>
+          <p class="leccion-page__subtitulo" style="margin-top:var(--s-1);color:var(--color-text-muted);font-size:1.1rem;line-height:1.35;">${escapeHtml(moduloLabel)}</p>
+          ${modLecciones.length > 0 ? `<p class="leccion-page__leccion-num" style="margin-top:3px;font-size:0.8rem;font-weight:700;color:var(--color-accent);">Lección ${idxHere + 1} de ${modLecciones.length}</p>` : ""}
           ${ponente ? `
             <div class="leccion-page__ponente">
               ${icon("instructor")}
@@ -293,6 +294,13 @@ async function renderLeccion(persona, payload, cursoContext) {
   // Relocalizar checkpoint-bar DENTRO del .app-header para que header +
   // checkpoints se comporten como UNA sola unidad sticky (sin empalme).
   relocateCheckpointBarIntoHeader();
+
+  // Barra superior (sobre la timeline): título = módulo, en rojo y bold.
+  const _appTitle = document.querySelector(".app-header__title");
+  if (_appTitle) {
+    _appTitle.textContent = moduloLabel;
+    _appTitle.classList.add("app-header__title--modulo");
+  }
 
   // Player de video self-hosted (resume) -> solo actua si renderVideoEmbed dejo
   // el contenedor .video-mount (lecciones de video con path de Storage).
