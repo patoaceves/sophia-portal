@@ -530,7 +530,7 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
             : "todo";
           return `
             <li class="checkpoint checkpoint--${state}">
-              ${i > 0 ? `<span class="checkpoint__line ${state === "todo" ? "checkpoint__line--todo" : ""}"></span>` : ""}
+              ${i > 0 ? `<span class="checkpoint__line ${modLecciones[i - 1].completada ? "" : "checkpoint__line--todo"}"></span>` : ""}
               <a class="checkpoint__dot" href="/app/leccion?id=${encodeURIComponent(l.id)}"
                  title="${escapeHtml(l.titulo)}"
                  aria-current="${isHere ? "true" : "false"}">
