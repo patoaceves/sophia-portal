@@ -259,24 +259,27 @@ function renderPregunta(state, idx) {
 
 function renderChoiceList(p, value) {
   const opts = (p.opciones || []).map((opt) => {
-    const active = value === opt;
+    // Las opciones pueden ser strings o objetos { valor, texto } (test de
+    // perfiles). En ambos casos, lo que se guarda como respuesta es el texto.
+    const texto = typeof opt === "object" ? opt.texto : opt;
+    const active = value === texto;
     return `
       <button
         class="quiz-choice ${active ? "is-active" : ""}"
         data-quiz-action="choose"
-        data-value="${escapeHtml(opt)}"
+        data-value="${escapeHtml(texto)}"
         type="button"
       >
         <span class="quiz-choice__radio" aria-hidden="true"></span>
-        <span class="quiz-choice__label">${escapeHtml(opt)}</span>
+        <span class="quiz-choice__label">${escapeHtml(texto)}</span>
       </button>
     `;
   }).join("");
 
   // Variante 2-columnas para preguntas binarias (Sí/No típicamente):
   // si solo hay 2 opciones y ambas son cortas, las ponemos lado a lado.
-  const isBinary = (p.opciones || []).length === 2
-    && (p.opciones || []).every((o) => (o || "").length <= 6);
+  const textos = (p.opciones || []).map((o) => (typeof o === "object" ? o.texto : o) || "");
+  const isBinary = textos.length === 2 && textos.every((t) => t.length <= 6);
   return `<div class="quiz-choice-list ${isBinary ? "quiz-choice-list--binary" : ""}">${opts}</div>`;
 }
 
@@ -909,7 +912,8 @@ async function submit(state) {
 
 function isAnswerValid(pregunta, value) {
   if (pregunta.tipo === "choice") {
-    return typeof value === "string" && (pregunta.opciones || []).includes(value);
+    const textos = (pregunta.opciones || []).map((o) => (typeof o === "object" ? o.texto : o));
+    return typeof value === "string" && textos.includes(value);
   }
   if (pregunta.tipo === "cuadrante") {
     const vals = parseCuadrante(value);
