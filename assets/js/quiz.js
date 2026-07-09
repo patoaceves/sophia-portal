@@ -240,10 +240,12 @@ function renderPregunta(state, idx) {
       ${body}
 
       <footer class="test-question__nav">
-        <button class="btn btn-ghost" data-quiz-action="prev" type="button" ${idx === 0 ? "disabled" : ""}>
-          ${icon("arrowLeft")}
-          <span>Anterior</span>
-        </button>
+        ${idx === 0 ? `<span></span>` : `
+          <button class="btn btn-ghost" data-quiz-action="prev" type="button">
+            ${icon("arrowLeft")}
+            <span>Anterior</span>
+          </button>
+        `}
         ${showNext ? `
           <button class="btn btn-accent" data-quiz-action="next" type="button" ${state.submitting ? "disabled" : ""} ${p.obligatoria && !isAnswered ? "disabled" : ""}>
             <span>${state.submitting ? "Completando…" : nextLabel}</span>
