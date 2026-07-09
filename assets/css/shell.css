@@ -9345,3 +9345,81 @@ button.foro-preview-item__thumb {
 @media (max-width: 520px) {
   .quiz-perfil__img { width: 120px; height: 120px; }
 }
+
+/* ─── Árbol de cursos → temario en el sidebar ─── */
+.sidebar__tree-caret {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--r-sm, 6px);
+  flex: 0 0 auto;
+}
+.sidebar__tree-caret svg { width: 16px; height: 16px; transition: transform .18s ease; }
+.sidebar__tree-caret.is-open svg { transform: rotate(90deg); }
+.sidebar__tree-caret:hover { background: rgba(0, 0, 0, .06); }
+
+.sidebar__tree {
+  display: none;
+  margin: 2px 0 6px;
+  padding-left: var(--s-3, 12px);
+}
+.sidebar__tree.is-open { display: block; }
+.sidebar__tree-msg {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: 4px var(--s-2, 8px);
+}
+
+.sidebar__course-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px var(--s-2, 8px);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--r-sm, 6px);
+}
+.sidebar__course-btn:hover { background: rgba(0, 0, 0, .05); color: var(--color-text); }
+.sidebar__course-caret { display: inline-flex; flex: 0 0 auto; }
+.sidebar__course-caret svg { width: 14px; height: 14px; transition: transform .18s ease; }
+.sidebar__course-caret.is-open svg { transform: rotate(90deg); }
+.sidebar__course-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sidebar__modules {
+  display: none;
+  padding-left: var(--s-4, 16px);
+}
+.sidebar__modules.is-open { display: block; }
+.sidebar__module-link {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px var(--s-2, 8px);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-radius: var(--r-sm, 6px);
+  line-height: 1.25;
+}
+.sidebar__module-link:hover { background: rgba(0, 0, 0, .05); color: var(--color-accent); }
+.sidebar__module-num {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--color-accent);
+  min-width: 1.1em;
+}
+.sidebar__module-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

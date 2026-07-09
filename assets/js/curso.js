@@ -101,6 +101,10 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
     ]);
     stopLoader();
     renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento, resultadoRyff, wantsResumen);
+    if (location.hash.startsWith("#modulo-")) {
+      const el = document.getElementById(location.hash.slice(1));
+      if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
   } catch (e) {
     stopLoader();
     console.error("get-curso failed:", e);

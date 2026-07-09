@@ -3,6 +3,7 @@
 
 import { logout, isAdmin } from "./auth.js";
 import { ICONS, icon } from "./icons.js";
+import { api } from "./api.js";
 
 // Helper: wrap an icon in the sidebar size
 function sidebarIcon(name) {
@@ -175,6 +176,8 @@ export function renderShell({ persona, title, activePath, contentHtml }) {
     location.href = "/app/perfil";
   });
 
+  wireCursosTree();
+
   // Hamburguesa móvil: toggle del sidebar como drawer + backdrop
   const hamburger = document.getElementById("hamburgerBtn");
   const sidebar = document.querySelector(".sidebar");
@@ -228,6 +231,112 @@ function renderLink({ href, icon: iconName, label }, currentPath) {
       <span>${escapeHtml(label)}</span>
     </a>
   `;
+}
+
+// ─── Árbol de cursos → temario en el sidebar (bajo "Mis cursos") ───
+// Aditivo y tolerante a fallos: si algo truena, el link normal de
+// "Mis cursos" sigue funcionando. Carga perezosa (lazy) en cada expand.
+function wireCursosTree() {
+  const link = document.querySelector('.sidebar__link[href="/app/cursos"]');
+  if (!link || link.dataset.treeWired) return;
+  link.dataset.treeWired = "1";
+
+  const caret = document.createElement("button");
+  caret.type = "button";
+  caret.className = "sidebar__tree-caret";
+  caret.setAttribute("aria-label", "Mostrar mis cursos");
+  caret.innerHTML = icon("chevronRight");
+  link.appendChild(caret);
+
+  const tree = document.createElement("div");
+  tree.className = "sidebar__tree";
+  link.insertAdjacentElement("afterend", tree);
+
+  let loaded = false;
+  caret.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const open = tree.classList.toggle("is-open");
+    caret.classList.toggle("is-open", open);
+    if (open && !loaded) {
+      loaded = true;
+      loadCursosTree(tree);
+    }
+  });
+
+  // Auto-abrir cuando estamos dentro de un curso específico
+  if (location.pathname === "/app/curso" && new URLSearchParams(location.search).get("slug")) {
+    caret.click();
+  }
+}
+
+async function loadCursosTree(tree) {
+  tree.innerHTML = `<div class="sidebar__tree-msg">Cargando…</div>`;
+  try {
+    const data = await api.misCursos();
+    const cursos = data?.cursos || [];
+    if (!cursos.length) {
+      tree.innerHTML = `<div class="sidebar__tree-msg">Sin cursos activos</div>`;
+      return;
+    }
+    tree.innerHTML = cursos.map(cursoNodeHtml).join("");
+    tree.querySelectorAll(".sidebar__course").forEach(wireCourseNode);
+  } catch (e) {
+    console.warn("[sidebar] cursos:", e);
+    tree.innerHTML = `<div class="sidebar__tree-msg">No se pudieron cargar</div>`;
+  }
+}
+
+function cursoNodeHtml(c) {
+  const slug = c.slug || c.id;
+  return `
+    <div class="sidebar__course" data-slug="${escapeHtml(slug)}">
+      <button class="sidebar__course-btn" type="button">
+        <span class="sidebar__course-caret">${icon("chevronRight")}</span>
+        <span class="sidebar__course-name">${escapeHtml(c.titulo || slug)}</span>
+      </button>
+      <div class="sidebar__modules"></div>
+    </div>`;
+}
+
+function wireCourseNode(node) {
+  const btn = node.querySelector(".sidebar__course-btn");
+  const caret = node.querySelector(".sidebar__course-caret");
+  const box = node.querySelector(".sidebar__modules");
+  const slug = node.dataset.slug;
+  let loaded = false;
+  btn.addEventListener("click", () => {
+    const open = box.classList.toggle("is-open");
+    caret.classList.toggle("is-open", open);
+    if (open && !loaded) {
+      loaded = true;
+      loadModulesTree(box, slug);
+    }
+  });
+  // Auto-abrir el curso actual (si su slug está en la URL)
+  const cur = new URLSearchParams(location.search).get("slug");
+  if (cur && cur === slug) btn.click();
+}
+
+async function loadModulesTree(box, slug) {
+  box.innerHTML = `<div class="sidebar__tree-msg">Cargando…</div>`;
+  try {
+    const data = await api.curso(slug);
+    const modulos = data?.modulos || [];
+    if (!modulos.length) {
+      box.innerHTML = `<div class="sidebar__tree-msg">Sin módulos</div>`;
+      return;
+    }
+    box.innerHTML = modulos.map((m) => `
+      <a class="sidebar__module-link" title="${escapeHtml(m.titulo || "")}"
+         href="/app/curso?slug=${encodeURIComponent(slug)}&tab=temario#modulo-${encodeURIComponent(m.id)}">
+        <span class="sidebar__module-num">${escapeHtml(String(m.orden))}</span>
+        <span class="sidebar__module-name">${escapeHtml(m.titulo || "")}</span>
+      </a>`).join("");
+  } catch (e) {
+    console.warn("[sidebar] modulos:", e);
+    box.innerHTML = `<div class="sidebar__tree-msg">No se pudieron cargar</div>`;
+  }
 }
 
 function getInitials(persona) {
