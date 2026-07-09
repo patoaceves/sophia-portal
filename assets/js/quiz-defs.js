@@ -4107,6 +4107,240 @@ export const QUIZZES = {
   },
 
 
+  // ─── Sesión 12 · Existencialismo (quiz de conocimiento) ───
+  "coaching-existencialismo-s12": {
+    titulo: "Quiz: Existencialismo y Coaching",
+    introEyebrow: "Pre-sesión · Sesión 12",
+    introTitle: "Existencialismo y Coaching",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre los principales exponentes del existencialismo (Kierkegaard, Sartre, Heidegger y Camus) y su aplicación al coaching.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "existencialismo_angustia",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según Kierkegaard, ¿qué representa la “angustia” en la vida del ser humano?",
+        opciones: [
+          "Una enfermedad mental que debe ser medicada de inmediato.",
+          "El “vértigo de la libertad”; la parálisis ante la posibilidad infinita de elegir.",
+          "Una falta de fe que indica que la persona es mala.",
+          "Un sentimiento que solo experimentan las personas que no tienen éxito.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "existencialismo_sartre",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "Jean-Paul Sartre afirma que “la existencia precede a la esencia”. En el coaching, ¿qué significa esto para el coachee?",
+        opciones: [
+          "Que su destino ya está escrito y no puede cambiarlo.",
+          "Que no nace con una “naturaleza” fija, sino que se define a sí mismo a través de sus acciones y elecciones libres.",
+          "Que primero debe estudiar mucha filosofía antes de poder actuar.",
+          "Que los demás son responsables de quién es él hoy.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "existencialismo_heidegger",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Cuál es la propuesta de Heidegger sobre la “autenticidad” y el “Dasein”?",
+        opciones: [
+          "Seguir las modas y lo que “la gente” (das Man) dice para ser feliz.",
+          "Vivir ignorando que vamos a morir para no sufrir.",
+          "Salir del anonimato social y asumir la propia finitud (ser-para-la-muerte) para elegir una vida propia.",
+          "Cambiar de personalidad cada día para ser más flexible.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "existencialismo_camus",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Albert Camus introduce el concepto de “rebelión” frente al “absurdo”. ¿Cómo se aplica esto en una sesión de coaching?",
+        opciones: [
+          "Incitando al coachee a pelear con su jefe y su familia.",
+          "Ayudando al coachee a crear sentido y dignidad a través de su acción, incluso cuando el mundo parece no tener respuestas claras.",
+          "Convenciendo al coachee de que nada tiene sentido y que no vale la pena esforzarse.",
+          "Buscando soluciones mágicas que eliminen todos los problemas del mundo.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "existencialismo_escalera",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "En la “escalera existencial” del coaching, ¿cuál es el primer paso fundamental según la influencia de San Agustín y Heidegger?",
+        opciones: [
+          "Tomar una decisión drástica.",
+          "La presencia radical: escuchar el interior y reconocer cómo se “es” en el mundo antes de intentar cambiar nada.",
+          "Culpar a los demás por la situación actual.",
+          "Diseñar un plan de acción financiero.",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ─── Sesión 13 · Herramientas de Priorización (quiz de conocimiento) ───
+  "coaching-priorizacion-s13": {
+    titulo: "Quiz: Herramientas de Priorización",
+    introEyebrow: "Pre-sesión · Sesión 13",
+    introTitle: "Herramientas de Priorización",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre las herramientas de priorización y la Rueda de Priorización vistas en la sesión.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "priorizacion_diferencia",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el material, ¿cuál es la diferencia fundamental entre “organizar la agenda” y “priorizar con efectividad”?",
+        opciones: [
+          "No hay diferencia; ambas significan anotar todo lo que hay que hacer.",
+          "La clave es agendar las verdaderas prioridades y sus completamientos, no solo organizar lo que ya está en la agenda.",
+          "Organizar la agenda es para el trabajo y priorizar es para la familia.",
+          "Priorizar consiste en hacer las tareas más fáciles primero para ahorrar energía.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "priorizacion_limites",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué se busca identificar con la pregunta “¿qué se necesita para poder decir ‘no’ a otras prioridades?”?",
+        opciones: [
+          "La falta de educación del coachee.",
+          "El nivel de compromiso con sus propios valores y su capacidad de establecer límites (poder personal).",
+          "Quiénes son las personas que le caen mal al coachee.",
+          "Cuántas horas libres tiene el coachee al día.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "priorizacion_rueda",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "En el ejercicio de la Rueda de Priorización, ¿cuál es el objetivo de sombrear las secciones del 1 al 10?",
+        opciones: [
+          "Hacer que el dibujo se vea más bonito y artístico.",
+          "Crear una representación visual del nivel actual de satisfacción para que el coachee “note” dónde está el desequilibrio.",
+          "Evaluar si el coachee sabe colorear correctamente.",
+          "Comparar al coachee con otros clientes del coach.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "priorizacion_apalancamiento",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "Al analizar la Rueda completa, el coach pregunta por el “área que generaría un impacto positivo en las demás”. ¿Por qué es vital esta pregunta?",
+        opciones: [
+          "Para ahorrar tiempo y no tener que trabajar en todas las áreas a la vez.",
+          "Para encontrar el punto de apalancamiento donde un pequeño cambio genera una transformación sistémica.",
+          "Porque el coach decide qué área es la más importante.",
+          "Porque es una regla matemática obligatoria.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "priorizacion_dos_ruedas",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Si un coachee tiene dudas entre dos opciones (por ejemplo, cambiar de trabajo o quedarse), ¿cómo se sugiere usar la Rueda?",
+        opciones: [
+          "Dibujando una sola rueda con ambas opciones mezcladas.",
+          "Usando dos ruedas lado a lado, evaluando los mismos criterios en ambas para comparar visualmente la satisfacción potencial.",
+          "Tirando una moneda al aire mientras se mira la rueda.",
+          "Pidiendo al coach que elija la rueda que más le guste.",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
+  // ─── Sesión 14 · Dialéctica (quiz de conocimiento) ───
+  "coaching-dialectica-s14": {
+    titulo: "Quiz: Dialéctica en el Coaching",
+    introEyebrow: "Pre-sesión · Sesión 14",
+    introTitle: "Dialéctica en el Coaching",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre el pensamiento dialéctico (de Platón y Hegel a la DBT de Marsha Linehan) y su aplicación al coaching SOPHIA.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "dialectica_platon",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el modelo de Platón, ¿cuál es la función de la dialéctica en el proceso de aprendizaje?",
+        opciones: [
+          "Confirmar que nuestras opiniones iniciales siempre son correctas.",
+          "Conducir el alma desde las sombras (apariencias) hacia la luz del conocimiento verdadero (Ideas).",
+          "Ganar discusiones utilizando trucos retóricos.",
+          "Ignorar la realidad para vivir en la imaginación.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "dialectica_kant",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "En la Dialéctica Trascendental de Kant, ¿cuándo se produce una “ilusión de la razón”?",
+        opciones: [
+          "Cuando el coachee miente descaradamente.",
+          "Cuando la razón intenta conocer cosas que están más allá de la experiencia posible (como el alma o Dios como objetos físicos).",
+          "Cuando el coach no utiliza un tono de voz adecuado.",
+          "Cuando el coachee olvida sus metas de la semana anterior.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "dialectica_hegel",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Para Hegel, la dialéctica es el movimiento de la realidad. ¿Qué representa la “antítesis”?",
+        opciones: [
+          "El punto de partida o idea inicial.",
+          "La negación o contradicción de la tesis inicial que permite el movimiento.",
+          "La solución final y perfecta que no cambia más.",
+          "Una pérdida de tiempo que debe evitarse.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "dialectica_dbt",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Cuál es el núcleo de la dialéctica en la terapia DBT (Linehan) aplicada al coaching?",
+        opciones: [
+          "Obligar al coachee a cambiar aunque no quiera.",
+          "La síntesis entre la aceptación (validar lo que es) y el cambio (trabajar en lo que puede ser).",
+          "Elegir solo uno de los dos extremos: o acepto o cambio.",
+          "Criticar al coachee por tener pensamientos contradictorios.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "dialectica_sintesis",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "En el “mapa de opuestos” del coaching SOPHIA, si la tesis es “necesito seguridad” y la antítesis es “quiero independencia”, ¿qué sería la síntesis?",
+        opciones: [
+          "Abandonar ambos deseos y no hacer nada.",
+          "Elegir solo la seguridad para no correr riesgos.",
+          "Una “autonomía responsable” que integre la estabilidad con la libertad de acción.",
+          "Pelear internamente hasta que una de las dos ideas gane.",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
 };
 
 export function getQuizDef(key) {
