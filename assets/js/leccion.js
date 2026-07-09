@@ -190,18 +190,12 @@ async function renderLeccion(persona, payload, cursoContext) {
             ${icon("chevronLeft")}
             <span>${escapeHtml(backLabel)}</span>
           </a>
-          ${modInfo || modCompleto ? `
-            <div class="leccion-page__crumb">
-              ${modLecciones.length > 0 ? `
-                <span class="leccion-page__crumb-leccion">Lección ${idxHere + 1} de ${modLecciones.length}</span>
-              ` : ""}
-            </div>
-          ` : ""}
           <div class="leccion-page__tipo">
             ${icon(lessonIcon(leccion.tipo))}
             <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
           </div>
           <h2 class="page-title leccion-page__title">Módulo ${modInfo?.orden ?? modCompleto?.orden ?? ""} · ${escapeHtml(modInfo?.titulo ?? modCompleto?.titulo ?? leccion.titulo)}</h2>
+          <p class="leccion-page__subtitulo" style="margin-top:var(--s-1);color:var(--color-text-muted);font-size:1.1rem;line-height:1.35;">${escapeHtml(leccion.titulo)}${modLecciones.length > 0 ? ` · Lección ${idxHere + 1} de ${modLecciones.length}` : ""}</p>
           ${ponente ? `
             <div class="leccion-page__ponente">
               ${icon("instructor")}
