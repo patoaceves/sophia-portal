@@ -40,48 +40,8 @@ const LOCAL_COVERS = new Map([
   ["fundamentos-de-coaching", "jpg"],
 ]);
 
-const PILARES = [
-  { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },
-  { key: "bienestar_fisico",      file: "bienestar-fisico",      dim: "fisico",    name: "Bienestar Físico" },
-  { key: "presencia_consciente",  file: "presencia-consciente",  dim: "fisico",    name: "Presencia Consciente" },
-  { key: "bienestar_emocional",   file: "bienestar-emocional",   dim: "afectivo",  name: "Bienestar Emocional" },
-  { key: "trabajo_proposito",     file: "trabajo-proposito",     dim: "mental",    name: "Trabajo con Propósito" },
-  { key: "estetica_existencial",  file: "estetica-existencial",  dim: "spiritual", name: "Estética Existencial" },
-  { key: "vinculos_vitales",      file: "vinculos-vitales",      dim: "afectivo",  name: "Vínculos Vitales" },
-  { key: "fe_filosofia",          file: "fe-filosofia",          dim: "spiritual", name: "Fe y Filosofía" },
-];
-
-// A qué módulo corresponde cada pilar, POR CURSO. El presencial y el digital
-// no siguen el mismo orden: el digital intercambió Bienestar Físico con
-// Presencia Consciente (mod 3/4) y Estética con Vínculos (mod 7/8). Antes esto
-// se resolvía posicionalmente (`orden === idx + 2`), lo cual solo era correcto
-// para el presencial.
-const PILAR_MODULO = {
-  "happiness-workshop": {
-    autoconocimiento: 2, bienestar_fisico: 3, presencia_consciente: 4,
-    bienestar_emocional: 5, trabajo_proposito: 6, estetica_existencial: 7,
-    vinculos_vitales: 8, fe_filosofia: 9,
-  },
-  "happiness-workshop-digital": {
-    autoconocimiento: 2, presencia_consciente: 3, bienestar_fisico: 4,
-    bienestar_emocional: 5, trabajo_proposito: 6, vinculos_vitales: 7,
-    estetica_existencial: 8, fe_filosofia: 9,
-  },
-};
-
-// Color del wedge/acento de cada dimensión (mismos hex que la rueda).
-const DIM_COLOR = {
-  mental: "#66a3f4",
-  fisico: "#8d9438",
-  afectivo: "#d21744",
-  spiritual: "#e3a52d",
-};
-
-// El Test de Felicidad y las 8 dimensiones aplican a ambos Happiness Workshop
-// (presencial y digital), no a los demás cursos.
-function esHappinessWorkshop(slug) {
-  return slug === "happiness-workshop" || slug === "happiness-workshop-digital";
-}
+import { PILARES, DIM_COLOR, esHappinessWorkshop, moduloDePilar } from "./pilares-defs.js";
+import { descargarAvancePdf } from "./avance-pdf.js";
 
 // "test" REMOVED from valid tabs.
 // "mensajes" → renamed to "foro" (mensajes redirige a foro por compat).
@@ -244,6 +204,21 @@ function mountResumenWidgets(ctx) {
     if (svg && tip) {
       mountRueda({ svg, tooltip: tip, scores: ctx.resultadoTest.scores, animate: true, compact: true });
     }
+  }
+
+  // Descarga del PDF de avance. Solo existe si hay al menos una autoevaluación
+  // tomada (si no, el documento saldría vacío y el botón no se renderiza).
+  const btnAvance = document.querySelector("[data-descargar-avance]");
+  if (btnAvance) {
+    btnAvance.addEventListener("click", () => {
+      descargarAvancePdf({
+        persona: ctx.persona,
+        curso: ctx.curso,
+        slug: ctx.slug,
+        resultadosAutoeval: ctx.resultadosAutoeval || {},
+        resultadoTest: ctx.resultadoTest,
+      });
+    });
   }
 
   // Mount mini-wedge dentro del popup de cada pilar con autoevaluación tomada.
@@ -634,6 +609,19 @@ function renderResumenTab(ctx) {
         <div class="pillar-grid__grid">
           ${PILARES.map((p, i) => renderPillarIcon(p, i, modulos, { resultadosAutoeval, resultadoAutoconocimiento, slug })).join("")}
         </div>
+        ${tomadas > 0 ? `
+          <div class="pillar-grid__foot">
+            <button class="btn btn-secondary" data-descargar-avance type="button">
+              ${icon("download")}
+              <span>Descargar mi avance en PDF</span>
+            </button>
+            <p class="pillar-grid__foot-note">
+              ${tomadas === PILARES.length
+                ? "Tus ocho resultados, con el texto de cada banda y tus siguientes pasos."
+                : `Tus ${tomadas} ${tomadas === 1 ? "resultado" : "resultados"} hasta hoy, con tus siguientes pasos y lo que te falta.`}
+            </p>
+          </div>
+        ` : ""}
       </section>
     ` : ""}
 
@@ -1147,8 +1135,7 @@ function renderRyffCajita(ctx) {
 }
 
 function renderPillarIcon(pillar, idx, modulos, autoevalCtx = {}) {
-  const ordenEsperado = PILAR_MODULO[autoevalCtx.slug]?.[pillar.key] ?? (idx + 2);
-  const mod = modulos.find(c => c.orden === ordenEsperado);
+  const mod = modulos.find(c => c.orden === moduloDePilar(autoevalCtx.slug, pillar.key, idx));
   let progress = 0, total = 0, done = 0;
   if (mod) {
     total = mod.lecciones.length;

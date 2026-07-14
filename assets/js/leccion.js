@@ -18,6 +18,8 @@ import { loaderHtml, startLoaderRotation } from "./loader.js";
 import { mountWizard as mountTestWizard } from "./test-felicidad.js";
 import { mountWizard as mountAutoevalWizard } from "./autoeval.js";
 import { AUTOEVAL_KEYS } from "./autoeval-defs.js";
+import { PILARES } from "./pilares-defs.js";
+import { descargarAvancePdf } from "./avance-pdf.js";
 import { renderAutoevalResultadosInto } from "./autoeval-resultados.js";
 import { renderTestFelicidadInto } from "./test-felicidad-resultados.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
@@ -142,6 +144,59 @@ async function fetchCursoContext(cursoId) {
   if (!c) return null;
   const detalle = await api.curso(c.slug);
   return { ...detalle, slug: c.slug };
+}
+
+/**
+ * Bloque de cierre: aparece bajo los resultados de una autoevaluación SOLO
+ * cuando esa fue la última que le faltaba al alumno. En la práctica cae en la
+ * del Módulo 9 (Fe y Filosofía), pero se calcula sobre las 8, no sobre el
+ * número de módulo, para que aguante si alguien las hace en desorden.
+ *
+ * Es la única aparición extra del PDF: el botón permanente vive en la landing
+ * del curso, bajo el grid de las 8 dimensiones.
+ */
+async function agregarCierreAvance(container, { persona, cursoSlug, cursoTitulo }) {
+  if (!container || container.querySelector("[data-descargar-avance]")) return;
+
+  let resultadosAutoeval = {};
+  try {
+    resultadosAutoeval = await api.resultadosAutoevalTodas();
+  } catch (err) {
+    console.warn("no se pudo leer el avance de autoevaluaciones:", err);
+    return;
+  }
+
+  const faltan = PILARES.filter((p) => !resultadosAutoeval?.[p.key]?.tieneResultados);
+  if (faltan.length > 0) return;
+
+  const resultadoTest = await api.resultadosTest().catch(() => null);
+
+  const wrap = document.createElement("div");
+  wrap.className = "cierre-avance";
+  wrap.innerHTML = `
+    <div class="cierre-avance__eyebrow">Completaste las 8 dimensiones</div>
+    <h3 class="cierre-avance__title">Tu recorrido, en un solo documento</h3>
+    <p class="cierre-avance__lead">
+      Ya autoevaluaste las ocho dimensiones del modelo de felicidad. Llévate el
+      retrato completo: tu resultado en cada una, el texto de tu banda y tus
+      siguientes pasos.
+    </p>
+    <button class="btn btn-accent" data-descargar-avance type="button">
+      ${icon("download")}
+      <span>Descargar mi avance en PDF</span>
+    </button>
+  `;
+  container.appendChild(wrap);
+
+  wrap.querySelector("[data-descargar-avance]").addEventListener("click", () => {
+    descargarAvancePdf({
+      persona,
+      curso: { titulo: cursoTitulo },
+      slug: cursoSlug,
+      resultadosAutoeval,
+      resultadoTest,
+    });
+  });
 }
 
 /**
@@ -391,6 +446,7 @@ async function renderLeccion(persona, payload, cursoContext) {
           alreadyDone = true;
           await renderAutoevalResultadosInto(container, effectiveKey, prev.respuestaId);
           await marcarSiFalta();
+          await agregarCierreAvance(container, { persona, cursoSlug, cursoTitulo });
           document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
         }
       } catch (err) {
@@ -409,6 +465,7 @@ async function renderLeccion(persona, payload, cursoContext) {
             // Render resultados inline en el mismo container — sin redirect.
             try {
               await renderAutoevalResultadosInto(container, effectiveKey, result.respuestaId);
+              await agregarCierreAvance(container, { persona, cursoSlug, cursoTitulo });
             } catch (err) {
               console.error("inline autoeval resultados failed:", err);
             }
