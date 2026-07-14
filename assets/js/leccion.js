@@ -654,7 +654,7 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
                 ${isDone ? icon("check") : ""}
                 ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
               </a>
-              <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">${modOrden}.${i + 1}</span>
+              <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">${escapeHtml(shortenTitle(l.titulo))}</span>
             </li>
           `;
         }).join("")}
@@ -664,10 +664,44 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
   `;
 }
 
+// Etiqueta corta para la línea de tiempo: usa palabras, no numeración propia
+// (la numeración chocaba con los títulos de video tipo "1.1 El mapa...").
+// "Nota técnica: Presencia consciente" -> "Nota técnica"
+// "1.1 El mapa de tu bienestar"        -> "1.1 El mapa…"
+// "Trabajo previo a la sesión"         -> "Trabajo previo"
 function shortenTitle(t) {
   if (!t) return "";
-  if (t.length <= 22) return t;
-  return t.slice(0, 22).trimEnd() + "…";
+  let s = String(t).trim();
+
+  // 1) Si trae "Etiqueta: detalle", quedarnos con la etiqueta.
+  const colon = s.indexOf(":");
+  if (colon > 0) {
+    const label = s.slice(0, colon).trim();
+    if (label.length >= 3 && label.length <= 26) return label;
+  }
+
+  // 2) Recortes conocidos (títulos largos sin dos puntos).
+  const MAP = [
+    [/^trabajo previo/i, "Trabajo previo"],
+    [/^evaluaci[oó]n de la sesi[oó]n/i, "Evaluación sesión"],
+    [/^bienvenida y nota t[eé]cnica/i, "Bienvenida"],
+    [/^reflexi[oó]n personal/i, "Reflexión"],
+  ];
+  for (const [re, label] of MAP) if (re.test(s)) return label;
+
+  // 2.5) Videos numerados ("1.1 El mapa de tu bienestar"): conservar el número
+  // real del video (coincide con su título) + las primeras palabras.
+  const num = s.match(/^(\d+\.\d+)\s+(.*)$/);
+  if (num) {
+    const resto = num[2];
+    return resto.length <= 12 ? `${num[1]} ${resto}` : `${num[1]} ${resto.slice(0, 12).trimEnd()}…`;
+  }
+
+  // 3) Corte limpio por palabra (sin cortar a media palabra).
+  if (s.length <= 20) return s;
+  const cut = s.slice(0, 20);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > 8 ? cut.slice(0, sp) : cut).trimEnd() + "…";
 }
 
 // ────────────────────────────────────────────────────────────────────
