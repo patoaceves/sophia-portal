@@ -129,6 +129,45 @@ export async function mountQuiz({ container, quizKey, leccionId, inscripcionId, 
 // Render
 // ─────────────────────────────────────────────────────────────────────
 
+// ── Audio persistente ────────────────────────────────────────────────
+// El wizard re-escribe container.innerHTML en cada render, así que un
+// <audio> declarado en el HTML se destruía al pasar de la intro a las
+// preguntas: el alumno perdía el player (y no podía volver a escuchar el
+// audio mientras escribía su reflexión).
+//
+// Solución: creamos el nodo UNA sola vez y guardamos la referencia en el
+// state. En cada render dejamos un placeholder [data-quiz-audio-mount] y
+// movemos el mismo nodo ahí. Mover un <audio> dentro del DOM no reinicia
+// su estado: la reproducción, el currentTime y el volumen se conservan.
+function ensureAudioNode(state) {
+  if (!state.def.introAudio) return null;
+  if (state.audioNode) return state.audioNode;
+  const src = state.def.introAudio;
+  const wrap = document.createElement("div");
+  wrap.className = "leccion-audio quiz-audio";
+  wrap.innerHTML = `
+    <div class="leccion-audio__icon" aria-hidden="true">${icon("lessonAudio")}</div>
+    <audio class="leccion-audio__player" controls preload="metadata">
+      <source src="${escapeHtml(src)}" type="audio/mp4">
+      <source src="${escapeHtml(src)}" type="audio/mpeg">
+      Tu navegador no puede reproducir este audio.
+      <a href="${escapeHtml(src)}" target="_blank" rel="noopener">Descárgalo aquí</a>.
+    </audio>
+  `;
+  state.audioNode = wrap;
+  return wrap;
+}
+
+// Coloca (o recoloca) el nodo de audio en el placeholder del render actual.
+function mountAudioNode(state) {
+  const node = ensureAudioNode(state);
+  if (!node) return;
+  const slot = state.container.querySelector("[data-quiz-audio-mount]");
+  if (!slot) return;
+  node.classList.toggle("quiz-audio--compact", slot.dataset.quizAudioMount === "compact");
+  slot.replaceWith(node);
+}
+
 function render(state) {
   if (state.loading) {
     state.container.innerHTML = `
@@ -142,6 +181,7 @@ function render(state) {
 
   if (state.submitted) {
     state.container.innerHTML = renderResumen(state);
+    mountAudioNode(state);
     return;
   }
 
@@ -167,6 +207,7 @@ function render(state) {
       </div>
     </div>
   `;
+  mountAudioNode(state);
 }
 
 function renderIntro(state) {
@@ -180,19 +221,9 @@ function renderIntro(state) {
     .map((p) => `<p class="test-intro__lead">${escapeHtml(p)}</p>`)
     .join("");
   // Audio embebido en la actividad (ej. meditación guiada M3, journaling M5).
-  // Mismo player nativo que las lecciones tipo `audio` (clases .leccion-audio).
-  const audioHtml = def.introAudio
-    ? `
-      <div class="leccion-audio" style="margin: var(--s-5) 0;">
-        <div class="leccion-audio__icon" aria-hidden="true">${icon("lessonAudio")}</div>
-        <audio class="leccion-audio__player" controls preload="metadata">
-          <source src="${escapeHtml(def.introAudio)}" type="audio/mp4">
-          <source src="${escapeHtml(def.introAudio)}" type="audio/mpeg">
-          Tu navegador no puede reproducir este audio.
-          <a href="${escapeHtml(def.introAudio)}" target="_blank" rel="noopener">Descárgalo aquí</a>.
-        </audio>
-      </div>`
-    : "";
+  // El nodo real lo inyecta mountAudioNode() en este placeholder, para que
+  // sobreviva al cambio de pantalla y siga disponible durante las preguntas.
+  const audioHtml = def.introAudio ? `<div data-quiz-audio-mount="full"></div>` : "";
   return `
     <div class="test-intro">
       <span class="test-intro__eyebrow">${escapeHtml(def.introEyebrow || "Actividad")}</span>
@@ -231,10 +262,16 @@ function renderPregunta(state, idx) {
   const showNext = p.tipo === "texto" || p.tipo === "multi" || p.tipo === "cuadrante" || isAnswered || !p.obligatoria;
   const nextLabel = isLast ? "Completar" : "Siguiente";
 
+  // Si la actividad tiene audio, lo mantenemos disponible en cada pregunta
+  // (en versión compacta) para que el alumno pueda re-escucharlo mientras
+  // reflexiona, sin perder lo que ya escribió.
+  const audioHtml = state.def.introAudio ? `<div data-quiz-audio-mount="compact"></div>` : "";
+
   return `
     <article class="test-question">
       <div class="test-question__pilar">${escapeHtml(p.eyebrow || "Reflexión")}</div>
       <h2 class="test-question__texto">${escapeHtml(p.texto)}</h2>
+      ${audioHtml}
       ${!p.obligatoria ? `<p class="quiz-optional-note">Opcional – puedes dejarla en blanco si aún no tienes la respuesta.</p>` : ""}
 
       ${body}
@@ -400,6 +437,198 @@ function renderTextArea(p, value) {
   `;
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Resumen tipo checklist (ej. Bienestar Físico · 35 puntos binarios)
+// ─────────────────────────────────────────────────────────────────────
+
+// Agrupa las preguntas por sección. La sección sale del prefijo del eyebrow:
+// "Sueño · 1 de 35" → "Sueño". Si una pregunta no trae eyebrow, cae en
+// "General" para no perderla.
+function agruparChecklist(state) {
+  const secciones = [];
+  const porNombre = new Map();
+  for (const p of state.def.preguntas) {
+    const nombre = String(p.eyebrow || "General").split("·")[0].trim() || "General";
+    if (!porNombre.has(nombre)) {
+      const s = { nombre, items: [] };
+      porNombre.set(nombre, s);
+      secciones.push(s);
+    }
+    const respuesta = state.respuestas[p.id];
+    porNombre.get(nombre).items.push({
+      texto: p.texto,
+      respuesta: respuesta || null,
+      si: respuesta === "Sí",
+    });
+  }
+  return secciones;
+}
+
+function totalesChecklist(secciones) {
+  let si = 0, no = 0, sin = 0;
+  for (const s of secciones) {
+    for (const it of s.items) {
+      if (it.si) si += 1;
+      else if (it.respuesta) no += 1;
+      else sin += 1;
+    }
+  }
+  return { si, no, sin, total: si + no + sin };
+}
+
+function renderResumenChecklist(state) {
+  const secciones = agruparChecklist(state);
+  const t = totalesChecklist(secciones);
+  const titulo = state.def.doneTitle || "Checklist completado";
+  const lead = state.def.doneLead || "";
+
+  const seccionesHtml = secciones.map((s) => {
+    const siSec = s.items.filter((i) => i.si).length;
+    const items = s.items.map((it) => `
+      <li class="checklist-res__item">
+        <span class="checklist-res__badge checklist-res__badge--${it.si ? "si" : it.respuesta ? "no" : "vacio"}">
+          ${it.si ? "Sí" : it.respuesta ? "No" : "–"}
+        </span>
+        <span class="checklist-res__texto">${escapeHtml(it.texto)}</span>
+      </li>
+    `).join("");
+    return `
+      <section class="checklist-res__seccion">
+        <header class="checklist-res__seccion-head">
+          <h3 class="checklist-res__seccion-title">${escapeHtml(s.nombre)}</h3>
+          <span class="checklist-res__seccion-count">${siSec} de ${s.items.length} sí</span>
+        </header>
+        <ul class="checklist-res__list">${items}</ul>
+      </section>
+    `;
+  }).join("");
+
+  return `
+    <div class="quiz-resumen quiz-resumen--checklist">
+      <div class="quiz-resumen__head">
+        <div class="quiz-resumen__icon">${icon("check")}</div>
+        <h2 class="quiz-resumen__title">${escapeHtml(titulo)}</h2>
+        ${lead ? `<p class="quiz-resumen__lead">${escapeHtml(lead)}</p>` : ""}
+      </div>
+
+      <div class="checklist-res__totales">
+        <div class="checklist-res__total checklist-res__total--si">
+          <span class="checklist-res__total-num">${t.si}</span>
+          <span class="checklist-res__total-label">Sí</span>
+        </div>
+        <div class="checklist-res__total checklist-res__total--no">
+          <span class="checklist-res__total-num">${t.no}</span>
+          <span class="checklist-res__total-label">No</span>
+        </div>
+        <div class="checklist-res__total">
+          <span class="checklist-res__total-num">${t.total}</span>
+          <span class="checklist-res__total-label">Puntos</span>
+        </div>
+      </div>
+
+      <div class="checklist-res">${seccionesHtml}</div>
+
+      <div class="quiz-resumen__actions">
+        <button class="btn btn-accent" data-quiz-action="download-checklist" type="button">
+          ${icon("download")}
+          <span>Descargar en PDF</span>
+        </button>
+        <button class="btn btn-secondary" data-quiz-action="retry" type="button">
+          ${icon("refresh")}
+          <span>Volver a contestar</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Genera un documento imprimible y abre el diálogo de impresión del browser
+// ("Guardar como PDF"). Usamos un iframe oculto en vez de window.open para no
+// pelearnos con los bloqueadores de popups. Cero dependencias externas.
+function descargarChecklistPdf(state) {
+  const secciones = agruparChecklist(state);
+  const t = totalesChecklist(secciones);
+  const fecha = new Date().toLocaleDateString("es-MX", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+  const titulo = state.def.introTitle || state.def.titulo || "Checklist";
+
+  const cuerpo = secciones.map((s) => {
+    const siSec = s.items.filter((i) => i.si).length;
+    const filas = s.items.map((it) => `
+      <tr>
+        <td class="r ${it.si ? "si" : it.respuesta ? "no" : ""}">${it.si ? "Sí" : it.respuesta ? "No" : "–"}</td>
+        <td>${escapeHtml(it.texto)}</td>
+      </tr>
+    `).join("");
+    return `
+      <section>
+        <h2>${escapeHtml(s.nombre)} <small>${siSec} de ${s.items.length} sí</small></h2>
+        <table>${filas}</table>
+      </section>
+    `;
+  }).join("");
+
+  const doc = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
+<style>
+  @page { margin: 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #1a1a1a; margin: 0; font-size: 11pt; line-height: 1.45; }
+  header { border-bottom: 2px solid #d21744; padding-bottom: 10px; margin-bottom: 18px; }
+  h1 { font-size: 18pt; margin: 0 0 4px; }
+  .meta { font-size: 9.5pt; color: #666; }
+  .totales { display: flex; gap: 24px; margin: 0 0 18px; font-size: 10pt; }
+  .totales b { font-size: 14pt; }
+  section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; }
+  h2 { font-size: 12pt; margin: 0 0 6px; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
+  h2 small { float: right; font-weight: normal; font-size: 9.5pt; color: #666; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 4px 6px; border-bottom: 1px solid #eee; vertical-align: top; }
+  td.r { width: 42px; font-weight: bold; text-align: center; }
+  td.si { color: #4c7a34; }
+  td.no { color: #c0392b; }
+  footer { margin-top: 20px; font-size: 9pt; color: #888; text-align: center; }
+</style></head><body>
+  <header>
+    <h1>${escapeHtml(titulo)}</h1>
+    <div class="meta">SOPHIA · Happiness Workshop · ${escapeHtml(fecha)}</div>
+  </header>
+  <div class="totales">
+    <div><b>${t.si}</b> respuestas Sí</div>
+    <div><b>${t.no}</b> respuestas No</div>
+    <div><b>${t.total}</b> puntos evaluados</div>
+  </div>
+  ${cuerpo}
+  <footer>Este autodiagnóstico es un retrato de tus hábitos actuales, no una calificación.</footer>
+</body></html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  document.body.appendChild(iframe);
+
+  const limpiar = () => {
+    setTimeout(() => iframe.remove(), 1000);
+  };
+
+  iframe.onload = () => {
+    try {
+      const win = iframe.contentWindow;
+      win.focus();
+      win.onafterprint = limpiar;
+      win.print();
+      // Fallback: si onafterprint no dispara (algunos browsers), limpiamos igual.
+      setTimeout(limpiar, 60000);
+    } catch (err) {
+      console.error("checklist print failed:", err);
+      limpiar();
+    }
+  };
+
+  iframe.srcdoc = doc;
+}
+
 /**
  * Pantalla de cierre — dos variantes:
  *   - Sin scoring (def.preguntas no tiene `correcta`): muestra título +
@@ -409,6 +638,9 @@ function renderTextArea(p, value) {
  *     correctas/incorrectas + botón para reintentar.
  */
 function renderResumen(state) {
+  if (state.def.resumenModo === "checklist") {
+    return renderResumenChecklist(state);
+  }
   if (hasPerfiles(state.def)) {
     return renderResumenPerfiles(state);
   }
@@ -727,6 +959,11 @@ function clickHandler(state, e) {
     state.currentIndex = 0;
     persistState(state);
     render(state);
+    return;
+  }
+
+  if (action === "download-checklist") {
+    descargarChecklistPdf(state);
     return;
   }
 

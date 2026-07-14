@@ -144,6 +144,39 @@ async function fetchCursoContext(cursoId) {
   return { ...detalle, slug: c.slug };
 }
 
+/**
+ * Agrega debajo de los resultados del Test de Felicidad un botón para
+ * volver a tomarlo. Cada intento se guarda como un registro nuevo en
+ * `tests_felicidad` (no se borra el historial); los resultados siempre
+ * muestran el último intento.
+ *
+ * @param {HTMLElement} container · el mismo container donde se pintó el resultado
+ * @param {() => void} montarWizard · vuelve a montar el wizard del test
+ */
+function agregarBotonRetomarTest(container, montarWizard) {
+  if (!container || container.querySelector("[data-retomar-test]")) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "test-retake";
+  wrap.innerHTML = `
+    <p class="test-retake__lead">
+      ¿Han cambiado las cosas desde la última vez? Puedes volver a contestarlo:
+      guardamos todos tus intentos y mostramos siempre el más reciente.
+    </p>
+    <button class="btn btn-secondary" data-retomar-test type="button">
+      ${icon("refresh")}
+      <span>Volver a tomar el test</span>
+    </button>
+  `;
+  container.appendChild(wrap);
+
+  wrap.querySelector("[data-retomar-test]").addEventListener("click", () => {
+    container.innerHTML = "";
+    montarWizard();
+    container.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 async function renderLeccion(persona, payload, cursoContext) {
   const { leccion, moduloId, modulo: modInfo, cursoId, inscripcionId, prevId, nextId } = payload;
 
@@ -160,10 +193,14 @@ async function renderLeccion(persona, payload, cursoContext) {
   const idxHere = modLecciones.findIndex((l) => l.id === leccion.id);
   const ponente = modInfo?.ponente || modCompleto?.ponente || "";
 
+  // "Volver a Mi Curso" regresa al TEMARIO, anclado al módulo en el que iba
+  // el alumno (no a la landing del curso). El hash #modulo-<id> lo consume
+  // curso.js: abre ese módulo y hace scroll hasta él. Así, si vas en el
+  // módulo 6, vuelves al módulo 6 y no al inicio de la página.
   const backHref = cursoSlug
-    ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}`
+    ? `/app/curso?slug=${encodeURIComponent(cursoSlug)}&tab=temario${moduloId ? `#modulo-${encodeURIComponent(moduloId)}` : ""}`
     : "/app/cursos";
-  const backLabel = cursoTitulo ? `Volver a Mi Curso` : "Volver";
+  const backLabel = cursoTitulo ? `Volver al temario` : "Volver";
 
   const isTest = leccion.tipo === "test" || leccion.tipo === "autoeval";
   // "Evaluación de sesión": lección tipo enlace con etiqueta "Evaluación".
@@ -324,6 +361,23 @@ async function renderLeccion(persona, payload, cursoContext) {
     // autoconocimiento migrado al sistema genérico (v27) — ya no usa mountAutoconocimientoWizard.
     // Normalizar: si autoevalTipo es "autoconocimiento" pero autoevalKey viene vacío, lo ponemos.
     const resolvedKey = autoevalKey || (autoevalTipo === "autoconocimiento" ? "autoconocimiento" : "");
+
+    // Las lecciones tipo autoeval/test son SIEMPRE la última de su módulo.
+    // Cuando el alumno ya había contestado antes (típico del Test de Felicidad,
+    // que se toma una vez y se reusa en varios módulos/cursos), sólo
+    // pintábamos los resultados y jamás llamábamos a marcarLeccion: la lección
+    // se quedaba sin palomita para siempre. De ahí el bug de "la última
+    // actividad de cada módulo nunca se pone en verde".
+    const marcarSiFalta = async () => {
+      if (!inscripcionId || leccion.completada) return;
+      try {
+        await api.marcarLeccion(leccion.id, inscripcionId);
+        leccion.completada = true;
+      } catch (e) {
+        console.warn("Could not mark autoeval/test lesson complete:", e);
+      }
+    };
+
     if (AUTOEVAL_KEYS.includes(resolvedKey)) {
       const effectiveKey = resolvedKey;
 
@@ -336,6 +390,7 @@ async function renderLeccion(persona, payload, cursoContext) {
         if (prev?.tieneResultados && prev.respuestaId) {
           alreadyDone = true;
           await renderAutoevalResultadosInto(container, effectiveKey, prev.respuestaId);
+          await marcarSiFalta();
           document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
         }
       } catch (err) {
@@ -365,19 +420,7 @@ async function renderLeccion(persona, payload, cursoContext) {
     } else {
       // Test de Felicidad. Misma estrategia que autoeval: si ya hay
       // resultados previos, render inline directo; si no, montamos el wizard.
-      let alreadyDone = false;
-      try {
-        const prev = await api.resultadosTest();
-        if (prev?.tieneResultados && prev.respuestaId) {
-          alreadyDone = true;
-          await renderTestFelicidadInto(container, prev.respuestaId);
-          document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
-        }
-      } catch (err) {
-        console.warn("test felicidad prev check failed:", err);
-      }
-
-      if (!alreadyDone) {
+      const montarWizardTest = () => {
         mountTestWizard({
           container,
           inscripcionId,
@@ -387,13 +430,30 @@ async function renderLeccion(persona, payload, cursoContext) {
           onComplete: async (result) => {
             try {
               await renderTestFelicidadInto(container, result.respuestaId);
+              agregarBotonRetomarTest(container, montarWizardTest);
             } catch (err) {
               console.error("inline test felicidad failed:", err);
             }
             document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
           },
         });
+      };
+
+      let alreadyDone = false;
+      try {
+        const prev = await api.resultadosTest();
+        if (prev?.tieneResultados && prev.respuestaId) {
+          alreadyDone = true;
+          await renderTestFelicidadInto(container, prev.respuestaId);
+          agregarBotonRetomarTest(container, montarWizardTest);
+          await marcarSiFalta();
+          document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+        }
+      } catch (err) {
+        console.warn("test felicidad prev check failed:", err);
       }
+
+      if (!alreadyDone) montarWizardTest();
     }
   } else if (isEvaluacion) {
     // Mount evaluación nativa (reemplaza el iframe del Google Form)

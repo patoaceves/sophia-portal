@@ -744,6 +744,60 @@
   font-weight: 500;
 }
 
+/* ── Acordeón del temario ──────────────────────────────────────────
+   Los módulos arrancan colapsados: el header es un botón y el panel de
+   lecciones sólo se muestra cuando la card tiene .is-open. */
+.modulo-card__header--toggle {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.modulo-card__header--toggle:hover {
+  background: var(--color-bg-subtle);
+}
+
+.modulo-card__header--toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.modulo-card__head-aside {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+
+.modulo-card__chevron {
+  display: inline-flex;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.modulo-card__chevron svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modulo-card--collapsible.is-open .modulo-card__chevron {
+  transform: rotate(90deg);
+}
+
+.modulo-card__panel {
+  display: none;
+}
+
+.modulo-card--collapsible.is-open .modulo-card__panel {
+  display: block;
+}
+
 .leccion-list {
   list-style: none;
   margin: 0;
@@ -9428,4 +9482,156 @@ button.foro-preview-item__thumb {
 .app-header__title--modulo {
   color: var(--color-accent);
   font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Quiz · audio persistente, resumen de checklist, retomar test
+   ══════════════════════════════════════════════════════════════════ */
+
+/* El player de audio de una actividad (meditación M3, journaling M5) ahora
+   vive durante toda la actividad, no sólo en la intro. En la intro va en
+   tamaño normal; durante las preguntas, en versión compacta. */
+.quiz-audio {
+  margin: var(--s-5) 0;
+}
+
+.quiz-audio--compact {
+  margin: var(--s-4) 0 var(--s-6);
+  padding: var(--s-3) var(--s-4);
+}
+
+.quiz-audio--compact .leccion-audio__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Resumen del checklist (Bienestar Físico) ────────────────────── */
+.checklist-res__totales {
+  display: flex;
+  gap: var(--s-3);
+  justify-content: center;
+  margin: var(--s-6) 0 var(--s-8);
+  flex-wrap: wrap;
+}
+
+.checklist-res__total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 96px;
+  padding: var(--s-4) var(--s-5);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+}
+
+.checklist-res__total--si { border-color: #8d9438; }
+.checklist-res__total--no { border-color: var(--color-accent); }
+
+.checklist-res__total-num {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.checklist-res__total--si .checklist-res__total-num { color: #8d9438; }
+.checklist-res__total--no .checklist-res__total-num { color: var(--color-accent); }
+
+.checklist-res__total-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.checklist-res__seccion {
+  margin-bottom: var(--s-6);
+}
+
+.checklist-res__seccion-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--s-2);
+}
+
+.checklist-res__seccion-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.checklist-res__seccion-count {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.checklist-res__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checklist-res__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.checklist-res__item:last-child { border-bottom: none; }
+
+.checklist-res__badge {
+  flex-shrink: 0;
+  min-width: 38px;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.checklist-res__badge--si {
+  background: rgba(141, 148, 56, 0.14);
+  color: #6f7530;
+}
+
+.checklist-res__badge--no {
+  background: rgba(210, 23, 68, 0.1);
+  color: var(--color-accent);
+}
+
+.checklist-res__badge--vacio {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.checklist-res__texto {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* ── Volver a tomar el Test de Felicidad ─────────────────────────── */
+.test-retake {
+  margin-top: var(--s-8);
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
+}
+
+.test-retake__lead {
+  max-width: 42ch;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
 }

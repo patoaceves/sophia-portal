@@ -100,11 +100,9 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
       wantsResumen ? api.resultadosRyff().catch(() => null) : Promise.resolve(null),
     ]);
     stopLoader();
+    // renderDashboard → wireModuloToggles se encarga de abrir y hacer scroll
+    // al módulo pedido por #modulo-<id>, si venimos de una lección.
     renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento, resultadoRyff, wantsResumen);
-    if (location.hash.startsWith("#modulo-")) {
-      const el = document.getElementById(location.hash.slice(1));
-      if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
-    }
   } catch (e) {
     stopLoader();
     console.error("get-curso failed:", e);
@@ -173,6 +171,9 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
   });
 
   wireTabsClientSide(slug);
+
+  // Acordeón del temario: todos los módulos colapsados salvo el que toca.
+  wireModuloToggles(ctx);
 
   // Si la URL llegó con tab=foro, montar el foro inmediatamente
   // (los activateTab futuros lo manejan vía ensureForoMounted).
@@ -1287,13 +1288,24 @@ function renderTemarioTab(ctx) {
   `;
 }
 
+// Los módulos arrancan COLAPSADOS. El alumno abre el que le interesa y ve
+// solo esas lecciones, en vez de una lista de 50+ lecciones de un jalón.
+// El estado abierto/cerrado se marca con la clase `is-open` en la card; el
+// header entero es el botón de toggle (ver wireModuloToggles).
 function renderModuloCard(mod) {
   const total = mod.lecciones.length;
   const done = mod.lecciones.filter(l => l.completada).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const panelId = `modulo-panel-${escapeHtml(mod.id)}`;
   return `
-    <section class="modulo-card" id="modulo-${escapeHtml(mod.id)}">
-      <header class="modulo-card__header">
+    <section class="modulo-card modulo-card--collapsible" id="modulo-${escapeHtml(mod.id)}">
+      <button
+        class="modulo-card__header modulo-card__header--toggle"
+        type="button"
+        data-modulo-toggle
+        aria-expanded="false"
+        aria-controls="${panelId}"
+      >
         <div class="modulo-card__head-info">
           <div class="modulo-card__num">Módulo ${mod.orden}</div>
           <h3 class="modulo-card__title">${escapeHtml(mod.titulo)}</h3>
@@ -1305,16 +1317,65 @@ function renderModuloCard(mod) {
             </div>
           ` : ""}
         </div>
-        <div class="modulo-card__progress">${done} / ${total}</div>
-      </header>
+        <div class="modulo-card__head-aside">
+          <div class="modulo-card__progress">${done} / ${total}</div>
+          <span class="modulo-card__chevron" aria-hidden="true">${icon("chevronRight")}</span>
+        </div>
+      </button>
       <div class="modulo-card__bar">
         <div class="modulo-card__bar-fill" style="width: ${pct}%;"></div>
       </div>
-      <ol class="leccion-list">
-        ${mod.lecciones.map(renderLeccionItem).join("")}
-      </ol>
+      <div class="modulo-card__panel" id="${panelId}">
+        <ol class="leccion-list">
+          ${mod.lecciones.map(renderLeccionItem).join("")}
+        </ol>
+      </div>
     </section>
   `;
+}
+
+/**
+ * Cablea el toggle de los módulos del temario y abre el que corresponda.
+ *
+ * Reglas de apertura inicial:
+ *   1. Si la URL trae #modulo-<id> (viene de "Volver al temario" desde una
+ *      lección), abrimos ESE módulo y hacemos scroll hasta él.
+ *   2. Si no, abrimos el módulo donde el alumno va (el primero con lecciones
+ *      pendientes), para que no tenga que buscarlo.
+ *   3. Todo lo demás queda colapsado.
+ */
+function wireModuloToggles(ctx) {
+  const root = document.querySelector('.tab-panel[data-tab="temario"]') || document;
+  const cards = root.querySelectorAll(".modulo-card--collapsible");
+  if (!cards.length) return;
+
+  const abrir = (card, open) => {
+    card.classList.toggle("is-open", open);
+    card.querySelector("[data-modulo-toggle]")?.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+
+  cards.forEach((card) => {
+    card.querySelector("[data-modulo-toggle]")?.addEventListener("click", () => {
+      abrir(card, !card.classList.contains("is-open"));
+    });
+  });
+
+  // 1) Módulo pedido por hash
+  const hashId = location.hash.startsWith("#modulo-") ? location.hash.slice(1) : null;
+  let target = hashId ? document.getElementById(hashId) : null;
+
+  // 2) Si no vino hash, el módulo en curso
+  if (!target) {
+    const enCurso = (ctx.modulos || []).find((m) => m.lecciones.some((l) => !l.completada));
+    if (enCurso) target = document.getElementById(`modulo-${enCurso.id}`);
+  }
+
+  if (target && target.classList.contains("modulo-card--collapsible")) {
+    abrir(target, true);
+    if (hashId) {
+      requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }
 }
 
 function renderLeccionItem(l) {

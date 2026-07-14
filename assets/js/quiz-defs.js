@@ -2167,10 +2167,13 @@ export const QUIZZES = {
       "Responde con honestidad. No hay respuestas correctas o incorrectas — solo tu retrato actual. Llevaremos las respuestas a la sesión en vivo para reflexionar juntos.",
     ],
     doneTitle: "¡Listo! Checklist completado",
-    doneLead: "Tu autodiagnóstico quedó registrado. Nos veremos en la sesión en vivo para profundizar en las áreas donde quieras crecer.",
-    // No mostrar lista de 35 respuestas al final — son binarias y mucho ruido.
-    // Solo el mensaje de éxito y la opción de volver a contestar.
-    showAnswers: false,
+    doneLead: "Este es tu retrato actual. Revisa dónde dijiste que sí y dónde dijiste que no: los \"no\" no son fallas, son las áreas con más margen de crecimiento.",
+    // Resumen en modo checklist: en vez de la lista genérica de pregunta →
+    // respuesta, agrupamos los 35 puntos por categoría (el prefijo del
+    // eyebrow, ej. "Sueño · 1 de 35" → "Sueño"), con badge Sí/No, conteo por
+    // sección y botón para descargar el resultado en PDF.
+    resumenModo: "checklist",
+    showAnswers: true,
     preguntas: [
       // — Sueño (5) —
       { id: "sueno_horas", tipo: "choice", eyebrow: "Sueño · 1 de 35", texto: "¿Duermo al menos 7 horas cada noche?", opciones: ["Sí", "No"], obligatoria: true },
@@ -3554,14 +3557,22 @@ export const QUIZZES = {
     "introEyebrow": "Journaling",
     "introTitle": "Tu relación con el dinero",
     "introLead": [
-      "¿Qué emociones experimentas cuando piensas en el dinero? Apóyate en este banco de palabras: tranquilidad, seguridad, alegría, entusiasmo, gratitud, orgullo, esperanza, confianza, ansiedad, preocupación, miedo, culpa, envidia, frustración, enojo, vergüenza, deseo, desconfianza, compasión, libertad, responsabilidad…"
+      "El dinero rara vez es solo dinero: viene cargado de emociones que casi nunca nombramos. Antes de reflexionar, vamos a ponerles nombre.",
+      "Empieza seleccionando del banco de palabras todas las emociones que reconoces en ti cuando piensas en el dinero. Después profundizamos."
     ],
     "preguntas": [
       {
         "id": "emociones_dinero",
-        "tipo": "texto",
+        "tipo": "multi",
         "eyebrow": "Reflexión 1 de 6",
-        "texto": "¿Qué emociones experimento cuando pienso en el dinero? (Usa el banco de palabras como apoyo.)",
+        "texto": "¿Qué emociones experimento cuando pienso en el dinero?",
+        "opciones": [
+          "Tranquilidad", "Seguridad", "Alegría", "Entusiasmo", "Gratitud",
+          "Orgullo", "Esperanza", "Confianza", "Ansiedad", "Preocupación",
+          "Miedo", "Culpa", "Envidia", "Frustración", "Enojo",
+          "Vergüenza", "Deseo", "Desconfianza", "Compasión", "Libertad",
+          "Responsabilidad"
+        ],
         "obligatoria": true
       },
       {

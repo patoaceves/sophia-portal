@@ -218,6 +218,9 @@ function renderResultados(persona, data, cursoSlug, nextLeccionId) {
     </section>
 
     <footer class="resultados-footer">
+      <a class="btn btn-ghost" href="/app/test-felicidad">
+        ${icon("refresh")}<span>Volver a tomar el test</span>
+      </a>
       <a class="${backBtnClass}" href="${backHref}">${backIconHtml}</a>
     </footer>
   `;
@@ -279,16 +282,26 @@ function renderBloques(scores, analisis) {
   `;
 }
 
+// Nombres legibles de cada pilar, derivados de los ejes de la rueda.
+// Los intentos guardados antes de junio no traen `pilarNombres` en su JSON de
+// resultados, y el fallback anterior era la clave cruda: por eso salía
+// "bienestar_emocional" con guion bajo en la pantalla de resultados. Ahora el
+// frontend siempre tiene el nombre bonito a la mano, venga o no del backend.
+const PILAR_NOMBRES = Object.fromEntries(RUEDA_AXES.map((a) => [a.key, a.name]));
+
+function nombrePilar(key, nombres) {
+  if (!key) return "–";
+  return nombres?.[key] || PILAR_NOMBRES[key] || key;
+}
+
 function strongestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  const k = sorted[0]?.[0];
-  return k ? (nombres?.[k] || k) : "–";
+  return nombrePilar(sorted[0]?.[0], nombres);
 }
 
 function weakestPilar(scores, nombres) {
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
-  const k = sorted[0]?.[0];
-  return k ? (nombres?.[k] || k) : "–";
+  return nombrePilar(sorted[0]?.[0], nombres);
 }
 
 /**

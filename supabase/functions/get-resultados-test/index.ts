@@ -142,6 +142,91 @@ function startSpan(name: string, extra: Record<string, unknown> = {}) {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// ════════════════════════════════════════════════════════════════════
+// SCORING (espejo de submit-test-felicidad)
+// ════════════════════════════════════════════════════════════════════
+// Los intentos guardados antes de junio 2026 se persistieron con un
+// `resultados` que solo traia { version, scores, completedAt }: sin
+// `analisis` ni `pilarNombres`. El frontend caia entonces al fallback de la
+// clave cruda ("bienestar_emocional", con guion bajo) y pintaba "Analisis no
+// disponible" en las tres columnas.
+//
+// En vez de migrar datos, reconstruimos lo que falte AL LEER: analisis,
+// niveles y nombres son funciones puras de `scores`, asi que derivarlos aqui
+// deja consistentes todos los intentos, viejos y nuevos, sin tocar la tabla.
+
+const PILARES = [
+  "autoconocimiento", "bienestar_emocional", "bienestar_fisico",
+  "presencia_consciente", "vinculos_vitales", "trabajo_proposito",
+  "estetica_existencial", "fe_filosofia",
+] as const;
+type Pilar = typeof PILARES[number];
+
+const NOMBRE: Record<Pilar, string> = {
+  autoconocimiento: "Autoconocimiento",
+  bienestar_emocional: "Bienestar Emocional",
+  bienestar_fisico: "Bienestar Físico",
+  presencia_consciente: "Presencia Consciente",
+  vinculos_vitales: "Vínculos Vitales",
+  trabajo_proposito: "Trabajo con Propósito",
+  estetica_existencial: "Estética Existencial",
+  fe_filosofia: "Fe y Filosofía de Vida",
+};
+
+const ANALISIS: Record<Pilar, { Alto: string; Medio: string; Bajo: string }> = {
+  autoconocimiento: {
+    Alto: "Autoconocimiento sólido. Sabes nombrar lo que te pasa, reconocer tus patrones y ajustar tus decisiones con realismo y propósito. Mantén este músculo activo: usa una fortaleza de manera nueva cada día y registra tres cosas buenas cada noche.",
+    Medio: "Vas en buen camino. Ya tienes claridad en varios aspectos pero hay momentos de duda o automatismo. Es el mejor punto para sistematizar hábitos: escribe tu Mejor Yo Posible (15 min) y revisa una fortaleza por semana.",
+    Bajo: "Punto de partida claro. Hoy cuesta leer tus estados internos y orientar decisiones desde ahí. La buena noticia: el autoconocimiento se entrena con prácticas breves y consistentes. Empieza con tres cosas buenas al día y un experimento diario con una fortaleza.",
+  },
+  bienestar_emocional: {
+    Alto: "Tu vida emocional está bien orquestada. Identificas, regulas y expresas lo que sientes con flexibilidad. Sigue cultivando lo positivo: gratitud diaria, conversaciones significativas y micro-celebraciones de tus logros.",
+    Medio: "Reconoces tus emociones la mayor parte del tiempo, pero a veces las dejas dictar tus decisiones. Practica la pausa de tres respiraciones antes de reaccionar y nombra la emoción en voz alta, eso baja su intensidad de inmediato.",
+    Bajo: "Ahora cuesta diferenciar entre lo que sientes, piensas y haces, y eso desgasta. No es debilidad, es falta de entrenamiento. Empieza por algo simple: un check-in emocional dos veces al día (mañana/noche) usando una rueda de emociones.",
+  },
+  bienestar_fisico: {
+    Alto: "Tu cuerpo está al servicio de tu vida. Te mueves, descansas y comes con sentido. Mantén la consistencia: pequeños hábitos sostenidos vencen a la disciplina extrema y al heroísmo de fin de semana.",
+    Medio: "Sabes lo que deberías hacer y a veces lo haces. La brecha entre intención y acción es lo que toca cerrar. Elige UN hábito ancla (ej. caminar 30 min diarios) y sosténlo 8 semanas antes de añadir otro.",
+    Bajo: "Tu cuerpo te está pidiendo atención. No es necesario un plan ambicioso, basta con dormir 30 min más, beber un vaso de agua al despertar, y caminar 10 min al día. Lo simple, sostenido, transforma.",
+  },
+  presencia_consciente: {
+    Alto: "Habitas el presente con cierta naturalidad. Ese es un activo valioso en un mundo distraído. Profundiza con prácticas formales (5–10 min de meditación al día) y momentos de silencio sin pantallas.",
+    Medio: "Tienes destellos de presencia, pero la mente se va al futuro o al pasado con frecuencia. Empieza con anclajes cotidianos: respirar antes de cada comida, sentir los pies al caminar, escuchar sin pensar la respuesta.",
+    Bajo: "El piloto automático domina muchos de tus días. No es problema mientras sea consciente, el reto es cuando ni te das cuenta. Prueba 3 minutos de atención plena al día durante 21 días y observa qué cambia.",
+  },
+  vinculos_vitales: {
+    Alto: "Tus vínculos te nutren y tú los nutres. Eso es uno de los predictores más sólidos de una vida feliz. Cuida la calidad sobre la cantidad: una llamada larga vale más que diez likes.",
+    Medio: "Tienes relaciones importantes, pero hay áreas para profundizar. Identifica una persona con quien quieras estar más cerca este mes y agenda algo concreto, la intencionalidad es el ingrediente que falta.",
+    Bajo: "La soledad o los vínculos rotos pesan más de lo que admites. Reconectar empieza con un mensaje, no con una conversación entera. Escribe a alguien hoy sin esperar respuesta inmediata. Lo importante es abrir la puerta.",
+  },
+  trabajo_proposito: {
+    Alto: "Tu trabajo se siente como expresión de quién eres, no como peso. Cuídalo: integra descanso, varía retos, y comparte el conocimiento que has acumulado con quienes empiezan.",
+    Medio: "Hay días en que tu trabajo conecta con algo más grande y otros en que es solo obligación. Intenta articular en una frase qué impacto tiene tu trabajo en otros, esa claridad cambia la experiencia diaria.",
+    Bajo: "Hoy tu trabajo se siente más como un trámite que como un camino. No tiene que ser un cambio drástico: encuentra un proyecto chico, voluntario o personal, donde tus habilidades sirvan a algo que te importe genuinamente.",
+  },
+  estetica_existencial: {
+    Alto: "Vives con estética: cultivas la belleza, la creatividad y el detalle en lo cotidiano. Eso es vivir con dignidad humana plena. Comparte tu mirada, el mundo necesita más personas que vean belleza donde otros ven solo función.",
+    Medio: "Aprecias lo bello cuando aparece, pero podrías invitarlo más a tu vida. Escucha música con atención plena, camina por un jardín sin teléfono, lee poesía 10 minutos. La belleza alimenta capas del alma que la productividad no toca.",
+    Bajo: "La belleza está en pausa en tu vida, quizá por urgencia, quizá por hábito. Empieza pequeño: un objeto bello en tu escritorio, una canción que te conmueva al iniciar el día. La belleza no es lujo, es nutrición existencial.",
+  },
+  fe_filosofia: {
+    Alto: "Tienes un marco que da sentido a tu vida, espiritual, filosófico, o ambos. Eso te ancla cuando las circunstancias se mueven. Sigue alimentándolo: lectura contemplativa, conversaciones profundas, prácticas regulares.",
+    Medio: 'Tienes algunas convicciones, pero no del todo articuladas. Reservar tiempo para preguntas grandes, escribir 20 min sobre "qué creo realmente sobre X", te ayudará a clarificar y comprometerte.',
+    Bajo: "Las preguntas últimas, sentido, muerte, trascendencia, están aplazadas. No es defecto, es invitación. Lecturas, conversaciones o tradiciones contemplativas pueden abrir camino. No tienes que tener todas las respuestas; basta empezar a hacerte mejores preguntas.",
+  },
+};
+
+function nivelLabel(b: "Alto" | "Medio" | "Bajo"): string {
+  return b === "Alto" ? "Fortaleza" : b === "Medio" ? "En crecimiento" : "Vulnerable";
+}
+
+function getBand(score: number): "Alto" | "Medio" | "Bajo" {
+  if (score >= 8) return "Alto";
+  if (score >= 5) return "Medio";
+  return "Bajo";
+}
+
+
 Deno.serve(async (req) => {
   const cors = handleOptions(req);
   if (cors) return cors;
@@ -191,18 +276,39 @@ Deno.serve(async (req) => {
 
     const r = row.resultados ?? {};
     const ans = row.respuestas?.answers ?? row.respuestas ?? null;
+    const scores = (r.scores ?? null) as Record<string, number> | null;
 
-    span.end({ persona: persona.id, respuesta: row.id });
+    // Backfill en lectura: si el registro no guardo analisis/niveles/nombres
+    // (intentos viejos), los derivamos de los scores.
+    let niveles = r.niveles ?? null;
+    let analisis = r.analisis ?? null;
+    const pilarNombres = r.pilarNombres ?? NOMBRE;
+
+    if (scores && (!niveles || !analisis)) {
+      const nv: Record<string, string> = {};
+      const an: Record<string, string> = {};
+      for (const pilar of PILARES) {
+        const score = scores[pilar];
+        if (typeof score !== "number") continue;
+        const band = getBand(score);
+        nv[pilar] = nivelLabel(band);
+        an[pilar] = ANALISIS[pilar][band];
+      }
+      niveles = niveles ?? nv;
+      analisis = analisis ?? an;
+    }
+
+    span.end({ persona: persona.id, respuesta: row.id, derivado: !r.analisis });
     return jsonResponse(req, {
       tieneResultados: true,
       respuestaId: row.id,
       inscripcionId: null,  // tests_felicidad no vincula inscripcion
       completedAt: r.completedAt ?? row.completado_en ?? null,
-      scores: r.scores ?? null,
-      niveles: r.niveles ?? null,
-      analisis: r.analisis ?? null,
+      scores,
+      niveles,
+      analisis,
       respuestas: ans,
-      pilarNombres: r.pilarNombres ?? null,
+      pilarNombres,
     });
   } catch (err) {
     span.end({ error: true });
