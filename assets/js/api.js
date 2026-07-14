@@ -273,6 +273,18 @@ export const api = {
   },
 
   /**
+   * GET /get-resultados-autoeval?autoeval=all
+   * El último intento de CADA pilar en un solo request. La landing del curso
+   * necesita las 8 dimensiones para pintar el avance, y ocho llamadas
+   * paralelas con cold start eran demasiado caras.
+   * → { <pilarKey>: { tieneResultados, respuestaId, pct, banda, ... }, ... }
+   */
+  async resultadosAutoevalTodas() {
+    const { data } = await callEdge("get-resultados-autoeval", { query: { autoeval: "all" } });
+    return data?.resultados ?? {};
+  },
+
+  /**
    * POST /submit-ryff
    * Escala RYFF de Bienestar Psicológico (18 reactivos Likert 1–6, a nivel
    * persona). El backend invierte los reactivos negativos y calcula scores.

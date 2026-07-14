@@ -1,6 +1,10 @@
 // SOPHIA Portal · get-resultados-autoeval (Postgres, inlined for dashboard deploy)
 //
 // GET /get-resultados-autoeval?autoeval=<key>[&id=<respuestaId>]
+// GET /get-resultados-autoeval?autoeval=all  → mapa con el ultimo intento de
+//     CADA pilar: { all: true, resultados: { <key>: {...}, ... } }
+//     Lo usa la landing del curso para pintar el avance de las 8 dimensiones
+//     sin disparar 8 requests.
 //   - sin `id`  → último intento del usuario para ese pilar
 //   - con `id`  → intento específico
 // Headers: Authorization: Bearer <jwt>
@@ -178,7 +182,8 @@ Deno.serve(async (req) => {
     const autoevalKey = url.searchParams.get("autoeval")?.trim() ?? "";
     const respuestaId = url.searchParams.get("id")?.trim() || null;
 
-    if (!autoevalKey || !(AUTOEVAL_KEYS as readonly string[]).includes(autoevalKey)) {
+    const wantsAll = autoevalKey === "all";
+    if (!wantsAll && (!autoevalKey || !(AUTOEVAL_KEYS as readonly string[]).includes(autoevalKey))) {
       throw new ApiError(400, "invalid_autoeval", `autoeval inválido: ${autoevalKey}`);
     }
     if (respuestaId && !UUID_RE.test(respuestaId)) {
@@ -195,7 +200,42 @@ Deno.serve(async (req) => {
     const inscIds = (inscripciones ?? []).map((i: any) => i.id);
     if (inscIds.length === 0) {
       span.end({ persona: persona.id, no_inscripciones: true });
-      return jsonResponse(req, { tieneResultados: false });
+      return jsonResponse(req, wantsAll ? { all: true, resultados: {} } : { tieneResultados: false });
+    }
+
+    // ── autoeval=all ────────────────────────────────────────────────
+    // Una sola query trae todos los intentos del usuario, ordenados del mas
+    // reciente al mas viejo. Recorremos en ese orden y nos quedamos con el
+    // PRIMER match de cada pilar: ese es el ultimo intento de ese pilar.
+    if (wantsAll) {
+      const { data, error } = await db
+        .from("respuestas_autoeval")
+        .select("id, inscripcion_id, resultados, completado_en")
+        .in("inscripcion_id", inscIds)
+        .order("completado_en", { ascending: false });
+      if (error) throw new ApiError(500, "db_error", error.message);
+
+      const resultados: Record<string, unknown> = {};
+      for (const key of AUTOEVAL_KEYS) {
+        const r = (data ?? []).find((x: any) => matchesAutoeval(x.resultados, key));
+        if (!r) continue;
+        const p = r.resultados ?? {};
+        resultados[key] = {
+          tieneResultados: true,
+          respuestaId: r.id,
+          autoevalKey: key,
+          total: p.total ?? null,
+          pct: p.pct ?? null,
+          banda: p.banda ?? null,
+          lead: p.lead ?? null,
+          steps: p.steps ?? null,
+          note: p.note ?? null,
+          completedAt: p.completedAt ?? r.completado_en ?? null,
+        };
+      }
+
+      span.end({ persona: persona.id, autoeval: "all", n: Object.keys(resultados).length });
+      return jsonResponse(req, { all: true, resultados });
     }
 
     let row: any = null;

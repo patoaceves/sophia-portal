@@ -41,15 +41,47 @@ const LOCAL_COVERS = new Map([
 ]);
 
 const PILARES = [
-  { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },      // mod 2
-  { key: "bienestar_fisico",      file: "bienestar-fisico",      dim: "fisico",    name: "Bienestar Físico" },       // mod 3
-  { key: "presencia_consciente",  file: "presencia-consciente",  dim: "fisico",    name: "Presencia Consciente" },   // mod 4
-  { key: "bienestar_emocional",   file: "bienestar-emocional",   dim: "afectivo",  name: "Bienestar Emocional" },    // mod 5
-  { key: "trabajo_proposito",     file: "trabajo-proposito",     dim: "mental",    name: "Trabajo con Propósito" },  // mod 6
-  { key: "estetica_existencial",  file: "estetica-existencial",  dim: "spiritual", name: "Estética Existencial" },   // mod 7
-  { key: "vinculos_vitales",      file: "vinculos-vitales",      dim: "afectivo",  name: "Vínculos Vitales" },       // mod 8
-  { key: "fe_filosofia",          file: "fe-filosofia",          dim: "spiritual", name: "Fe y Filosofía" },         // mod 9
+  { key: "autoconocimiento",      file: "autoconocimiento",      dim: "mental",    name: "Autoconocimiento" },
+  { key: "bienestar_fisico",      file: "bienestar-fisico",      dim: "fisico",    name: "Bienestar Físico" },
+  { key: "presencia_consciente",  file: "presencia-consciente",  dim: "fisico",    name: "Presencia Consciente" },
+  { key: "bienestar_emocional",   file: "bienestar-emocional",   dim: "afectivo",  name: "Bienestar Emocional" },
+  { key: "trabajo_proposito",     file: "trabajo-proposito",     dim: "mental",    name: "Trabajo con Propósito" },
+  { key: "estetica_existencial",  file: "estetica-existencial",  dim: "spiritual", name: "Estética Existencial" },
+  { key: "vinculos_vitales",      file: "vinculos-vitales",      dim: "afectivo",  name: "Vínculos Vitales" },
+  { key: "fe_filosofia",          file: "fe-filosofia",          dim: "spiritual", name: "Fe y Filosofía" },
 ];
+
+// A qué módulo corresponde cada pilar, POR CURSO. El presencial y el digital
+// no siguen el mismo orden: el digital intercambió Bienestar Físico con
+// Presencia Consciente (mod 3/4) y Estética con Vínculos (mod 7/8). Antes esto
+// se resolvía posicionalmente (`orden === idx + 2`), lo cual solo era correcto
+// para el presencial.
+const PILAR_MODULO = {
+  "happiness-workshop": {
+    autoconocimiento: 2, bienestar_fisico: 3, presencia_consciente: 4,
+    bienestar_emocional: 5, trabajo_proposito: 6, estetica_existencial: 7,
+    vinculos_vitales: 8, fe_filosofia: 9,
+  },
+  "happiness-workshop-digital": {
+    autoconocimiento: 2, presencia_consciente: 3, bienestar_fisico: 4,
+    bienestar_emocional: 5, trabajo_proposito: 6, vinculos_vitales: 7,
+    estetica_existencial: 8, fe_filosofia: 9,
+  },
+};
+
+// Color del wedge/acento de cada dimensión (mismos hex que la rueda).
+const DIM_COLOR = {
+  mental: "#66a3f4",
+  fisico: "#8d9438",
+  afectivo: "#d21744",
+  spiritual: "#e3a52d",
+};
+
+// El Test de Felicidad y las 8 dimensiones aplican a ambos Happiness Workshop
+// (presencial y digital), no a los demás cursos.
+function esHappinessWorkshop(slug) {
+  return slug === "happiness-workshop" || slug === "happiness-workshop-digital";
+}
 
 // "test" REMOVED from valid tabs.
 // "mensajes" → renamed to "foro" (mensajes redirige a foro por compat).
@@ -93,16 +125,16 @@ const VALID_TABS = ["resumen", "temario", "recursos", "foro"];
     // otro tab, NO bloqueamos el primer load con esos requests: se cargan
     // lazy la primera vez que active Resumen (ensureResumenHydrated).
     const wantsResumen = tab === "resumen";
-    const [data, resultadoTest, resultadoAutoconocimiento, resultadoRyff] = await Promise.all([
+    const [data, resultadoTest, resultadosAutoeval, resultadoRyff] = await Promise.all([
       api.curso(slug),
       wantsResumen ? api.resultadosTest().catch(() => null) : Promise.resolve(null),
-      wantsResumen ? api.resultadosAutoeval("autoconocimiento").catch(() => null) : Promise.resolve(null),
+      wantsResumen ? api.resultadosAutoevalTodas().catch(() => ({})) : Promise.resolve({}),
       wantsResumen ? api.resultadosRyff().catch(() => null) : Promise.resolve(null),
     ]);
     stopLoader();
     // renderDashboard → wireModuloToggles se encarga de abrir y hacer scroll
     // al módulo pedido por #modulo-<id>, si venimos de una lección.
-    renderDashboard(persona, slug, tab, data, resultadoTest, resultadoAutoconocimiento, resultadoRyff, wantsResumen);
+    renderDashboard(persona, slug, tab, data, resultadoTest, resultadosAutoeval, resultadoRyff, wantsResumen);
   } catch (e) {
     stopLoader();
     console.error("get-curso failed:", e);
@@ -125,7 +157,7 @@ let currentCtx = null;
 let resumenHydrated = false;
 let resumenHydrating = false;
 
-function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadoAutoconocimiento, resultadoRyff, hydrated = true) {
+function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resultadosAutoeval, resultadoRyff, hydrated = true) {
   const { curso, inscripcion, modulos } = payload;
 
   const totalLecc = modulos.reduce((s, c) => s + c.lecciones.length, 0);
@@ -140,7 +172,12 @@ function renderDashboard(persona, slug, initialTab, payload, resultadoTest, resu
   const coverUrl = curso.coverUrl
     || (localExt ? `/assets/img/${slug}/portada.${localExt}` : null);
 
-  const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadoAutoconocimiento, resultadoRyff };
+  // La cajita de Autoconocimiento sigue siendo un caso especial (tiene su
+  // propia sección), así que la sacamos del mapa general.
+  const mapaAutoeval = resultadosAutoeval || {};
+  const resultadoAutoconocimiento = mapaAutoeval.autoconocimiento ?? null;
+
+  const ctx = { persona, slug, curso, inscripcion, modulos, totalLecc, completadas, progresoPct, next, resultadoTest, resultadosAutoeval: mapaAutoeval, resultadoAutoconocimiento, resultadoRyff };
   currentCtx = ctx;
   resumenHydrated = hydrated;
   resumenHydrating = false;
@@ -209,11 +246,14 @@ function mountResumenWidgets(ctx) {
     }
   }
 
-  // Mount mini-wedge inside the pillar-icon hover popup for Autoconocimiento.
-  if (ctx.resultadoAutoconocimiento?.tieneResultados && typeof ctx.resultadoAutoconocimiento.pct === "number") {
-    const wedgeMount = document.getElementById("pillar-popup-wedge-autoconocimiento");
+  // Mount mini-wedge dentro del popup de cada pilar con autoevaluación tomada.
+  // El color del wedge sigue la dimensión del pilar (mismos hex que la rueda).
+  for (const pillar of PILARES) {
+    const res = ctx.resultadosAutoeval?.[pillar.key];
+    if (!res?.tieneResultados || typeof res.pct !== "number") continue;
+    const wedgeMount = document.getElementById(`pillar-popup-wedge-${pillar.key}`);
     if (wedgeMount) {
-      drawMiniWedge(wedgeMount, ctx.resultadoAutoconocimiento.pct, "#66a3f4");
+      drawMiniWedge(wedgeMount, res.pct, DIM_COLOR[pillar.dim] || "#66a3f4");
     }
   }
 
@@ -252,11 +292,12 @@ async function ensureResumenHydrated() {
   try {
     const [rt, ra, rr] = await Promise.all([
       api.resultadosTest().catch(() => null),
-      api.resultadosAutoeval("autoconocimiento").catch(() => null),
+      api.resultadosAutoevalTodas().catch(() => ({})),
       api.resultadosRyff().catch(() => null),
     ]);
     currentCtx.resultadoTest = rt;
-    currentCtx.resultadoAutoconocimiento = ra;
+    currentCtx.resultadosAutoeval = ra || {};
+    currentCtx.resultadoAutoconocimiento = currentCtx.resultadosAutoeval.autoconocimiento ?? null;
     currentCtx.resultadoRyff = rr;
     const panel = document.getElementById("tab-resumen");
     if (panel) {
@@ -550,12 +591,15 @@ function renderTabsNav(slug, currentTab) {
 //   4. Material adicional (mini-cards en su propia sección)
 // ────────────────────────────────────────────────────────────────────
 function renderResumenTab(ctx) {
-  const { modulos, totalLecc, completadas, resultadoAutoconocimiento, slug } = ctx;
+  const { modulos, totalLecc, completadas, resultadosAutoeval, resultadoAutoconocimiento, slug } = ctx;
 
-  // El Test de Felicidad y las 8 dimensiones del bienestar son específicos
-  // del Happiness Workshop. En otros cursos (ej. Fundamentos de Coaching)
-  // estas secciones no aplican.
-  const isHappinessWorkshop = slug === "happiness-workshop";
+  // El Test de Felicidad y las 8 dimensiones del bienestar son propios del
+  // Happiness Workshop (presencial Y digital). En otros cursos (ej. Fundamentos
+  // de Coaching) estas secciones no aplican.
+  const isHappinessWorkshop = esHappinessWorkshop(slug);
+
+  const tomadas = PILARES.filter((p) => resultadosAutoeval?.[p.key]?.tieneResultados).length;
+  const nRecursos = getRecursos(slug).length;
 
   return `
     ${isHappinessWorkshop ? `
@@ -580,10 +624,15 @@ function renderResumenTab(ctx) {
         <header class="pillar-grid__header">
           <span class="pillar-grid__eyebrow">Las 8 dimensiones del bienestar</span>
           <h3 class="pillar-grid__title">Tu camino, módulo por módulo</h3>
-          <p class="pillar-grid__sub">Cada dimensión se ilumina a medida que completas su módulo.</p>
+          <p class="pillar-grid__sub">
+            Cada dimensión se ilumina a medida que completas su módulo.
+            ${tomadas > 0
+              ? `Llevas ${tomadas} de ${PILARES.length} autoevaluaciones. Pasa el cursor sobre una dimensión para ver tu resultado.`
+              : "Al terminar cada módulo harás su autoevaluación, y aquí verás tu resultado."}
+          </p>
         </header>
         <div class="pillar-grid__grid">
-          ${PILARES.map((p, i) => renderPillarIcon(p, i, modulos, { resultadoAutoconocimiento, slug })).join("")}
+          ${PILARES.map((p, i) => renderPillarIcon(p, i, modulos, { resultadosAutoeval, resultadoAutoconocimiento, slug })).join("")}
         </div>
       </section>
     ` : ""}
@@ -608,7 +657,9 @@ function renderResumenTab(ctx) {
           <div class="mini-tab-card__body">
             <span class="mini-tab-card__eyebrow">Recursos</span>
             <h4 class="mini-tab-card__title">Material descargable</h4>
-            <p class="mini-tab-card__lead">Próximamente</p>
+            <p class="mini-tab-card__lead">${nRecursos > 0
+              ? `${nRecursos} ${nRecursos === 1 ? "documento" : "documentos"}`
+              : "Próximamente"}</p>
           </div>
           ${icon("arrowRight")}
         </a>
@@ -1096,7 +1147,8 @@ function renderRyffCajita(ctx) {
 }
 
 function renderPillarIcon(pillar, idx, modulos, autoevalCtx = {}) {
-  const mod = modulos.find(c => c.orden === idx + 2);
+  const ordenEsperado = PILAR_MODULO[autoevalCtx.slug]?.[pillar.key] ?? (idx + 2);
+  const mod = modulos.find(c => c.orden === ordenEsperado);
   let progress = 0, total = 0, done = 0;
   if (mod) {
     total = mod.lecciones.length;
@@ -1144,24 +1196,25 @@ function renderPillarIcon(pillar, idx, modulos, autoevalCtx = {}) {
  * Hover popup con el resultado de la autoevaluación del pilar.
  *
  * Aparece encima de la card del pilar cuando el alumno está en hover (o el
- * elemento está enfocado) Y existe un resultado para ese pilar. Por ahora
- * sólo Autoconocimiento tiene autoevaluación; las demás dimensiones se
- * agregarán cuando se publiquen sus tests.
+ * elemento está enfocado) Y existe un resultado para ese pilar. Ahora aplica a
+ * las 8 dimensiones: el resumen trae el mapa completo de autoevaluaciones
+ * (get-resultados-autoeval?autoeval=all) en un solo request.
  *
  * Devuelve "" si no hay resultado → la card no muestra popup ni gana la
  * clase `--has-popup`.
  */
-function renderPillarAutoevalPopup(pillar, { resultadoAutoconocimiento, slug } = {}) {
-  if (pillar.key === "autoconocimiento" && resultadoAutoconocimiento?.tieneResultados) {
-    const pct = resultadoAutoconocimiento.pct || 0;
-    const banda = resultadoAutoconocimiento.banda || "";
+function renderPillarAutoevalPopup(pillar, { resultadosAutoeval, slug } = {}) {
+  const res = resultadosAutoeval?.[pillar.key];
+  if (res?.tieneResultados) {
+    const pct = res.pct || 0;
+    const banda = res.banda || "";
     const bandaColor = autoevalBandaColor(banda);
-    const lead = resultadoAutoconocimiento.lead || "";
-    const steps = Array.isArray(resultadoAutoconocimiento.steps) ? resultadoAutoconocimiento.steps : [];
-    const fecha = resultadoAutoconocimiento.completedAt
-      ? new Date(resultadoAutoconocimiento.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    const lead = res.lead || "";
+    const steps = Array.isArray(res.steps) ? res.steps : [];
+    const fecha = res.completedAt
+      ? new Date(res.completedAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
       : "";
-    const linkHref = `/app/autoevaluacion/resultados?autoeval=autoconocimiento&id=${encodeURIComponent(resultadoAutoconocimiento.respuestaId)}&slug=${encodeURIComponent(slug || "")}`;
+    const linkHref = `/app/autoevaluacion/resultados?autoeval=${encodeURIComponent(pillar.key)}&id=${encodeURIComponent(res.respuestaId)}&slug=${encodeURIComponent(slug || "")}`;
     // Mostramos hasta los primeros 2 pasos para mantener el popup compacto;
     // el detalle completo (todos los steps + nota) está en el link.
     const stepsHtml = steps.length > 0
