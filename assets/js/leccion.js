@@ -394,6 +394,8 @@ async function renderLeccion(persona, payload, cursoContext) {
     _appTitle.classList.add("app-header__title--modulo");
   }
 
+  wireCheckpointTooltips();
+
   // Player de video self-hosted (resume) -> solo actua si renderVideoEmbed dejo
   // el contenedor .video-mount (lecciones de video con path de Storage).
   const videoMount = document.querySelector('.video-mount[data-storage-video]');
@@ -646,17 +648,18 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
             : i < idxHere ? "skipped"
             : "todo";
           return `
-            <li class="checkpoint checkpoint--${state}">
+            <li class="checkpoint checkpoint--${state}"
+                data-tip="${escapeHtml(`${modOrden}.${i + 1} · ${tipoLabel(l)}\n${cleanLeccionTitulo(l.titulo)}`)}">
               ${i > 0 ? `<span class="checkpoint__line ${modLecciones[i - 1].completada ? "" : "checkpoint__line--todo"}"></span>` : ""}
               <a class="checkpoint__dot" href="/app/leccion?id=${encodeURIComponent(l.id)}"
-                 title="${escapeHtml(l.titulo)}"
                  aria-current="${isHere ? "true" : "false"}">
                 ${isDone ? icon("check") : ""}
                 ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
               </a>
-              <span class="checkpoint__label" title="${escapeHtml(cleanLeccionTitulo(l.titulo))}">
+              <span class="checkpoint__label">
+                <span class="checkpoint__emoji">${tipoEmoji(l.tipo)}</span>
                 <span class="checkpoint__num">${modOrden}.${i + 1}</span>
-                <span class="checkpoint__type">${icon(lessonIcon(l.tipo))}${escapeHtml(tipoLabel(l))}</span>
+                <span class="checkpoint__type">${escapeHtml(tipoLabel(l))}</span>
               </span>
             </li>
           `;
@@ -672,6 +675,52 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
 // no compita con la numeración por posición del stepper.
 function cleanLeccionTitulo(t) {
   return String(t || "").replace(/^\s*\d+\.\d+\s+/, "").trim();
+}
+
+// Emoji por tipo de lección para la línea de tiempo.
+function tipoEmoji(tipo) {
+  const map = {
+    video: "🎬",
+    pdf: "📄",
+    texto: "📝",
+    quiz: "✏️",
+    autoeval: "🎯",
+    tarea: "📌",
+    enlace: "🔗",
+  };
+  return map[(tipo || "").toLowerCase()] || "•";
+}
+
+// Tooltip-cuadro para las bolitas del stepper (número · tipo · nombre).
+function wireCheckpointTooltips() {
+  let tip = document.getElementById("cp-tip");
+  if (!tip) {
+    tip = document.createElement("div");
+    tip.id = "cp-tip";
+    tip.className = "cp-tip";
+    document.body.appendChild(tip);
+  }
+  document.querySelectorAll(".checkpoint[data-tip]").forEach((el) => {
+    if (el.dataset.tipWired) return;
+    el.dataset.tipWired = "1";
+    const show = () => {
+      tip.textContent = el.getAttribute("data-tip") || "";
+      tip.style.left = "-9999px";
+      tip.style.top = "0px";
+      tip.classList.add("is-visible");
+      const r = el.getBoundingClientRect();
+      const tw = tip.offsetWidth;
+      let left = r.left + r.width / 2 - tw / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+      tip.style.left = `${Math.round(left)}px`;
+      tip.style.top = `${Math.round(r.bottom + 6)}px`;
+    };
+    const hide = () => tip.classList.remove("is-visible");
+    el.addEventListener("mouseenter", show);
+    el.addEventListener("mouseleave", hide);
+    el.addEventListener("focusin", show);
+    el.addEventListener("focusout", hide);
+  });
 }
 
 // Etiqueta corta del TIPO de lección para la línea de tiempo.
