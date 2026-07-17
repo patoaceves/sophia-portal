@@ -4938,7 +4938,15 @@
   padding: 0 var(--s-1);
 }
 .checkpoint__num { display: block; font-size: 0.6875rem; font-weight: 700; }
-.checkpoint__type { display: block; font-size: 0.8125rem; font-weight: 600; }
+.checkpoint__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.checkpoint__type svg { width: 13px; height: 13px; flex: 0 0 auto; }
 
 .checkpoint--current .checkpoint__label {
   color: var(--color-accent);
