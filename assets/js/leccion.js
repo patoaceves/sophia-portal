@@ -649,7 +649,9 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
             : "todo";
           return `
             <li class="checkpoint checkpoint--${state}"
-                data-tip="${escapeHtml(`${modOrden}.${i + 1} · ${tipoLabel(l)}\n${cleanLeccionTitulo(l.titulo)}`)}">
+                data-num="${escapeHtml(`${modOrden}.${i + 1}`)}"
+                data-tipo="${escapeHtml(tipoLabel(l))}"
+                data-nombre="${escapeHtml(cleanLeccionTitulo(l.titulo))}">
               ${i > 0 ? `<span class="checkpoint__line ${modLecciones[i - 1].completada ? "" : "checkpoint__line--todo"}"></span>` : ""}
               <a class="checkpoint__dot" href="/app/leccion?id=${encodeURIComponent(l.id)}"
                  aria-current="${isHere ? "true" : "false"}">
@@ -700,11 +702,14 @@ function wireCheckpointTooltips() {
     tip.className = "cp-tip";
     document.body.appendChild(tip);
   }
-  document.querySelectorAll(".checkpoint[data-tip]").forEach((el) => {
+  document.querySelectorAll(".checkpoint[data-num]").forEach((el) => {
     if (el.dataset.tipWired) return;
     el.dataset.tipWired = "1";
     const show = () => {
-      tip.textContent = el.getAttribute("data-tip") || "";
+      const num = escapeHtml(el.getAttribute("data-num") || "");
+      const tipo = escapeHtml(el.getAttribute("data-tipo") || "");
+      const nombre = escapeHtml(el.getAttribute("data-nombre") || "");
+      tip.innerHTML = `<span class="cp-tip__meta">${num} · ${tipo}</span><span class="cp-tip__name">${nombre}</span>`;
       tip.style.left = "-9999px";
       tip.style.top = "0px";
       tip.classList.add("is-visible");
