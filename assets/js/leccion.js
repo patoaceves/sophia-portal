@@ -655,7 +655,6 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
                 ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
               </a>
               <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">
-                <span class="checkpoint__num">${modOrden}.${i + 1}</span>
                 <span class="checkpoint__type">${icon(lessonIcon(l.tipo))}${escapeHtml(tipoLabel(l))}</span>
               </span>
             </li>
