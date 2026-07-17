@@ -4936,7 +4936,8 @@
   line-height: 1.15;
   padding: 0 var(--s-2);
 }
-.checkpoint__emoji { font-size: 0.95rem; line-height: 1; }
+.checkpoint__icon { display: inline-flex; align-items: center; color: var(--color-text-muted); }
+.checkpoint__icon svg { width: 15px; height: 15px; }
 .checkpoint__num { font-size: 0.8125rem; font-weight: 700; }
 .checkpoint__type { font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); }
 
