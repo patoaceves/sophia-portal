@@ -4927,14 +4927,18 @@
 
 .checkpoint__label {
   margin-top: var(--s-3);
-  font-size: 0.6875rem;
-  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   color: var(--color-text-muted);
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.15;
   max-width: 100%;
   padding: 0 var(--s-1);
 }
+.checkpoint__num { font-size: 0.6875rem; font-weight: 700; }
+.checkpoint__type { font-size: 0.625rem; font-weight: 500; opacity: 0.85; }
 
 .checkpoint--current .checkpoint__label {
   color: var(--color-accent);

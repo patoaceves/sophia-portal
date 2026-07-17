@@ -654,7 +654,10 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
                 ${isDone ? icon("check") : ""}
                 ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
               </a>
-              <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">${escapeHtml(shortenTitle(l.titulo))}</span>
+              <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">
+                <span class="checkpoint__num">${modOrden}.${i + 1}</span>
+                <span class="checkpoint__type">${escapeHtml(tipoLabel(l))}</span>
+              </span>
             </li>
           `;
         }).join("")}
@@ -662,6 +665,20 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
     </div>
     <div class="checkpoint-bar-spacer" aria-hidden="true"></div>
   `;
+}
+
+// Etiqueta corta del TIPO de lección para la línea de tiempo.
+function tipoLabel(l) {
+  const map = {
+    video: "Video",
+    pdf: "Lectura",
+    texto: "Nota",
+    quiz: "Quiz",
+    autoeval: "Dinámica",
+    tarea: "Tarea",
+    enlace: "Evaluación",
+  };
+  return map[l?.tipo] || "Actividad";
 }
 
 // Etiqueta corta para la línea de tiempo: usa palabras, no numeración propia
