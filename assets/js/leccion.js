@@ -289,7 +289,7 @@ async function renderLeccion(persona, payload, cursoContext) {
             ${icon(lessonIcon(leccion.tipo))}
             <span>${escapeHtml(lessonTipoLabel(leccion.tipo))}</span>
           </div>
-          <h2 class="page-title leccion-page__title">${escapeHtml(leccion.titulo)}</h2>
+          <h2 class="page-title leccion-page__title">${escapeHtml(cleanLeccionTitulo(leccion.titulo))}</h2>
           <p class="leccion-page__subtitulo" style="margin-top:var(--s-1);color:var(--color-text-muted);font-size:1.1rem;line-height:1.35;">${escapeHtml(moduloLabel)}</p>
           ${modLecciones.length > 0 ? `<p class="leccion-page__leccion-num" style="margin-top:3px;font-size:0.8rem;font-weight:700;color:var(--color-accent);">Lección ${idxHere + 1} de ${modLecciones.length}</p>` : ""}
           ${ponente ? `
@@ -654,7 +654,8 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
                 ${isDone ? icon("check") : ""}
                 ${isHere && !isDone ? `<span class="checkpoint__pulse"></span>` : ""}
               </a>
-              <span class="checkpoint__label" title="${escapeHtml(l.titulo)}">
+              <span class="checkpoint__label" title="${escapeHtml(cleanLeccionTitulo(l.titulo))}">
+                <span class="checkpoint__num">${modOrden}.${i + 1}</span>
                 <span class="checkpoint__type">${icon(lessonIcon(l.tipo))}${escapeHtml(tipoLabel(l))}</span>
               </span>
             </li>
@@ -664,6 +665,13 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
     </div>
     <div class="checkpoint-bar-spacer" aria-hidden="true"></div>
   `;
+}
+
+// Quita el número editorial que traen algunos títulos de video
+// ("1.1 El mapa de tu bienestar" -> "El mapa de tu bienestar") para que
+// no compita con la numeración por posición del stepper.
+function cleanLeccionTitulo(t) {
+  return String(t || "").replace(/^\s*\d+\.\d+\s+/, "").trim();
 }
 
 // Etiqueta corta del TIPO de lección para la línea de tiempo.

@@ -4822,7 +4822,7 @@
   /* padding vertical: el contenedor recorta en Y (overflow-x:auto fuerza
      overflow-y:auto), así que dejamos aire para que el anillo del pulso
      de .checkpoint--current no se corte arriba/abajo. */
-  padding: var(--s-2) 0;
+  padding: var(--s-2) var(--s-4);
   display: flex;
   align-items: flex-start;
   gap: 0;
