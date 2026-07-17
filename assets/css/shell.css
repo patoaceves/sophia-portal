@@ -4804,14 +4804,14 @@
    Height should approximate the rendered checkpoint bar height. */
 .checkpoint-bar-spacer {
   /* desktop: padding (s-5 * 2 = 40) + content (~52px) ≈ 92px */
-  height: 96px;
+  height: 108px;
   margin-bottom: var(--s-7);
 }
 
 @media (max-width: 880px) {
   .checkpoint-bar-spacer {
     /* mobile: padding (s-4 * 2 = 32) + content (~52px) ≈ 84px */
-    height: 84px;
+    height: 96px;
     margin-bottom: var(--s-5);
   }
 }
@@ -4930,15 +4930,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   color: var(--color-text-muted);
   text-align: center;
   line-height: 1.15;
   max-width: 100%;
   padding: 0 var(--s-1);
 }
-.checkpoint__num { font-size: 0.6875rem; font-weight: 700; }
-.checkpoint__type { font-size: 0.625rem; font-weight: 500; opacity: 0.85; }
+.checkpoint__num { display: block; font-size: 0.6875rem; font-weight: 700; }
+.checkpoint__type { display: block; font-size: 0.8125rem; font-weight: 600; }
 
 .checkpoint--current .checkpoint__label {
   color: var(--color-accent);
@@ -6237,7 +6237,7 @@
 .leccion-html .claustro-photo {
   flex-shrink: 0;
   width: 96px;
-  height: 96px;
+  height: 108px;
   border-radius: var(--r-full);
   object-fit: cover;
   background: var(--color-bg-subtle);
@@ -7613,7 +7613,7 @@ button.foro-preview-card__link {
 .eval-ponente-header__photo {
   flex-shrink: 0;
   width: 96px;
-  height: 96px;
+  height: 108px;
   border-radius: var(--r-full);
   object-fit: cover;
   background: var(--color-bg-subtle);
