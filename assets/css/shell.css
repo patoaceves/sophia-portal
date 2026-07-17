@@ -6237,7 +6237,7 @@
 .leccion-html .claustro-photo {
   flex-shrink: 0;
   width: 96px;
-  height: 108px;
+  height: 96px;
   border-radius: var(--r-full);
   object-fit: cover;
   background: var(--color-bg-subtle);
@@ -7613,7 +7613,7 @@ button.foro-preview-card__link {
 .eval-ponente-header__photo {
   flex-shrink: 0;
   width: 96px;
-  height: 108px;
+  height: 96px;
   border-radius: var(--r-full);
   object-fit: cover;
   background: var(--color-bg-subtle);
