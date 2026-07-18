@@ -4933,13 +4933,13 @@
   gap: 4px;
   white-space: nowrap;
   color: var(--color-text-muted);
-  line-height: 1.15;
+  line-height: 1;
   padding: 0 var(--s-2);
 }
-.checkpoint__icon { display: inline-flex; align-items: center; line-height: 0; color: var(--color-text-muted); }
-.checkpoint__icon svg { width: 15px; height: 15px; display: block; }
-.checkpoint__num { font-size: 0.8125rem; font-weight: 700; }
-.checkpoint__type { font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); }
+.checkpoint__icon { display: inline-flex; align-items: center; color: var(--color-text-muted); }
+.checkpoint__icon svg { width: 14px; height: 14px; display: block; }
+.checkpoint__num { font-size: 0.8125rem; font-weight: 700; line-height: 1; }
+.checkpoint__type { font-size: 0.8125rem; font-weight: 600; line-height: 1; color: var(--color-text-muted); }
 
 .checkpoint--current .checkpoint__label {
   color: var(--color-accent);
