@@ -660,7 +660,6 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
               </a>
               <span class="checkpoint__label">
                 <span class="checkpoint__icon">${icon(lessonIcon(l.tipo))}</span>
-                <span class="checkpoint__num">${modOrden}.${i + 1}</span>
                 <span class="checkpoint__type">${escapeHtml(tipoLabel(l))}</span>
               </span>
             </li>
@@ -706,10 +705,9 @@ function wireCheckpointTooltips() {
     if (el.dataset.tipWired) return;
     el.dataset.tipWired = "1";
     const show = () => {
-      const num = escapeHtml(el.getAttribute("data-num") || "");
       const tipo = escapeHtml(el.getAttribute("data-tipo") || "");
       const nombre = escapeHtml(el.getAttribute("data-nombre") || "");
-      tip.innerHTML = `<span class="cp-tip__meta">${num} · ${tipo}</span><span class="cp-tip__name">${nombre}</span>`;
+      tip.innerHTML = `<span class="cp-tip__meta">${tipo}</span><span class="cp-tip__name">${nombre}</span>`;
       tip.style.left = "-9999px";
       tip.style.top = "0px";
       tip.classList.add("is-visible");
