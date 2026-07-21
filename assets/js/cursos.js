@@ -11,6 +11,7 @@ import { renderShell, escapeHtml } from "./ui-shell.js";
 const LOCAL_COVERS = new Map([
   ["happiness-workshop", "png"],
   ["fundamentos-de-coaching", "jpg"],
+  ["anxiety-workshop", "jpg"],
 ]);
 
 (async () => {

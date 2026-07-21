@@ -207,6 +207,23 @@ export const api = {
     return data;
   },
 
+  /** POST /firmar-acuerdo -> { ok, acuerdoId, firmadoEn, alreadySigned? } */
+  async firmarAcuerdo({ inscripcionId, leccionId, cursoId, documentoClave, nombreFirma, casillas }) {
+    const { data } = await callEdge("firmar-acuerdo", {
+      method: "POST",
+      body: { inscripcionId, leccionId, cursoId, documentoClave, nombreFirma, casillas },
+    });
+    return data;
+  },
+
+  /** GET /get-acuerdo-firmado -> { firmado, nombreFirma?, firmadoEn?, casillas? } */
+  async getAcuerdoFirmado(documentoClave, inscripcionId) {
+    const { data } = await callEdge("get-acuerdo-firmado", {
+      query: { documentoClave, inscripcionId },
+    });
+    return data;
+  },
+
   /** GET /get-video-url?leccionId= -> { signedUrl, subtitlesUrl, resumePct, completada, inscripcionId, expiresIn } */
   async getVideoUrl(leccionId) {
     const { data } = await callEdge("get-video-url", { query: { leccionId } });

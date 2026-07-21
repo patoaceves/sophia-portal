@@ -25,6 +25,7 @@ import { renderTestFelicidadInto } from "./test-felicidad-resultados.js";
 import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 import { mountTarea } from "./tarea.js";
+import { mountAcuerdo } from "./acuerdo.js";
 import { mountBalanza } from "./actividad-balanza.js";
 import { mountVideoPlayer } from "./video-player.js";
 
@@ -262,6 +263,11 @@ async function renderLeccion(persona, payload, cursoContext) {
   // En vez del iframe del Google Form, montamos el wizard nativo.
   const isEvaluacion = leccion.tipo === "enlace" &&
     (leccion.etiqueta || "").trim().toLowerCase() === "evaluación";
+  // "Acuerdo de participación": lección tipo enlace con etiqueta "Acuerdo".
+  // Monta el componente de firma digital (acuerdo.js); la clave del documento
+  // viene en leccion.urlExterna (ej. "anxiety-acuerdo-v1").
+  const isAcuerdo = leccion.tipo === "enlace" &&
+    (leccion.etiqueta || "").trim().toLowerCase() === "acuerdo";
   // "Actividad en clase": lección tipo quiz. Monta el wizard de quiz; la
   // clave del quiz (qué preguntas mostrar) viene en leccion.urlExterna.
   const isQuiz = leccion.tipo === "quiz";
@@ -303,6 +309,7 @@ async function renderLeccion(persona, payload, cursoContext) {
         <div class="leccion-page__body">
           ${isTest ? `<div id="testEmbed"></div>`
             : isEvaluacion ? `<div id="evalEmbed"></div>`
+            : isAcuerdo ? `<div id="acuerdoEmbed"></div>`
             : isQuiz ? `<div id="quizEmbed"></div>`
             : isTarea ? `
                 ${leccion.contenidoHTML ? `<div class="leccion-html">${leccion.contenidoHTML}</div>` : ""}
@@ -311,7 +318,7 @@ async function renderLeccion(persona, payload, cursoContext) {
             : renderContent(leccion)}
         </div>
 
-        ${(isTest || isEvaluacion) ? `
+        ${(isTest || isEvaluacion || isAcuerdo) ? `
           <footer class="leccion-page__footer leccion-page__footer--test">
             <div>
               ${prevId
@@ -401,6 +408,31 @@ async function renderLeccion(persona, payload, cursoContext) {
   const videoMount = document.querySelector('.video-mount[data-storage-video]');
   if (videoMount) {
     mountVideoPlayer(videoMount, { leccionId: leccion.id, inscripcionId });
+  }
+
+  // Acuerdo de participación con firma digital. Al firmar, marcamos la lección
+  // como completada y revelamos el botón de avanzar (igual que en evaluación).
+  if (isAcuerdo) {
+    const container = document.getElementById("acuerdoEmbed");
+    await mountAcuerdo({
+      container,
+      clave: (leccion.urlExterna || "").trim(),
+      inscripcionId,
+      leccionId: leccion.id,
+      cursoId,
+      yaCompletada: !!leccion.completada,
+      onComplete: async () => {
+        if (inscripcionId && !leccion.completada) {
+          try {
+            await api.marcarLeccion(leccion.id, inscripcionId);
+            leccion.completada = true;
+          } catch (e) {
+            console.warn("No se pudo marcar el acuerdo como completado:", e);
+          }
+        }
+        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+      },
+    });
   }
 
   // After render: post-process content (sanitize image URLs)

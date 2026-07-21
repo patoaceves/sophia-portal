@@ -38,6 +38,7 @@ import { getRecursos } from "./recursos-defs.js";
 const LOCAL_COVERS = new Map([
   ["happiness-workshop", "png"],
   ["fundamentos-de-coaching", "jpg"],
+  ["anxiety-workshop", "jpg"],
 ]);
 
 import { PILARES, DIM_COLOR, esHappinessWorkshop, moduloDePilar } from "./pilares-defs.js";
