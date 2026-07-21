@@ -7,6 +7,7 @@
 
 import { api } from "./api.js";
 import { getAcuerdoDef } from "./acuerdo-defs.js";
+import { mountPdfInto } from "./pdf-embed.js";
 
 const MESES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -50,12 +51,17 @@ function renderFormulario(container, def, ctx) {
     <div class="acuerdo">
       <p style="color:var(--color-text-muted,#666);margin:0 0 var(--s-3,14px);">${escapeHtml(def.intro || "")}</p>
 
-      <div class="acuerdo-doc" style="border:1px solid var(--color-border,#e6e6e6);border-radius:12px;overflow:hidden;margin-bottom:var(--s-4,20px);">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--color-surface-2,#fafafa);border-bottom:1px solid var(--color-border,#e6e6e6);font-size:0.85rem;color:var(--color-text-muted,#666);">
-          <span>${escapeHtml(def.titulo)}</span>
-          <a href="${escapeHtml(def.pdfUrl)}" target="_blank" rel="noopener" style="color:var(--color-accent,#c21f49);font-weight:600;text-decoration:none;">Abrir en pestaña nueva</a>
+      <div class="acuerdo-doc" style="margin-bottom:var(--s-4,20px);">
+        <div class="leccion-pdf" data-pdf-src="${escapeHtml(def.pdfUrl)}">
+          <div class="leccion-pdf__loading">
+            <div class="leccion-pdf__spinner" aria-hidden="true"></div>
+            <span>Cargando documento…</span>
+          </div>
         </div>
-        <iframe src="${escapeHtml(def.pdfUrl)}#view=FitH" title="${escapeHtml(def.titulo)}" style="width:100%;height:460px;border:0;display:block;background:#fff;"></iframe>
+        <p class="leccion-pdf__alt" style="margin-top:8px;font-size:0.85rem;color:var(--color-text-muted,#666);">
+          ¿Prefieres verlo aparte?
+          <a href="${escapeHtml(def.pdfUrl)}" target="_blank" rel="noopener" style="color:var(--color-accent,#c21f49);font-weight:600;">Abrir el PDF en otra pestaña</a>
+        </p>
       </div>
 
       <h3 style="font-size:1.05rem;margin:0 0 10px;">Confirma que leíste y estás de acuerdo</h3>
@@ -107,6 +113,9 @@ function renderFormulario(container, def, ctx) {
   boxes.forEach((b) => b.addEventListener("change", validate));
   nombre.addEventListener("input", validate);
   validate();
+
+  // Render del PDF a canvas (sin iframe ni barra de miniaturas del navegador).
+  mountPdfInto(container.querySelector(".acuerdo-doc .leccion-pdf"), def.pdfUrl);
 
   btn.addEventListener("click", async () => {
     errBox.hidden = true;
