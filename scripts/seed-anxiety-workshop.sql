@@ -102,5 +102,45 @@ begin
     select 1 from public.lecciones l where l.modulo_id = v_mod0 and l.orden = 2
   );
 
+  -- ── Lecciones de las sesiones 1..8 ──────────────────────────────────────
+  -- Orden por sesión: 1 nota técnica (pdf), 2 actividades (pdf),
+  -- 3 evaluación de la sesión (wizard nativo: tipo enlace + etiqueta Evaluación,
+  -- evalúa al ponente del módulo). Todo en borrador.
+  insert into public.lecciones (modulo_id, titulo, tipo, etiqueta, orden, url_externa, subtitulo, estatus)
+  select m.id, v.titulo, v.tipo::leccion_tipo, v.etiqueta, v.orden, v.url_externa, v.subtitulo, 'borrador'::leccion_estatus
+  from public.modulos m
+  join (values
+    (1, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s1-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (1, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s1-actividades.pdf',  'Actividades de la sesión.'),
+    (1, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (2, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s2-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (2, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s2-actividades.pdf',  'Actividades de la sesión.'),
+    (2, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (3, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s3-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (3, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s3-actividades.pdf',  'Actividades de la sesión.'),
+    (3, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (4, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s4-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (4, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s4-actividades.pdf',  'Actividades de la sesión.'),
+    (4, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (5, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s5-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (5, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s5-actividades.pdf',  'Actividades de la sesión.'),
+    (5, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (6, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s6-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (6, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s6-actividades.pdf',  'Actividades de la sesión.'),
+    (6, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (7, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s7-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (7, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s7-actividades.pdf',  'Actividades de la sesión.'),
+    (7, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.'),
+    (8, 'Nota técnica',            'pdf',    null,         1, '/assets/pdf/anxiety-workshop/s8-nota-tecnica.pdf', 'Lee la nota técnica antes de la sesión.'),
+    (8, 'Actividades',             'pdf',    null,         2, '/assets/pdf/anxiety-workshop/s8-actividades.pdf',  'Actividades de la sesión.'),
+    (8, 'Evaluación de la sesión', 'enlace', 'Evaluación', 3, null,                                              'Evalúa la sesión y al ponente.')
+  ) as v(mod, titulo, tipo, etiqueta, orden, url_externa, subtitulo)
+    on v.mod = m.orden
+  where m.curso_id = v_curso
+    and m.orden between 1 and 8
+    and not exists (
+      select 1 from public.lecciones l where l.modulo_id = m.id and l.orden = v.orden
+    );
+
   raise notice 'Anxiety Workshop seed OK. curso_id=%', v_curso;
 end $$;
