@@ -277,7 +277,9 @@ async function renderLeccion(persona, payload, cursoContext) {
 
   const _modOrden = modInfo?.orden ?? modCompleto?.orden ?? "";
   const _modTitulo = cleanModuloTitulo(modInfo?.titulo ?? modCompleto?.titulo ?? "");
-  const moduloLabel = _modTitulo ? `Módulo ${_modOrden}: ${_modTitulo}` : `Módulo ${_modOrden}`;
+  const moduloLabel = Number(_modOrden) === 0
+    ? (_modTitulo || "Antes de empezar")
+    : (_modTitulo ? `Módulo ${_modOrden}: ${_modTitulo}` : `Módulo ${_modOrden}`);
   renderShell({
     persona,
     title: moduloLabel,
@@ -682,7 +684,7 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
           return `
             <li class="checkpoint checkpoint--${state}"
                 data-num="${escapeHtml(`${modOrden}.${i + 1}`)}"
-                data-tipo="${escapeHtml(tipoLabel(l))}"
+                data-tipo="${escapeHtml(stepperLabel(l))}"
                 data-nombre="${escapeHtml(cleanLeccionTitulo(l.titulo))}">
               ${i > 0 ? `<span class="checkpoint__line ${modLecciones[i - 1].completada ? "" : "checkpoint__line--todo"}"></span>` : ""}
               <a class="checkpoint__dot" href="/app/leccion?id=${encodeURIComponent(l.id)}"
@@ -692,7 +694,7 @@ function renderCheckpointBar(modLecciones, idxHere, modOrden) {
               </a>
               <span class="checkpoint__label">
                 <span class="checkpoint__icon">${icon(lessonIcon(l.tipo))}</span>
-                <span class="checkpoint__type">${escapeHtml(tipoLabel(l))}</span>
+                <span class="checkpoint__type">${escapeHtml(stepperLabel(l))}</span>
               </span>
             </li>
           `;
@@ -770,6 +772,22 @@ function tipoLabel(l) {
     enlace: "Evaluación",
   };
   return map[l?.tipo] || "Actividad";
+}
+
+// Etiqueta para el stepper: prioriza la etiqueta de la lección y, si no,
+// deriva del título (para que "Documento de bienvenida" salga "Bienvenida",
+// "Nota técnica" salga "Nota técnica", etc.), en vez del genérico por tipo
+// (que hacía que un acuerdo dijera "Evaluación" o un PDF dijera "Lectura").
+function stepperLabel(l) {
+  const et = (l?.etiqueta || "").trim();
+  if (et) return et;
+  const t = cleanLeccionTitulo(l?.titulo || "").toLowerCase();
+  if (t.includes("bienvenida")) return "Bienvenida";
+  if (t.includes("nota técnica") || t.includes("nota tecnica")) return "Nota técnica";
+  if (t.startsWith("actividad")) return "Actividades";
+  if (t.includes("acuerdo")) return "Acuerdo";
+  if (t.includes("evaluación") || t.includes("evaluacion")) return "Evaluación";
+  return tipoLabel(l);
 }
 
 // Etiqueta corta para la línea de tiempo: usa palabras, no numeración propia

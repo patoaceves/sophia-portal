@@ -23,7 +23,8 @@ function fechaCorta(iso) {
   return `${dd}/${MESES[d.getMonth()]}/${d.getFullYear()}`;
 }
 
-function renderFirmado(container, def, { nombreFirma, firmadoEn }) {
+function renderFirmado(container, def, firma) {
+  const { nombreFirma, firmadoEn } = firma;
   container.innerHTML = `
     <div class="acuerdo-firmado" style="border:1px solid #bfe6cd;background:#eafaf1;border-radius:12px;padding:20px 22px;">
       <div style="display:inline-flex;align-items:center;gap:8px;color:#1f9d55;font-weight:700;font-size:0.95rem;">
@@ -32,11 +33,132 @@ function renderFirmado(container, def, { nombreFirma, firmadoEn }) {
       <h3 style="margin:12px 0 4px;font-size:1.35rem;">${escapeHtml(nombreFirma || "")}</h3>
       <p style="margin:2px 0;color:var(--color-text-muted,#666);font-size:0.9rem;">Firmado el <strong>${escapeHtml(fechaCorta(firmadoEn))}</strong></p>
       <p style="margin:2px 0;color:var(--color-text-muted,#666);font-size:0.9rem;">Documento: <strong>${escapeHtml(def.titulo)} (${escapeHtml(def.version)})</strong></p>
-      <p style="margin:14px 0 0;">
-        <a class="btn btn-secondary" href="${escapeHtml(def.pdfUrl)}" download rel="noopener">Descargar acuerdo (PDF)</a>
+      <p style="margin:14px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button type="button" id="acuerdoDescargarBtn" class="btn btn-secondary">Descargar acuerdo firmado (PDF)</button>
+        <span id="acuerdoDescargarHint" style="font-size:0.8rem;color:var(--color-text-muted,#666);" hidden></span>
       </p>
     </div>
   `;
+
+  const btn = container.querySelector("#acuerdoDescargarBtn");
+  const hint = container.querySelector("#acuerdoDescargarHint");
+  btn?.addEventListener("click", async () => {
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = "Generando...";
+    if (hint) { hint.hidden = true; hint.textContent = ""; }
+    try {
+      await descargarAcuerdoFirmado(def, { nombreFirma, firmadoEn });
+    } catch (e) {
+      console.error("descargarAcuerdoFirmado:", e);
+      if (hint) { hint.hidden = false; hint.textContent = "No se pudo generar el PDF. Intenta de nuevo."; }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  });
+}
+
+function fechaHora(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${MESES[d.getMonth()]}/${d.getFullYear()}, ${hh}:${mm} h`;
+}
+
+function slugNombre(s) {
+  return (String(s || "firma").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40)) || "firma";
+}
+
+function wrapLines(text, font, size, maxWidth) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (line && font.widthOfTextAtSize(test, size) > maxWidth) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// Genera una copia del acuerdo con una hoja de "Constancia de firma" agregada
+// al final (nombre + fecha + casillas). NO modifica las páginas originales.
+async function descargarAcuerdoFirmado(def, firma) {
+  const { PDFDocument, StandardFonts, rgb } = await import("https://esm.sh/pdf-lib@1.17.1");
+  const bytes = await fetch(def.pdfUrl).then((r) => {
+    if (!r.ok) throw new Error("No se pudo leer el PDF original");
+    return r.arrayBuffer();
+  });
+
+  const pdf = await PDFDocument.load(bytes);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  const page = pdf.addPage();
+  const { width, height } = page.getSize();
+  const M = 56;
+  const crimson = rgb(0.753, 0.067, 0.184); // #c0112f
+  const dark = rgb(0.1, 0.1, 0.1);
+  const gray = rgb(0.4, 0.4, 0.4);
+  let y = height - 72;
+
+  page.drawText("Constancia de firma", { x: M, y, size: 20, font: bold, color: crimson });
+  y -= 14;
+  page.drawLine({ start: { x: M, y }, end: { x: width - M, y }, thickness: 1, color: crimson });
+  y -= 28;
+
+  for (const ln of wrapLines("Este acuerdo fue leído y aceptado de forma electrónica por la persona firmante.", font, 11, width - M * 2)) {
+    page.drawText(ln, { x: M, y, size: 11, font, color: gray });
+    y -= 16;
+  }
+  y -= 16;
+
+  const rows = [
+    ["Nombre (firma)", firma.nombreFirma || ""],
+    ["Fecha y hora", fechaHora(firma.firmadoEn)],
+    ["Documento", `${def.titulo} (${def.version})`],
+    ["Consentimiento", `Confirmó las ${def.casillas.length} casillas del acuerdo`],
+  ];
+  for (const [k, v] of rows) {
+    page.drawText(k, { x: M, y, size: 9, font: bold, color: gray });
+    y -= 17;
+    for (const ln of wrapLines(String(v), font, 13, width - M * 2)) {
+      page.drawText(ln, { x: M, y, size: 13, font, color: dark });
+      y -= 18;
+    }
+    y -= 12;
+  }
+
+  y -= 4;
+  page.drawText("Casillas confirmadas", { x: M, y, size: 9, font: bold, color: gray });
+  y -= 16;
+  for (const c of def.casillas) {
+    for (const ln of wrapLines("- " + c.texto, font, 9.5, width - M * 2)) {
+      if (y < 56) break;
+      page.drawText(ln, { x: M, y, size: 9.5, font, color: rgb(0.25, 0.25, 0.25) });
+      y -= 13;
+    }
+    y -= 3;
+  }
+
+  const out = await pdf.save();
+  const blob = new Blob([out], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `acuerdo-firmado-${slugNombre(firma.nombreFirma)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 function renderFormulario(container, def, ctx) {

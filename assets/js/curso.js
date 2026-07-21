@@ -1348,7 +1348,7 @@ function renderModuloCard(mod) {
         aria-controls="${panelId}"
       >
         <div class="modulo-card__head-info">
-          <div class="modulo-card__num">Módulo ${mod.orden}</div>
+          ${mod.orden === 0 ? "" : `<div class="modulo-card__num">Módulo ${mod.orden}</div>`}
           <h3 class="modulo-card__title">${escapeHtml(mod.titulo)}</h3>
           ${mod.descripcion ? `<p class="modulo-card__desc">${escapeHtml(mod.descripcion)}</p>` : ""}
           ${mod.ponente ? `
