@@ -31,8 +31,8 @@ function renderFirmado(container, def, { nombreFirma, firmadoEn }) {
       <h3 style="margin:12px 0 4px;font-size:1.35rem;">${escapeHtml(nombreFirma || "")}</h3>
       <p style="margin:2px 0;color:var(--color-text-muted,#666);font-size:0.9rem;">Firmado el <strong>${escapeHtml(fechaCorta(firmadoEn))}</strong></p>
       <p style="margin:2px 0;color:var(--color-text-muted,#666);font-size:0.9rem;">Documento: <strong>${escapeHtml(def.titulo)} (${escapeHtml(def.version)})</strong></p>
-      <p style="margin:12px 0 0;">
-        <a class="btn btn-secondary" href="${escapeHtml(def.pdfUrl)}" target="_blank" rel="noopener">Ver el documento firmado</a>
+      <p style="margin:14px 0 0;">
+        <a class="btn btn-secondary" href="${escapeHtml(def.pdfUrl)}" download rel="noopener">Descargar acuerdo (PDF)</a>
       </p>
     </div>
   `;
