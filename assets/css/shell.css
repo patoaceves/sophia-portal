@@ -4765,6 +4765,44 @@
   color: var(--color-text-subtle);
 }
 
+/* Módulo cards · chips de sesión (modalidad / fecha / hora), en una línea */
+.sesion-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sesion-chips::-webkit-scrollbar { display: none; }
+
+.sesion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: var(--s-1) var(--s-3);
+  background: var(--color-bg-subtle);
+  border-radius: var(--r-full);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+.sesion-chip svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--color-text-subtle);
+}
+.sesion-chip--mod {
+  background: rgba(192, 17, 47, 0.09);
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+.sesion-chip--mod svg { color: var(--color-accent); }
+
 /* ──────────────────────────────────────────────────────────────────
  * Lesson page · checkpoint progress bar (replaces simple bar)
  * ────────────────────────────────────────────────────────────────── */

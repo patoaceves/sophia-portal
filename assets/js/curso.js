@@ -41,6 +41,44 @@ const LOCAL_COVERS = new Map([
   ["anxiety-workshop", "jpg"],
 ]);
 
+// Info de sesión en chips (modalidad / fecha / hora). Se arma parseando la
+// descripción del módulo cuando trae el formato "Sesión ..., <fecha>, <hora>".
+// Si no cuadra (descripción libre de otros cursos), se muestra tal cual.
+const _MESES_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const _MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const _DIAS_LARGO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+const _ICO_MONITOR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4" stroke-linecap="round"/></svg>`;
+const _ICO_PIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>`;
+
+function parseSesionDesc(desc) {
+  if (!desc) return null;
+  const m = String(desc).match(/^Sesi[oó]n\s+(en línea|presencial)\s*,\s*[^,]*?(\d{1,2})\/([A-Za-z]{3,})\/(\d{4})\s*,\s*(.+?)\.?\s*$/i);
+  if (!m) return null;
+  const monIdx = _MESES_ABBR.indexOf(m[3].slice(0, 3).toLowerCase());
+  if (monIdx < 0) return null;
+  const dd = parseInt(m[2], 10);
+  const yyyy = parseInt(m[4], 10);
+  const d = new Date(yyyy, monIdx, dd);
+  return {
+    online: m[1].toLowerCase() === "en línea",
+    fechaLarga: `${_DIAS_LARGO[d.getDay()]} ${dd} de ${_MESES_LARGO[monIdx]} de ${yyyy}`,
+    hora: m[5].trim(),
+  };
+}
+
+function renderSesionMeta(desc) {
+  const s = parseSesionDesc(desc);
+  if (!s) return desc ? `<p class="modulo-card__desc">${escapeHtml(desc)}</p>` : "";
+  return `
+    <div class="sesion-chips">
+      <span class="sesion-chip sesion-chip--mod">${s.online ? _ICO_MONITOR : _ICO_PIN}${escapeHtml(s.online ? "En línea" : "Presencial")}</span>
+      <span class="sesion-chip">${icon("calendario")}${escapeHtml(s.fechaLarga)}</span>
+      <span class="sesion-chip">${icon("duracion")}${escapeHtml(s.hora)}</span>
+    </div>
+  `;
+}
+
 import { PILARES, DIM_COLOR, esHappinessWorkshop, moduloDePilar } from "./pilares-defs.js";
 import { descargarAvancePdf } from "./avance-pdf.js";
 
@@ -1350,7 +1388,7 @@ function renderModuloCard(mod) {
         <div class="modulo-card__head-info">
           ${mod.orden === 0 ? "" : `<div class="modulo-card__num">Módulo ${mod.orden}</div>`}
           <h3 class="modulo-card__title">${escapeHtml(mod.titulo)}</h3>
-          ${mod.descripcion ? `<p class="modulo-card__desc">${escapeHtml(mod.descripcion)}</p>` : ""}
+          ${renderSesionMeta(mod.descripcion)}
           ${mod.ponente ? `
             <div class="modulo-card__ponente">
               ${icon("instructor")}
