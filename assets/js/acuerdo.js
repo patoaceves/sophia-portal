@@ -163,58 +163,63 @@ async function descargarAcuerdoFirmado(def, firma) {
 
 function renderFormulario(container, def, ctx) {
   const casillasHtml = def.casillas.map((c) => `
-    <label class="acuerdo-check" style="display:flex;gap:12px;padding:12px 14px;border-radius:9px;align-items:flex-start;cursor:pointer;">
-      <input type="checkbox" data-k="${escapeHtml(c.id)}" style="margin-top:3px;width:18px;height:18px;flex:0 0 auto;accent-color:var(--color-accent,#c21f49);cursor:pointer;">
-      <span style="font-size:0.95rem;line-height:1.45;">${escapeHtml(c.texto)}</span>
+    <label class="acuerdo-check">
+      <input type="checkbox" data-k="${escapeHtml(c.id)}">
+      <span>${escapeHtml(c.texto)}</span>
     </label>
   `).join("");
 
   container.innerHTML = `
     <div class="acuerdo">
-      <p style="color:var(--color-text-muted,#666);margin:0 0 var(--s-3,14px);">${escapeHtml(def.intro || "")}</p>
+      <p class="acuerdo__intro">${escapeHtml(def.intro || "")}</p>
 
-      <div class="acuerdo-doc" style="margin-bottom:var(--s-4,20px);">
+      <div class="acuerdo-doc">
         <div class="leccion-pdf" data-pdf-src="${escapeHtml(def.pdfUrl)}">
           <div class="leccion-pdf__loading">
             <div class="leccion-pdf__spinner" aria-hidden="true"></div>
             <span>Cargando documento…</span>
           </div>
         </div>
-        <p class="leccion-pdf__alt" style="margin-top:8px;font-size:0.85rem;color:var(--color-text-muted,#666);">
+        <p class="acuerdo-doc__alt">
           ¿Prefieres verlo aparte?
-          <a href="${escapeHtml(def.pdfUrl)}" target="_blank" rel="noopener" style="color:var(--color-accent,#c21f49);font-weight:600;">Abrir el PDF en otra pestaña</a>
+          <a href="${escapeHtml(def.pdfUrl)}" target="_blank" rel="noopener">Abrir el PDF en otra pestaña</a>
         </p>
       </div>
 
-      <h3 style="font-size:1.05rem;margin:0 0 10px;">Confirma que leíste y estás de acuerdo</h3>
-      <div class="acuerdo-checks" style="border:1px solid var(--color-border,#e6e6e6);border-radius:12px;padding:6px 4px;margin-bottom:var(--s-4,20px);">
-        ${casillasHtml}
-      </div>
-
-      <h3 style="font-size:1.05rem;margin:0 0 10px;">Firma con tu nombre</h3>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
-        <div style="flex:1 1 260px;min-width:220px;">
-          <label class="acuerdo-flabel" for="acuerdoNombre" style="display:block;font-size:0.8rem;font-weight:600;color:var(--color-text-muted,#666);margin-bottom:6px;">${escapeHtml(def.firmaLabel || "Escribe tu nombre como firma")}</label>
-          <input type="text" id="acuerdoNombre" autocomplete="name" placeholder="Tu nombre"
-            style="width:100%;padding:11px 13px;border:1px solid var(--color-border,#e6e6e6);border-radius:10px;font-size:1.1rem;">
+      <section class="acuerdo__section">
+        <h3 class="acuerdo__section-title">Confirma que leíste y estás de acuerdo</h3>
+        <p class="acuerdo__section-hint">Marca cada punto para continuar.</p>
+        <div class="acuerdo-checks">
+          ${casillasHtml}
         </div>
-        <div style="flex:0 0 150px;">
-          <label class="acuerdo-flabel" style="display:block;font-size:0.8rem;font-weight:600;color:var(--color-text-muted,#666);margin-bottom:6px;">Fecha</label>
-          <div style="padding:11px 13px;border:1px dashed var(--color-border,#e6e6e6);border-radius:10px;color:var(--color-text-muted,#666);">${escapeHtml(fechaCorta())}</div>
-        </div>
-      </div>
+      </section>
 
-      <p style="font-size:0.75rem;color:var(--color-text-muted,#666);margin:14px 0 0;line-height:1.5;">
+      <section class="acuerdo__section">
+        <h3 class="acuerdo__section-title">Firma con tu nombre</h3>
+        <p class="acuerdo__section-hint">Tu nombre escrito funciona como firma electrónica.</p>
+        <div class="acuerdo-firma">
+          <div class="acuerdo-firma__campo">
+            <label class="acuerdo-firma__label" for="acuerdoNombre">${escapeHtml(def.firmaLabel || "Escribe tu nombre como firma")}</label>
+            <input type="text" id="acuerdoNombre" class="acuerdo-firma__input" autocomplete="name" placeholder="Tu nombre">
+          </div>
+          <div class="acuerdo-firma__fecha">
+            <span class="acuerdo-firma__label">Fecha</span>
+            <div class="acuerdo-firma__fecha-valor">${escapeHtml(fechaCorta())}</div>
+          </div>
+        </div>
+
+        <div class="acuerdo__actions">
+          <button type="button" id="acuerdoFirmarBtn" class="btn btn-accent" disabled>Firmar y continuar</button>
+          <span id="acuerdoHint" class="acuerdo__hint">Marca las ${def.casillas.length} casillas y escribe tu nombre.</span>
+        </div>
+        <p id="acuerdoError" class="acuerdo__error" hidden></p>
+      </section>
+
+      <p class="acuerdo__legal">
         Al escribir tu nombre y firmar, otorgas tu consentimiento de forma electrónica. Se registrará tu nombre,
         la fecha y hora, la versión del documento y las casillas confirmadas. Puedes revocar este consentimiento
         contactando al responsable del programa (derechos ARCO).
       </p>
-
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:20px;">
-        <button type="button" id="acuerdoFirmarBtn" class="btn btn-accent" disabled>Firmar y continuar</button>
-        <span id="acuerdoHint" style="font-size:0.8rem;color:var(--color-text-muted,#666);">Marca las ${def.casillas.length} casillas y escribe tu nombre.</span>
-      </div>
-      <p id="acuerdoError" style="color:#c0392b;font-size:0.85rem;margin:10px 0 0;" hidden></p>
     </div>
   `;
 

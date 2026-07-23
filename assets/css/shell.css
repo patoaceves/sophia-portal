@@ -4804,6 +4804,151 @@
 .sesion-chip--mod svg { color: var(--color-accent); }
 
 /* ──────────────────────────────────────────────────────────────────
+ * Acuerdo de participación · firma digital
+ * ────────────────────────────────────────────────────────────────── */
+
+.acuerdo__intro {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--s-5);
+}
+
+.acuerdo__section {
+  margin-top: var(--s-8);
+}
+
+.acuerdo__section-title {
+  font-size: 1.05rem;
+  margin: 0 0 var(--s-2);
+}
+
+.acuerdo__section-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--s-4);
+}
+
+.acuerdo-doc__alt {
+  margin: var(--s-3) 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.acuerdo-doc__alt a {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.acuerdo-checks {
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-bg-elevated);
+  overflow: hidden;
+}
+
+.acuerdo-check {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-4) var(--s-5);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.acuerdo-check + .acuerdo-check {
+  border-top: 1px solid var(--color-border);
+}
+
+.acuerdo-check:hover { background: var(--color-bg-subtle); }
+
+.acuerdo-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.acuerdo-check span {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.acuerdo-firma {
+  display: flex;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.acuerdo-firma__campo { flex: 1 1 260px; min-width: 220px; }
+.acuerdo-firma__fecha { flex: 0 0 170px; }
+
+.acuerdo-firma__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--s-2);
+}
+
+.acuerdo-firma__input {
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  font-size: 1.1rem;
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+}
+
+.acuerdo-firma__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.acuerdo-firma__fecha-valor {
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--r-md);
+  color: var(--color-text-muted);
+}
+
+.acuerdo__legal {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: var(--s-6) 0 0;
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.acuerdo__actions {
+  display: flex;
+  gap: var(--s-4);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--s-6);
+}
+
+.acuerdo__hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.acuerdo__error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin: var(--s-3) 0 0;
+}
+
+@media (max-width: 640px) {
+  .acuerdo-check { padding: var(--s-4); }
+  .acuerdo-firma__fecha { flex: 1 1 100%; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * Lesson page · checkpoint progress bar (replaces simple bar)
  * ────────────────────────────────────────────────────────────────── */
 
