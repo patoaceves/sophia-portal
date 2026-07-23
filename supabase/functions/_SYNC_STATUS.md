@@ -1,5 +1,18 @@
 # Estado de sincronización · Edge Functions (repo vs producción)
 
+**Actualizado: 2026-07-23 — Auditoría de flujos de escritura + candados de
+duplicados.** Prod tiene **39** funciones. Migración aplicada:
+`20260723_009_dedupe_respuestas_unique.sql` (elimina 7 filas duplicadas por
+carrera check-then-insert y agrega índices únicos por inscripción+lección en
+`respuestas_quiz`, `respuestas_autoeval` y `evaluaciones_sesion`).
+**PENDIENTE de respaldar al repo** — estas 4 funciones existen en prod pero
+no tienen carpeta aquí: `submit-ryff-publico`, `get-resultados-ryff-publico`,
+`get-video-url`, `guardar-progreso-video`. Bajarlas en cuanto haya chance
+(vía MCP `get_edge_function`) para que el repo vuelva a ser respaldo completo.
+Verificado hoy: `submit-medicion` y `firmar-acuerdo` del repo coinciden con
+prod v1; logs de 24h limpios (puro 200); 0 filas malformadas en las 9 tablas
+de respuestas.
+
 **Actualizado: 2026-06-09 — Escala RYFF de Bienestar Psicológico añadida.**
 Nuevas funciones desplegadas vía MCP (project `ajvjyisplqsrjsessayo`):
 `submit-ryff` (v1, verify_jwt true) y `get-resultados-ryff` (v1, verify_jwt
