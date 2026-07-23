@@ -4747,22 +4747,30 @@
 
 .modulo-card__head-info { flex: 1; }
 
+/* Pill de ponente: contorno limpio en verde institucional, sin relleno.
+   Va sin fondo a propósito, para que el chip rojo de modalidad siga siendo
+   el elemento más fuerte de la card y el ponente se lea como metadata
+   secundaria. El doble `border-color` es el fallback para navegadores sin
+   soporte de color-mix (mismo patrón que .sesion-chip--mod). */
 .modulo-card__ponente {
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
   margin-top: var(--s-3);
   padding: var(--s-1) var(--s-3);
-  background: var(--color-bg-subtle);
+  background: transparent;
+  border: 1px solid rgba(37, 71, 77, 0.32);
+  border-color: color-mix(in srgb, var(--color-sophia-green) 32%, transparent);
   border-radius: var(--r-full);
   font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  color: var(--color-sophia-green);
 }
 
 .modulo-card__ponente svg {
   width: 14px;
   height: 14px;
-  color: var(--color-text-subtle);
+  color: rgba(37, 71, 77, 0.65);
+  color: color-mix(in srgb, var(--color-sophia-green) 65%, transparent);
 }
 
 /* Módulo cards · chips de sesión (modalidad / fecha / hora), en una línea */

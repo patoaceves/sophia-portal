@@ -23,6 +23,11 @@
   --color-accent-faint: #fbecef;
   --color-border: #e8dfd0;
   --color-border-strong: #c9bea9;
+  /* Verde institucional SOPHIA. Color de marca, NO es un color de estado.
+     No confundir con --color-success (verde sage ambiental) ni con
+     --color-success-tech. Se usa para metadata de identidad dentro del
+     contenido, p. ej. el pill de ponente en las cards del temario. */
+  --color-sophia-green: #25474d;
   /* Verde sage/olive original — para palomitas, highlights de checkpoints,
      completados, etc. Es el verde "ambiental" del portal. */
   --color-success: #6f8e5e;
