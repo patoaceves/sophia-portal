@@ -103,7 +103,7 @@ begin
 
   -- L3: Documento de bienvenida (PDF)
   insert into public.lecciones (modulo_id, titulo, tipo, orden, url_externa, subtitulo, estatus)
-  select v_mod0, 'Documento de bienvenida', 'pdf', 3,
+  select v_mod0, 'Bienvenida', 'pdf', 3,
          '/assets/pdf/anxiety-workshop/documento-bienvenida.pdf',
          'Léelo con calma antes de la primera sesión.', 'borrador'
   where not exists (
