@@ -5877,18 +5877,18 @@
 /* When the lesson body contains a PDF viewer, remove padding so the PDF
    fills the white container edge-to-edge (no beige-inside-white boxing).
    overflow: hidden clips the PDF canvas to the body's border-radius. */
-.leccion-page__body:has(.leccion-pdf) {
+.leccion-page__body:has(.leccion-pdf):not(:has(.acuerdo)) {
   padding: 0;
   overflow: hidden;
 }
 
 /* .leccion-html is just a transparent wrapper here */
-.leccion-page__body:has(.leccion-pdf) .leccion-html {
+.leccion-page__body:has(.leccion-pdf):not(:has(.acuerdo)) .leccion-html {
   display: contents;
 }
 
 /* The PDF viewer itself: fill the container, no extra border/background */
-.leccion-page__body:has(.leccion-pdf) .leccion-pdf {
+.leccion-page__body:has(.leccion-pdf):not(:has(.acuerdo)) .leccion-pdf {
   margin-top: 0;
   border: none;
   border-radius: 0;
@@ -5897,7 +5897,7 @@
 }
 
 /* Alt "open in tab" link gets its own padding since body has none */
-.leccion-page__body:has(.leccion-pdf) .leccion-pdf__alt {
+.leccion-page__body:has(.leccion-pdf):not(:has(.acuerdo)) .leccion-pdf__alt {
   padding: var(--s-3) var(--s-5);
 }
 
