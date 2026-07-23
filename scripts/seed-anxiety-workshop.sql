@@ -60,7 +60,7 @@ begin
      'Daniel Contreras', 2),
     ('El Cuerpo como Ancla',
      'Sesión presencial, jueves 06/Aug/2026, 7:30 a 9:30 PM.',
-     'Nancy Moreno', 3),
+     'Daniela Leyva', 3),
     ('Lo que pienso vs. lo que es. La mente como aliada',
      'Sesión en línea, jueves 13/Aug/2026, 7:30 a 9:30 PM.',
      'Santiago Viveros', 4),
