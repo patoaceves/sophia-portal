@@ -93,13 +93,21 @@ begin
     select 1 from public.lecciones l where l.modulo_id = v_mod0 and l.orden = 1
   );
 
-  -- L2: Documento de bienvenida (PDF)
+  -- L2: Instrumentos de medición (GAD-7 y WHO-5, interactivos)
+  insert into public.lecciones (modulo_id, titulo, tipo, etiqueta, orden, url_externa, subtitulo, estatus)
+  select v_mod0, 'Instrumentos de medición', 'enlace', 'Instrumentos', 2,
+         'anxiety-instrumentos-v1', 'Tu línea base antes de la primera sesión.', 'borrador'
+  where not exists (
+    select 1 from public.lecciones l where l.modulo_id = v_mod0 and l.orden = 2
+  );
+
+  -- L3: Documento de bienvenida (PDF)
   insert into public.lecciones (modulo_id, titulo, tipo, orden, url_externa, subtitulo, estatus)
-  select v_mod0, 'Documento de bienvenida', 'pdf', 2,
+  select v_mod0, 'Documento de bienvenida', 'pdf', 3,
          '/assets/pdf/anxiety-workshop/documento-bienvenida.pdf',
          'Léelo con calma antes de la primera sesión.', 'borrador'
   where not exists (
-    select 1 from public.lecciones l where l.modulo_id = v_mod0 and l.orden = 2
+    select 1 from public.lecciones l where l.modulo_id = v_mod0 and l.orden = 3
   );
 
   -- ── Lecciones de las sesiones 1..8 ──────────────────────────────────────

@@ -26,6 +26,7 @@ import { mountEvaluacion } from "./evaluacion-sesion.js";
 import { mountQuiz } from "./quiz.js";
 import { mountTarea } from "./tarea.js";
 import { mountAcuerdo } from "./acuerdo.js";
+import { mountInstrumentos } from "./instrumentos.js";
 import { mountBalanza } from "./actividad-balanza.js";
 import { mountVideoPlayer } from "./video-player.js";
 
@@ -268,6 +269,10 @@ async function renderLeccion(persona, payload, cursoContext) {
   // viene en leccion.urlExterna (ej. "anxiety-acuerdo-v1").
   const isAcuerdo = leccion.tipo === "enlace" &&
     (leccion.etiqueta || "").trim().toLowerCase() === "acuerdo";
+  // "Instrumentos de medición": lección tipo enlace con etiqueta "Instrumentos".
+  // Monta GAD-7 y WHO-5 (instrumentos.js); la clave viene en leccion.urlExterna.
+  const isInstrumentos = leccion.tipo === "enlace" &&
+    (leccion.etiqueta || "").trim().toLowerCase() === "instrumentos";
   // "Actividad en clase": lección tipo quiz. Monta el wizard de quiz; la
   // clave del quiz (qué preguntas mostrar) viene en leccion.urlExterna.
   const isQuiz = leccion.tipo === "quiz";
@@ -312,6 +317,7 @@ async function renderLeccion(persona, payload, cursoContext) {
           ${isTest ? `<div id="testEmbed"></div>`
             : isEvaluacion ? `<div id="evalEmbed"></div>`
             : isAcuerdo ? `<div id="acuerdoEmbed"></div>`
+            : isInstrumentos ? `<div id="instrumentosEmbed"></div>`
             : isQuiz ? `<div id="quizEmbed"></div>`
             : isTarea ? `
                 ${leccion.contenidoHTML ? `<div class="leccion-html">${leccion.contenidoHTML}</div>` : ""}
@@ -320,7 +326,7 @@ async function renderLeccion(persona, payload, cursoContext) {
             : renderContent(leccion)}
         </div>
 
-        ${(isTest || isEvaluacion || isAcuerdo) ? `
+        ${(isTest || isEvaluacion || isAcuerdo || isInstrumentos) ? `
           <footer class="leccion-page__footer leccion-page__footer--test">
             <div>
               ${prevId
@@ -430,6 +436,31 @@ async function renderLeccion(persona, payload, cursoContext) {
             leccion.completada = true;
           } catch (e) {
             console.warn("No se pudo marcar el acuerdo como completado:", e);
+          }
+        }
+        document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");
+      },
+    });
+  }
+
+  // Instrumentos de medición (GAD-7 y WHO-5). Al completarlos, marcamos la
+  // lección y revelamos el botón de avanzar.
+  if (isInstrumentos) {
+    const container = document.getElementById("instrumentosEmbed");
+    await mountInstrumentos({
+      container,
+      clave: (leccion.urlExterna || "").trim(),
+      inscripcionId,
+      leccionId: leccion.id,
+      cursoId,
+      momento: "inicial",
+      onComplete: async () => {
+        if (inscripcionId && !leccion.completada) {
+          try {
+            await api.marcarLeccion(leccion.id, inscripcionId);
+            leccion.completada = true;
+          } catch (e) {
+            console.warn("No se pudo marcar los instrumentos como completados:", e);
           }
         }
         document.getElementById("quizAdvanceBtn")?.removeAttribute("hidden");

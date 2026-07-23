@@ -224,6 +224,23 @@ export const api = {
     return data;
   },
 
+  /** POST /submit-medicion -> { ok, medicionId, resultados, alreadyDone? } */
+  async submitMedicion({ inscripcionId, leccionId, cursoId, instrumentoClave, momento, respuestas }) {
+    const { data } = await callEdge("submit-medicion", {
+      method: "POST",
+      body: { inscripcionId, leccionId, cursoId, instrumentoClave, momento, respuestas },
+    });
+    return data;
+  },
+
+  /** GET /get-medicion -> { completado, resultados?, completadoEn? } */
+  async getMedicion(instrumentoClave, inscripcionId, momento) {
+    const { data } = await callEdge("get-medicion", {
+      query: { instrumentoClave, inscripcionId, momento: momento || "inicial" },
+    });
+    return data;
+  },
+
   /** GET /get-video-url?leccionId= -> { signedUrl, subtitlesUrl, resumePct, completada, inscripcionId, expiresIn } */
   async getVideoUrl(leccionId) {
     const { data } = await callEdge("get-video-url", { query: { leccionId } });
