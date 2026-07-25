@@ -214,13 +214,15 @@ function renderPonenteHeader(state) {
  * Normaliza acentos, espacios → guiones, y prueba .png + .jpg.
  * Hardcoded list por ahora; los archivos reales en el repo son:
  *   mariana-riojas.jpg, mateo-villarreal.jpg, marycarmen-tena.png,
- *   nancy-moreno.jpg, pedro-mariscal.jpg, jose-gonzalez.jpg
+ *   nancy-moreno.jpg, pedro-mariscal.jpg, jose-gonzalez.jpg,
+ *   daniela-leyva.jpg
  */
 function ponenteSlug(name) {
   const norm = (name || "")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quitar acentos
     .toLowerCase().trim();
   const slugs = {
+    "daniela leyva": "daniela-leyva.jpg",
     "mariana riojas": "mariana-riojas.jpg",
     "mateo villarreal": "mateo-villarreal.jpg",
     "marycarmen tena": "marycarmen-tena.png",
