@@ -4545,6 +4545,237 @@ export const QUIZZES = {
     ],
   },
 
+  "coaching-evaluacion-s17": {
+    titulo: "Evaluación · Sesión 17",
+    introEyebrow: "Evaluación · Sesión 17",
+    introTitle: "La paradoja de la felicidad",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre la paradoja de la felicidad: el World Happiness Report, los mecanismos de Easterlin y la comparación social en América Latina.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "s17_whr_posicion_mexico",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cuál fue la posición de México en el World Happiness Report mencionada al inicio del video?",
+        opciones: [
+          "Tercer lugar",
+          "Décimo lugar",
+          "Vigésimo cuarto lugar",
+          "Sexto lugar",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s17_easterlin_mecanismos",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué dos mecanismos explica Richard Easterlin para justificar que más ingreso no siempre implica más felicidad?",
+        opciones: [
+          "Comparación social y adaptación hedónica",
+          "Gratitud cultural y movilidad social",
+          "Igualdad de ingresos y bienestar público",
+          "Consumo y educación",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s17_familismo_latam",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "Según el video y el artículo citado, ¿qué rasgo cultural de América Latina contribuiría a reportar mayores niveles de felicidad?",
+        opciones: [
+          "Individualismo y autonomía extrema",
+          "Familismo y relaciones interpersonales cálidas",
+          "Baja expresión emocional y reserva",
+          "Preferencia por el ahorro y la austeridad",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s17_experimento_salarial",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "En el experimento citado sobre decisiones salariales (con opciones de $50,000 vs $100,000 con distintos referentes), ¿qué preferencia mostraron aproximadamente la mitad de los participantes?",
+        opciones: [
+          "Preferían ganar menos que los demás para sentirse superiores",
+          "Preferían la segunda opción porque era mayor el ingreso absoluto",
+          "Elegían la primera opción (ganar $50,000 mientras los demás ganaban $25,000)",
+          "Eran indiferentes entre las dos opciones",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s17_comparacion_desigualdad",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Una hipótesis del artículo dice que, ante la desigualdad, los latinoamericanos tienden a compararse de manera...",
+        opciones: [
+          "Ascendente (con quienes les va mejor)",
+          "Horizontal (solo con quienes son exactamente iguales)",
+          "Descendente (con quienes les va peor)",
+          "Global (con personas de otros países principalmente)",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-evaluacion-s18": {
+    titulo: "Evaluación · Sesión 18",
+    introEyebrow: "Evaluación · Sesión 18",
+    introTitle: "Experimentar, no planear",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre experimentar en lugar de planear a 10 años: productividad tóxica, tiny experiments, affective labeling y la matriz de mindsets.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "s18_productividad_toxica",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Según el video, ¿qué causa en gran parte la “productividad tóxica”?",
+        opciones: [
+          "La falta de rutinas diarias",
+          "Compararnos continuamente con los demás en redes sociales",
+          "Tener demasiadas metas pequeñas",
+          "Practicar el affective labeling",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s18_tiny_experiments",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué describe mejor la idea de “experimentos pequeños” (tiny experiments) presentada en el video?",
+        opciones: [
+          "Seguir un plan lineal estricto para alcanzar el éxito",
+          "Hacer cambios drásticos en la vida inmediatamente",
+          "Diseñar pruebas pequeñas basadas en la curiosidad para descubrir lo que funciona para uno",
+          "Evitar cualquier tipo de fracaso para mantener la autoestima",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s18_affective_labeling",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Cuál es la función principal del “affective labeling” (etiquetar afectos) según la charla?",
+        opciones: [
+          "Incrementar la actividad de la amígdala para potenciar emociones",
+          "Poner palabras a las emociones para reducir la reactividad emocional y favorecer el pensamiento racional",
+          "Reemplazar la toma de decisiones racional por decisiones emocionales",
+          "Sustituir la reflexión por la acción inmediata",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s18_perfectionist_mindset",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "En la matriz de mindsets que presenta la ponente, ¿qué caracteriza al “perfectionist mindset”?",
+        opciones: [
+          "Baja ambición y alta curiosidad",
+          "Alta ambición y baja curiosidad",
+          "Baja ambición y baja curiosidad",
+          "Alta ambición y alta curiosidad",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s18_conclusion_autora",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Cuál fue la conclusión personal de la autora tras su experimento de publicar videos semanalmente?",
+        opciones: [
+          "Que quería convertirse en YouTuber permanentemente porque disfrutó mucho el proceso",
+          "Que, aunque externamente el experimento fue exitoso, internamente no disfrutó la producción y decidió parar",
+          "Que los datos externos y los internos siempre coinciden",
+          "Que la única medida válida de éxito es el número de suscriptores",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
+  "coaching-evaluacion-s19": {
+    titulo: "Evaluación · Sesión 19",
+    introEyebrow: "Evaluación · Sesión 19",
+    introTitle: "El misterio del libre albedrío",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre el misterio del libre albedrío: el determinismo neuronal, la evidencia experimental y los modelos alternativos al materialismo.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "s19_postura_libre_albedrio",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "¿Cuál es la postura que el presentador atribuye a muchos neurocientíficos y filósofos respecto al libre albedrío?",
+        opciones: [
+          "El libre albedrío es una ilusión y nuestro comportamiento está determinado por la actividad neuronal.",
+          "El libre albedrío es absoluto y no está influido por procesos físicos.",
+          "El libre albedrío depende únicamente de factores sociales y no biológicos.",
+          "El libre albedrío solo existe en animales no humanos.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s19_evidencia_experimental",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Qué evidencia experimental menciona el video para apoyar la idea de que la actividad cerebral precede a la conciencia de la decisión?",
+        opciones: [
+          "Estudios que muestran que las decisiones se pueden predecir hasta siete segundos antes de la conciencia.",
+          "Observaciones de que las personas nunca pueden predecir sus propias decisiones.",
+          "Experimentos que demuestran que las neuronas no están relacionadas con la conducta.",
+          "Encuestas que indican que la mayoría de la gente no cree en el libre albedrío.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s19_alternativa_materialismo",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "¿Qué alternativa propone el presentador frente al materialismo que toma la realidad física como fundamental?",
+        opciones: [
+          "Partir de la consciencia como elemento fundamental y derivar el mundo físico desde un modelo matemático.",
+          "Rechazar la ciencia y adoptar explicaciones sobrenaturales sin modelo.",
+          "Mantener el materialismo pero negar la existencia de la conciencia.",
+          "Sostener que sólo los genes existen y la consciencia es irrelevante.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s19_agentes_conscientes",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "En el modelo presentado de agentes conscientes, ¿qué significa que agentes simples (de “un bit”) se combinen para formar agentes superiores?",
+        opciones: [
+          "Que interacciones simples pueden generar agentes con mayor capacidad decisoria y libre albedrío distribuido.",
+          "Que la combinación siempre elimina cualquier posibilidad de libre albedrío.",
+          "Que los agentes superiores son independientes y no influyen en los inferiores.",
+          "Que los agentes simples son conscientes de todos los estados posibles de los superiores.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "s19_causalidad_chance",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "¿Qué argumento utiliza el presentador para cuestionar que la causalidad y la probabilidad (chance) sean fundamentos definitivos para negar el libre albedrío?",
+        opciones: [
+          "Afirma que tanto la noción de causa como la de chance terminan en un regresivo “misterio” sin explicación última.",
+          "Sostiene que la causalidad ya está completamente resuelta por la física clásica.",
+          "Declara que la probabilidad demuestra claramente la existencia del alma inmortal.",
+          "Alega que la jurisprudencia legal prohíbe cualquier discusión sobre causalidad.",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
 };
 
 export function getQuizDef(key) {
