@@ -4352,6 +4352,199 @@ export const QUIZZES = {
     ],
   },
 
+  // ═══ Sesiones 16-19 · Fundamentos de Coaching ═══
+
+  "coaching-reflexion-s16": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 16 · Tiempo y Creatividad",
+    introTitle: "Reflexión personal: Gestión del Tiempo y Flujo Creativo",
+    introLead: [
+      "Objetivo de la sesión: identificar hábitos de gestión del tiempo y tipos de creatividad para programar planes de acción de largo plazo.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 16.",
+    preguntas: [
+      { id: "reflexion_s16", tipo: "texto", eyebrow: "Pregunta reflexiva", texto: "¿Mi plan de acción actual refleja mi tipo de creatividad dominante o es simplemente una respuesta a la presión externa del tiempo?", placeholder: "Escribe con honestidad. No hay respuesta correcta.", obligatoria: true },
+    ],
+  },
+  "coaching-reflexion-s17": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 17 · Imaginación y comprensión",
+    introTitle: "Reflexión personal: Motivación y Compromiso Sostenido",
+    introLead: [
+      "Objetivo de la sesión: asegurar la motivación en proyectos a largo plazo mediante preguntas de imaginación y comprensión profunda.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 17.",
+    preguntas: [
+      { id: "reflexion_s17", tipo: "texto", eyebrow: "Pregunta reflexiva", texto: "¿Qué estructura de apoyo necesito construir hoy para que mi compromiso con mi carrera de coach no dependa solo del entusiasmo inicial?", placeholder: "Escribe con honestidad. No hay respuesta correcta.", obligatoria: true },
+    ],
+  },
+  "coaching-reflexion-s18": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 18 · Transformational",
+    introTitle: "Reflexión personal: La Dimensión Trascendental del Coaching",
+    introLead: [
+      "Objetivo de la sesión: explorar las implicaciones de la metodología de coaching trascendental y su impacto en la transformación del ser.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 18.",
+    preguntas: [
+      { id: "reflexion_s18", tipo: "texto", eyebrow: "Pregunta reflexiva", texto: "¿Cómo se vería mi práctica de coaching si el objetivo final no fuera el éxito, sino la trascendencia del cliente?", placeholder: "Escribe con honestidad. No hay respuesta correcta.", obligatoria: true },
+    ],
+  },
+  "coaching-reflexion-s19": {
+    titulo: "Reflexión personal",
+    introEyebrow: "Sesión 19 · Superación de miedos",
+    introTitle: "Reflexión personal: El Plan Maestro y la Superación del Miedo",
+    introLead: [
+      "Objetivo de la sesión: crear un plan estratégico con contingencias e identificar los ocho obstáculos internos que bloquean el éxito.",
+      "Tómate unos minutos para reflexionar con honestidad sobre la siguiente pregunta antes de la sesión en vivo. Tu respuesta se guarda en el portal y la podrás revisar más adelante.",
+    ],
+    doneTitle: "Reflexión guardada",
+    doneLead: "Tu reflexión quedó registrada. Llévala contigo a la sesión 19.",
+    preguntas: [
+      { id: "reflexion_s19", tipo: "texto", eyebrow: "Pregunta reflexiva", texto: "Al mirar de frente mis ocho obstáculos internos, ¿cuál de ellos es el que más me enseña sobre mi propia humanidad y capacidad de liderazgo?", placeholder: "Escribe con honestidad. No hay respuesta correcta.", obligatoria: true },
+    ],
+  },
+
+  "coaching-journaling-s16": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 16 · Tiempo y Creatividad",
+    introTitle: "Journaling: Gestión del Tiempo y Flujo Creativo",
+    introLead: [
+      "Objetivo: identificar hábitos de gestión y tipos de creatividad para planes de acción a largo plazo.",
+      "Desafío de la semana: ayuda a un coachee a crear un plan de acción a 6 meses utilizando una técnica de diagramación creativa.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      { id: "journaling_s16", tipo: "texto", eyebrow: "Reflexión de la semana", texto: "¿Es el obstáculo de mi cliente un problema de gestión del tiempo o un bloqueo en su tipo de creatividad?", placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.", obligatoria: true },
+    ],
+  },
+  "coaching-journaling-s17": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 17 · Imaginación y comprensión",
+    introTitle: "Journaling: Motivación y Compromiso Sostenido",
+    introLead: [
+      "Objetivo: asegurar el compromiso en proyectos de largo plazo mediante la autoconciencia.",
+      "Desafío de la semana: redacta tres preguntas que exploren el “propósito último” de un proyecto para asegurar su sostenibilidad en el tiempo.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      { id: "journaling_s17", tipo: "texto", eyebrow: "Reflexión de la semana", texto: "¿Qué preguntas de comprensión garantizan que la motivación del coachee sea intrínseca y no dependa de factores externos?", placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.", obligatoria: true },
+    ],
+  },
+  "coaching-journaling-s18": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 18 · Transformational",
+    introTitle: "Journaling: La Dimensión Trascendental del Coaching",
+    introLead: [
+      "Objetivo: explorar las implicaciones de la metodología de coaching trascendental.",
+      "Desafío de la semana: reflexiona sobre cómo tu práctica de coaching contribuye a un bienestar mayor que el individual (familia, empresa o sociedad).",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      { id: "journaling_s18", tipo: "texto", eyebrow: "Reflexión de la semana", texto: "¿Cómo se redefine el éxito del coaching cuando el objetivo trasciende el “yo” y se enfoca en el impacto sistémico?", placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.", obligatoria: true },
+    ],
+  },
+  "coaching-journaling-s19": {
+    titulo: "Journaling de la semana",
+    introEyebrow: "Semana 19 · Superación de miedos",
+    introTitle: "Journaling: El Plan Maestro y la Superación del Miedo",
+    introLead: [
+      "Objetivo: crear un plan estratégico final con contingencias y superación de miedos.",
+      "Desafío de la semana: presenta tu proyecto final de coaching, incluyendo un análisis detallado de posibles obstáculos y sus respectivas estrategias de superación.",
+    ],
+    doneTitle: "Journaling guardado",
+    doneLead: "Tu entrada quedó registrada. Volveremos a estos hallazgos en próximas sesiones.",
+    preguntas: [
+      { id: "journaling_s19", tipo: "texto", eyebrow: "Reflexión de la semana", texto: "¿Cuáles son los ocho obstáculos internos que más frecuentemente sabotean mis propios proyectos y cómo los integraré en mi plan de contingencia?", placeholder: "Anota tu reflexión. Trabajaremos sobre estos hallazgos en las próximas sesiones.", obligatoria: true },
+    ],
+  },
+
+  "coaching-evaluacion-s16": {
+    titulo: "Evaluación · Sesión 16",
+    introEyebrow: "Evaluación · Sesión 16",
+    introTitle: "Tiempo y Creatividad",
+    introLead: [
+      "Este quiz tiene 5 preguntas de opción múltiple sobre los estilos de tiempo (In Time / Through Time) y su aplicación en la planificación de proyectos.",
+      "Al terminar verás tu resultado y podrás revisar las respuestas correctas. Si lo deseas, puedes reintentar el quiz.",
+    ],
+    preguntas: [
+      {
+        id: "tiempo_estilo_coachee",
+        tipo: "choice",
+        eyebrow: "Pregunta 1 de 5",
+        texto: "Un coachee llega tarde a la sesión, pero cuando empieza a hablar se sumerge totalmente en el tema, olvidando el retraso y reviviendo las emociones de su relato. ¿Qué estilo de tiempo predomina en él?",
+        opciones: [
+          "A través del tiempo (Through Time).",
+          "En el tiempo (In Time).",
+          "Tiempo lineal.",
+          "Tiempo de gestión técnica.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "tiempo_through_time",
+        tipo: "choice",
+        eyebrow: "Pregunta 2 de 5",
+        texto: "¿Cuál es una característica principal de las personas que procesan “a través del tiempo”?",
+        opciones: [
+          "Pierden la noción de los horarios con facilidad.",
+          "Perciben el tiempo de forma secuencial y mantienen una conciencia clara de la duración.",
+          "Sus recuerdos pasados se sienten como si ocurrieran en el presente.",
+          "Tienden a fusionar el trabajo y el ocio sin distinguir fronteras.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "tiempo_linea_atras",
+        tipo: "choice",
+        eyebrow: "Pregunta 3 de 5",
+        texto: "En el ejercicio de la Línea de Tiempo, ¿por qué es útil invitar al coachee a trabajar “hacia atrás” desde el resultado final?",
+        opciones: [
+          "Para confundir al hemisferio izquierdo y que sea más creativo.",
+          "Porque permite identificar las acciones que condujeron al éxito desde una postura de “logro ya alcanzado” (As-If).",
+          "Porque es más rápido que planear hacia adelante.",
+          "Porque el pasado es más importante que el futuro en el coaching.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "tiempo_evidencia",
+        tipo: "choice",
+        eyebrow: "Pregunta 4 de 5",
+        texto: "¿Qué es el “procedimiento de evidencia” en la planificación de un proyecto?",
+        opciones: [
+          "Una lista de excusas por si el proyecto falla.",
+          "La definición sensorial (qué verás, oirás y sentirás) que te confirmará que has alcanzado el éxito.",
+          "Los documentos legales necesarios para el plan de acción.",
+          "El registro de horas trabajadas durante la semana.",
+        ],
+        obligatoria: true,
+      },
+      {
+        id: "tiempo_intervencion",
+        tipo: "choice",
+        eyebrow: "Pregunta 5 de 5",
+        texto: "Si un coachee con tendencia “In-Time” (en el tiempo) se siente bloqueado con un proyecto a 6 meses, ¿cuál es la mejor intervención del coach?",
+        opciones: [
+          "Regañarlo por su falta de puntualidad.",
+          "Utilizar la Línea de Tiempo para ayudarlo a ver el proyecto de forma lineal y desglosar los pasos inmediatos de la primera semana.",
+          "Pedirle que viva más en el presente y no se preocupe por el futuro.",
+          "Darle una agenda física y obligarlo a usarla.",
+        ],
+        obligatoria: true,
+      },
+    ],
+  },
+
 };
 
 export function getQuizDef(key) {
