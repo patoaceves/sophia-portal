@@ -230,6 +230,7 @@ function ponenteSlug(name) {
     "marycarmen tena herran": "marycarmen-tena.png",
     "mary carmen tena herran": "marycarmen-tena.png",
     "nancy moreno": "nancy-moreno.jpg",
+    "daniel contreras": "daniel-contreras.jpg",
     "pedro mariscal": "pedro-mariscal.jpg",
     "jose gonzalez": "jose-gonzalez.jpg",
     "josé gonzález": "jose-gonzalez.jpg",
